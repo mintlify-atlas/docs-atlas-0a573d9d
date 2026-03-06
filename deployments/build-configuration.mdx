@@ -1,0 +1,827 @@
+---
+title: Build Configuration
+description: Configure build methods, optimize build processes, and customize Docker image creation
+---
+
+## Overview
+
+Dokploy supports multiple build methods to transform your source code into Docker images. Each method is optimized for different languages, frameworks, and use cases.
+
+## Build Methods
+
+Dokploy provides six build methods:
+
+<CardGroup cols={2}>
+  <Card title="Nixpacks" icon="cube" color="#5865F2">
+    Auto-detect framework and generate optimized builds
+  </Card>
+  <Card title="Dockerfile" icon="docker" color="#2496ED">
+    Full control with custom Docker builds
+  </Card>
+  <Card title="Heroku Buildpacks" icon="h" color="#430098">
+    Heroku-compatible buildpacks
+  </Card>
+  <Card title="Paketo Buildpacks" icon="cloud" color="#0066CC">
+    Cloud Native Buildpacks standard
+  </Card>
+  <Card title="Railpack" icon="gem" color="#CC0000">
+    Optimized Ruby on Rails builds
+  </Card>
+  <Card title="Static" icon="file-code" color="#10B981">
+    Static site generation with nginx
+  </Card>
+</CardGroup>
+
+## Nixpacks (Recommended)
+
+Nixpacks automatically detects your application's framework and generates an optimized build configuration.
+
+### Supported Frameworks
+
+Nixpacks supports 20+ languages and frameworks:
+
+<AccordionGroup>
+  <Accordion title="JavaScript / TypeScript">
+    - **Node.js** - package.json with scripts
+    - **Next.js** - Automatic optimization
+    - **React** - CRA, Vite, or custom
+    - **Vue.js** - Vue CLI or Vite
+    - **Angular** - Angular CLI
+    - **Svelte** - SvelteKit or Vite
+    - **Nuxt** - SSR or static
+    - **Remix** - Full-stack framework
+    
+    **Detection:**
+    ```json
+    // package.json
+    {
+      "scripts": {
+        "build": "next build",
+        "start": "next start"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Python">
+    - **Django** - Web framework
+    - **Flask** - Microframework
+    - **FastAPI** - Modern async framework
+    - **Streamlit** - Data apps
+    
+    **Detection:**
+    ```python
+    # requirements.txt, Pipfile, or pyproject.toml
+    django>=4.0
+    gunicorn>=20.0
+    ```
+  </Accordion>
+  
+  <Accordion title="Go">
+    - **Standard Go** - go.mod projects
+    - **Gin** - Web framework
+    - **Echo** - High performance
+    - **Fiber** - Express-inspired
+    
+    **Detection:**
+    ```go
+    // go.mod
+    module github.com/user/app
+    go 1.21
+    ```
+  </Accordion>
+  
+  <Accordion title="Ruby">
+    - **Ruby on Rails** - Full-stack framework
+    - **Sinatra** - Lightweight framework
+    - **Hanami** - Modern framework
+    
+    **Detection:**
+    ```ruby
+    # Gemfile
+    source 'https://rubygems.org'
+    gem 'rails', '~> 7.0'
+    ```
+  </Accordion>
+  
+  <Accordion title="PHP">
+    - **Laravel** - Web framework
+    - **Symfony** - Enterprise framework
+    - **WordPress** - CMS
+    
+    **Detection:**
+    ```json
+    // composer.json
+    {
+      "require": {
+        "laravel/framework": "^10.0"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Rust">
+    - **Cargo projects** - Standard Rust apps
+    - **Actix Web** - High performance
+    - **Rocket** - Web framework
+    
+    **Detection:**
+    ```toml
+    # Cargo.toml
+    [package]
+    name = "myapp"
+    version = "1.0.0"
+    ```
+  </Accordion>
+  
+  <Accordion title="Java / JVM">
+    - **Spring Boot** - Enterprise framework
+    - **Maven** - Project management
+    - **Gradle** - Build automation
+    
+    **Detection:**
+    ```xml
+    <!-- pom.xml or build.gradle -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Configuration
+
+```typescript
+{
+  "buildType": "nixpacks",
+  "buildPath": "/",           // Root directory
+  "dockerContextPath": null,   // Not used for Nixpacks
+  "dockerfile": null           // Not used for Nixpacks
+}
+```
+
+### How Nixpacks Works
+
+<Steps>
+  <Step title="Detection Phase">
+    Nixpacks scans your repository for:
+    - Package manager files (package.json, requirements.txt, etc.)
+    - Framework-specific files (next.config.js, Cargo.toml, etc.)
+    - Lock files (package-lock.json, Cargo.lock, etc.)
+  </Step>
+  
+  <Step title="Plan Generation">
+    Based on detection, Nixpacks generates:
+    - Install commands (npm install, pip install, etc.)
+    - Build commands (npm run build, cargo build, etc.)
+    - Start commands (npm start, python app.py, etc.)
+  </Step>
+  
+  <Step title="Build Execution">
+    Nixpacks executes the plan:
+    ```bash
+    # Example for Node.js
+    npm ci
+    npm run build
+    # Image created with start command: npm start
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  Nixpacks requires no configuration for most applications. It "just works" out of the box.
+</Tip>
+
+## Dockerfile
+
+Use custom Dockerfiles for full control over the build process.
+
+### Configuration
+
+```typescript
+{
+  "buildType": "dockerfile",
+  "dockerfile": "Dockerfile",                  // Path to Dockerfile
+  "dockerContextPath": ".",                    // Build context
+  "dockerBuildStage": "production",           // Multi-stage target (optional)
+  "buildPath": "/"
+}
+```
+
+### Basic Dockerfile
+
+<CodeGroup>
+```dockerfile Node.js
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy source
+COPY . .
+
+# Build application
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy built files
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+
+EXPOSE 3000
+
+CMD ["node", "dist/index.js"]
+```
+
+```dockerfile Python
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source
+COPY . .
+
+# Production stage
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /app /app
+
+EXPOSE 8000
+
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:app"]
+```
+
+```dockerfile Go
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# Copy go mod files
+COPY go.* ./
+RUN go mod download
+
+# Copy source
+COPY . .
+
+# Build binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+
+# Production stage
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /root/
+
+COPY --from=builder /app/main .
+
+EXPOSE 8080
+
+CMD ["./main"]
+```
+
+```dockerfile Rust
+FROM rust:1.75-alpine AS builder
+
+WORKDIR /app
+
+RUN apk add --no-cache musl-dev
+
+# Copy Cargo files
+COPY Cargo.* ./
+
+# Build dependencies (cached layer)
+RUN mkdir src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release
+RUN rm -rf src
+
+# Copy source and build
+COPY . .
+RUN touch src/main.rs
+RUN cargo build --release
+
+# Production stage
+FROM alpine:latest
+
+WORKDIR /root/
+
+COPY --from=builder /app/target/release/myapp .
+
+EXPOSE 8080
+
+CMD ["./myapp"]
+```
+</CodeGroup>
+
+### Multi-Stage Builds
+
+Specify which stage to use as the final image:
+
+```dockerfile
+# Build stage
+FROM node:20-alpine AS development
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+CMD ["npm", "run", "dev"]
+
+# Production build stage
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine AS production
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+CMD ["node", "dist/index.js"]
+```
+
+Configure in Dokploy:
+```typescript
+{
+  "buildType": "dockerfile",
+  "dockerfile": "Dockerfile",
+  "dockerBuildStage": "production"  // Target this stage
+}
+```
+
+### Build Arguments
+
+Pass build-time variables to Docker build:
+
+```dockerfile
+ARG NODE_ENV=production
+ARG API_URL
+
+ENV NODE_ENV=${NODE_ENV}
+ENV NEXT_PUBLIC_API_URL=${API_URL}
+
+RUN npm run build
+```
+
+Configure in Dokploy:
+```typescript
+{
+  "buildArgs": "NODE_ENV=production\nAPI_URL=https://api.example.com"
+}
+```
+
+<Info>
+  Build arguments are available during build but not in the final container. Use environment variables for runtime configuration.
+</Info>
+
+### Docker Context
+
+Set the build context directory:
+
+```typescript
+{
+  "dockerfile": "docker/Dockerfile",    // Dockerfile location
+  "dockerContextPath": "."             // Context root
+}
+```
+
+**Directory structure:**
+```bash
+repo/
+├── docker/
+│   └── Dockerfile        # dockerfile: docker/Dockerfile
+├── src/
+│   └── app.js
+└── package.json
+
+# dockerContextPath: . (repo root)
+# Files accessed with: COPY src/ /app/src/
+```
+
+## Heroku Buildpacks
+
+Use Heroku-compatible buildpacks for zero-configuration builds.
+
+### Configuration
+
+```typescript
+{
+  "buildType": "heroku_buildpacks",
+  "herokuVersion": "24",  // Heroku stack version
+  "buildPath": "/"
+}
+```
+
+### Supported Languages
+
+Heroku buildpacks automatically detect:
+- Node.js (package.json)
+- Python (requirements.txt, Pipfile)
+- Ruby (Gemfile)
+- PHP (composer.json)
+- Java (pom.xml, build.gradle)
+- Go (go.mod)
+- Scala (build.sbt)
+
+### How It Works
+
+Heroku buildpacks follow conventions:
+
+1. **Detect** - Check for framework files
+2. **Compile** - Install dependencies and build
+3. **Release** - Generate start command
+
+**Example for Node.js:**
+```json
+// package.json
+{
+  "scripts": {
+    "build": "next build",
+    "start": "next start"  // Used as start command
+  }
+}
+```
+
+## Paketo Buildpacks
+
+Cloud Native Buildpacks compliant with OCI standards.
+
+### Configuration
+
+```typescript
+{
+  "buildType": "paketo_buildpacks",
+  "buildPath": "/"
+}
+```
+
+### Advantages
+
+- **No Dockerfile** - Auto-detect and build
+- **Rebasing** - Update base image without rebuild
+- **BOM** - Software Bill of Materials
+- **Security** - Minimal attack surface
+
+### Supported Stacks
+
+- Java (Spring Boot, Maven, Gradle)
+- Node.js (npm, yarn, pnpm)
+- Go (Go modules)
+- .NET (ASP.NET Core)
+- PHP (Composer)
+- Ruby (Bundler)
+- Python (pip, poetry)
+
+## Railpack
+
+Optimized builds for Ruby on Rails applications.
+
+### Configuration
+
+```typescript
+{
+  "buildType": "railpack",
+  "railpackVersion": "0.15.4",  // Railpack version
+  "buildPath": "/"
+}
+```
+
+### Features
+
+- **Asset Precompilation** - Automatic asset:precompile
+- **Database Migration** - Optional db:migrate
+- **Yarn/npm** - JavaScript dependency management
+- **Ruby Version** - Automatic detection from .ruby-version
+
+### Requirements
+
+```ruby
+# Gemfile
+source 'https://rubygems.org'
+
+gem 'rails', '~> 7.0'
+gem 'puma', '~> 6.0'
+```
+
+## Static Sites
+
+Serve static websites with nginx.
+
+### Configuration
+
+```typescript
+{
+  "buildType": "static",
+  "publishDirectory": "dist",        // Build output directory
+  "isStaticSpa": true,               // Enable SPA routing
+  "buildPath": "/"
+}
+```
+
+### Build Process
+
+<Steps>
+  <Step title="Install Dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
+  
+  <Step title="Build Static Files">
+    ```bash
+    npm run build
+    # Outputs to dist/, build/, or public/
+    ```
+  </Step>
+  
+  <Step title="Serve with Nginx">
+    ```nginx
+    server {
+      listen 80;
+      root /app/dist;
+      index index.html;
+      
+      # SPA fallback
+      location / {
+        try_files $uri $uri/ /index.html;
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+### SPA Mode
+
+Enable for single-page applications:
+
+```typescript
+{
+  "isStaticSpa": true  // Enables try_files fallback
+}
+```
+
+This configures nginx to serve `index.html` for all routes, allowing client-side routing to work.
+
+### Publish Directory
+
+Specify where build output is located:
+
+```typescript
+// React (Create React App)
+{"publishDirectory": "build"}
+
+// Vue CLI
+{"publishDirectory": "dist"}
+
+// Next.js (static export)
+{"publishDirectory": "out"}
+
+// Vite
+{"publishDirectory": "dist"}
+
+// Angular
+{"publishDirectory": "dist/myapp"}
+```
+
+## Build Secrets
+
+Pass sensitive values during build without exposing them in the final image.
+
+### Configuration
+
+```typescript
+{
+  "buildSecrets": "NPM_TOKEN=npm_xxxxx\nGITHUB_TOKEN=ghp_xxxxx"
+}
+```
+
+### Usage in Dockerfile
+
+```dockerfile
+# syntax=docker/dockerfile:1.4
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+# Mount secrets during build
+RUN --mount=type=secret,id=NPM_TOKEN \
+    echo "//registry.npmjs.org/:_authToken=$(cat /run/secrets/NPM_TOKEN)" > ~/.npmrc && \
+    npm ci && \
+    rm ~/.npmrc
+
+COPY . .
+RUN npm run build
+
+CMD ["npm", "start"]
+```
+
+<Warning>
+  Build secrets are not available in the final image or at runtime. Use environment variables for runtime secrets.
+</Warning>
+
+## Build Optimization
+
+### Layer Caching
+
+Order Dockerfile instructions for optimal caching:
+
+```dockerfile
+# 1. Install system dependencies (rarely changes)
+RUN apk add --no-cache git
+
+# 2. Copy dependency files (changes occasionally)
+COPY package*.json ./
+
+# 3. Install dependencies (cached if package.json unchanged)
+RUN npm ci
+
+# 4. Copy source code (changes frequently)
+COPY . .
+
+# 5. Build application
+RUN npm run build
+```
+
+### .dockerignore
+
+Exclude unnecessary files from build context:
+
+```bash
+# .dockerignore
+node_modules
+.git
+.env
+*.log
+dist
+build
+coverage
+.DS_Store
+README.md
+.github
+.vscode
+```
+
+### Multi-Stage Benefits
+
+```dockerfile
+# Builder stage includes build tools
+FROM node:20 AS builder  # 300MB
+RUN npm install  # Includes devDependencies
+RUN npm run build
+
+# Production stage is minimal
+FROM node:20-alpine  # 40MB
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+# Final image: ~150MB vs 800MB without multi-stage
+```
+
+## Clean Cache
+
+Force rebuild without using cache:
+
+```typescript
+{
+  "cleanCache": true  // Next deployment ignores build cache
+}
+```
+
+<Note>
+  Cache is automatically cleaned after the build. Enable `cleanCache` only when needed.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Build Fails - Dependencies Not Found">
+    **Symptoms:** Module not found, package not installed
+    
+    **Solutions:**
+    1. Verify dependency files are committed:
+       ```bash
+       git status package-lock.json
+       ```
+    2. Use appropriate install command:
+       ```dockerfile
+       # Node.js - use ci for reproducible builds
+       RUN npm ci
+       
+       # Python - specify versions
+       RUN pip install -r requirements.txt
+       ```
+    3. Enable clean cache:
+       ```typescript
+       {"cleanCache": true}
+       ```
+  </Accordion>
+  
+  <Accordion title="Build Succeeds But App Won't Start">
+    **Symptoms:** Container exits immediately after starting
+    
+    **Solutions:**
+    1. Check Dockerfile CMD/ENTRYPOINT:
+       ```dockerfile
+       # Ensure command is correct
+       CMD ["node", "dist/index.js"]
+       ```
+    2. Verify build output location:
+       ```typescript
+       // For static sites
+       {"publishDirectory": "build"}  // Must match actual output
+       ```
+    3. Check application logs:
+       ```bash
+       docker service logs myapp
+       ```
+  </Accordion>
+  
+  <Accordion title="Build Too Slow">
+    **Symptoms:** Builds take 10+ minutes
+    
+    **Solutions:**
+    1. Optimize Dockerfile layer order
+    2. Add .dockerignore file
+    3. Use multi-stage builds
+    4. Enable build cache:
+       ```typescript
+       {"cleanCache": false}
+       ```
+    5. Use smaller base images:
+       ```dockerfile
+       FROM node:20-alpine  # vs node:20
+       ```
+  </Accordion>
+  
+  <Accordion title="Out of Disk Space">
+    **Symptoms:** No space left on device
+    
+    **Solutions:**
+    1. Clean old images:
+       ```bash
+       docker image prune -a
+       ```
+    2. Remove build cache:
+       ```bash
+       docker builder prune -a
+       ```
+    3. Check disk usage:
+       ```bash
+       df -h
+       docker system df
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Environment Variables"
+    icon="key"
+    href="/deployments/environment-variables"
+  >
+    Configure runtime environment
+  </Card>
+  <Card
+    title="Git Integration"
+    icon="code-branch"
+    href="/deployments/git-integration"
+  >
+    Automate builds from Git
+  </Card>
+  <Card
+    title="Docker Registry"
+    icon="docker"
+    href="/deployments/docker-registry"
+  >
+    Push built images to registries
+  </Card>
+  <Card
+    title="Deployments Overview"
+    icon="rocket"
+    href="/deployments/overview"
+  >
+    Learn about deployment workflows
+  </Card>
+</CardGroup>

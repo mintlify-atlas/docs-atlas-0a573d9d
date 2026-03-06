@@ -1,0 +1,517 @@
+---
+title: Redis
+description: Deploy and manage Redis databases in Dokploy
+---
+
+Redis is an open-source, in-memory data structure store used as a database, cache, message broker, and streaming engine. Dokploy makes it easy to deploy and manage Redis instances as Docker services.
+
+## Creating a Redis Database
+
+To create a Redis database in Dokploy:
+
+1. Navigate to your project
+2. Select the environment
+3. Click "Add Service" and select "Redis"
+4. Configure the database settings
+
+### Basic Configuration
+
+- **Name** - A friendly name for your Redis instance
+- **App Name** - The Docker service name (used for internal DNS)
+- **Description** - Optional description
+- **Docker Image** - Default: `redis:latest` (recommended: `redis:7-alpine` or `redis:7`)
+
+### Database Credentials
+
+- **Database Password** - Password for Redis authentication (optional but recommended)
+
+<Note>
+The password is automatically configured via the `REDIS_PASSWORD` environment variable and passed as a command argument: `redis-server --requirepass [password]`
+</Note>
+
+### Advanced Settings
+
+- **External Port** - Optional port to expose Redis externally (default internal port: 6379)
+- **Command** - Override the default container command
+- **Args** - Additional arguments to pass to Redis server
+- **Environment Variables** - Additional custom environment variables
+
+## Connection Strings
+
+### Internal Connection (from other services)
+
+#### With Password
+
+```bash
+redis://:[password]@[appName]:6379
+```
+
+**Example:**
+```bash
+redis://:mypassword@my-redis:6379
+```
+
+#### Without Password (not recommended)
+
+```bash
+redis://[appName]:6379
+```
+
+### External Connection
+
+If you've configured an external port (e.g., 6380):
+
+```bash
+redis://:[password]@[host]:[externalPort]
+```
+
+<Warning>
+Never expose Redis to the internet without a strong password. Redis is designed for trusted environments.
+</Warning>
+
+### Connection String Formats
+
+<Tabs>
+  <Tab title="Standard URI">
+    ```bash
+    redis://:password@hostname:6379
+    # or for redis:// protocol
+    redis://hostname:6379
+    ```
+  </Tab>
+  <Tab title="redis-cli Command">
+    ```bash
+    redis-cli -h hostname -p 6379 -a password
+    # or using URI
+    redis-cli -u redis://:password@hostname:6379
+    ```
+  </Tab>
+  <Tab title="Node.js (ioredis)">
+    ```javascript
+    const Redis = require('ioredis');
+    
+    const redis = new Redis({
+      host: 'my-redis',
+      port: 6379,
+      password: 'mypassword'
+    });
+    
+    // or with URI
+    const redis = new Redis('redis://:mypassword@my-redis:6379');
+    ```
+  </Tab>
+  <Tab title="Python (redis-py)">
+    ```python
+    import redis
+    
+    r = redis.Redis(
+        host='my-redis',
+        port=6379,
+        password='mypassword',
+        decode_responses=True
+    )
+    
+    # or with URI
+    r = redis.from_url('redis://:mypassword@my-redis:6379')
+    ```
+  </Tab>
+  <Tab title="Go (go-redis)">
+    ```go
+    import "github.com/go-redis/redis/v8"
+    
+    rdb := redis.NewClient(&redis.Options{
+        Addr:     "my-redis:6379",
+        Password: "mypassword",
+        DB:       0,
+    })
+    ```
+  </Tab>
+</Tabs>
+
+## Environment Variables
+
+Redis containers support these environment variables:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `REDIS_PASSWORD` | Authentication password | Recommended |
+
+<Info>
+Dokploy automatically configures Redis with the password using the `--requirepass` argument.
+</Info>
+
+## Data Persistence
+
+Redis data is stored in a Docker volume mounted at:
+
+- **Mount Path**: `/data`
+- **Volume Name**: `{appName}-data`
+
+The volume persists even when the container is stopped or removed.
+
+### Persistence Modes
+
+Redis supports two persistence modes:
+
+1. **RDB (Redis Database)** - Point-in-time snapshots
+2. **AOF (Append Only File)** - Logs every write operation
+
+To enable AOF persistence, add to Args:
+```bash
+--appendonly yes
+```
+
+## Resource Configuration
+
+Configure resource limits for your Redis instance:
+
+```yaml
+Memory Limit: 1GB         # Maximum memory
+Memory Reservation: 512MB  # Guaranteed memory
+CPU Limit: 1.0            # Maximum CPU cores
+CPU Reservation: 0.25     # Guaranteed CPU cores
+```
+
+<Tip>
+Redis is memory-intensive. Set `maxmemory` to prevent Redis from using all available memory and configure an eviction policy.
+</Tip>
+
+## Operations
+
+### Starting the Database
+
+Click the "Start" button in the Dokploy UI or use the API:
+
+```bash
+POST /api/redis/start
+{
+  "redisId": "your-redis-id"
+}
+```
+
+### Stopping the Database
+
+Click the "Stop" button or use the API:
+
+```bash
+POST /api/redis/stop
+{
+  "redisId": "your-redis-id"
+}
+```
+
+### Reloading the Database
+
+Reload applies configuration changes by stopping and starting the service:
+
+```bash
+POST /api/redis/reload
+{
+  "redisId": "your-redis-id"
+}
+```
+
+### Rebuilding the Database
+
+<Warning>
+Rebuilding will delete all data. Make sure to backup first!
+</Warning>
+
+```bash
+POST /api/redis/rebuild
+{
+  "redisId": "your-redis-id"
+}
+```
+
+## Accessing Redis CLI
+
+To access the Redis CLI in the running container:
+
+```bash
+docker exec -it $(docker ps -qf "name=my-redis") redis-cli -a mypassword
+```
+
+Or use the Dokploy terminal feature in the UI.
+
+## Common Redis Commands
+
+```bash
+# String operations
+SET key "value"
+GET key
+DEL key
+EXISTS key
+EXPIRE key 3600
+TTL key
+
+# Hash operations
+HSET user:1 name "John"
+HGET user:1 name
+HGETALL user:1
+
+# List operations
+LPUSH mylist "item1"
+RPUSH mylist "item2"
+LRANGE mylist 0 -1
+LLEN mylist
+
+# Set operations
+SADD myset "member1"
+SMEMBERS myset
+SISMEMBER myset "member1"
+
+# Sorted set operations
+ZADD leaderboard 100 "player1"
+ZRANGE leaderboard 0 -1 WITHSCORES
+ZREVRANGE leaderboard 0 9
+
+# Database management
+INFO
+DBSIZE
+FLUSHDB
+FLUSHALL
+CONFIG GET maxmemory
+CONFIG SET maxmemory 1gb
+
+# Monitoring
+MONITOR
+SLOWLOG GET 10
+CLIENT LIST
+
+# Pub/Sub
+SUBSCRIBE channel
+PUBLISH channel "message"
+```
+
+## Configuration Options
+
+Add these as arguments in the "Args" field:
+
+```bash
+# Enable AOF persistence
+--appendonly yes
+
+# Set max memory
+--maxmemory 1gb
+
+# Set eviction policy
+--maxmemory-policy allkeys-lru
+
+# Disable snapshotting
+--save ""
+
+# Configure snapshot intervals
+--save 900 1 --save 300 10 --save 60 10000
+
+# Set max clients
+--maxclients 10000
+
+# Enable protected mode
+--protected-mode yes
+
+# Bind to specific interface
+--bind 0.0.0.0
+```
+
+## Eviction Policies
+
+When Redis reaches max memory, it can evict keys based on different policies:
+
+| Policy | Description |
+|--------|-------------|
+| `noeviction` | Return errors when memory limit is reached |
+| `allkeys-lru` | Remove least recently used keys |
+| `allkeys-lfu` | Remove least frequently used keys |
+| `volatile-lru` | Remove LRU keys with expire set |
+| `volatile-lfu` | Remove LFU keys with expire set |
+| `volatile-ttl` | Remove keys with shortest TTL |
+| `volatile-random` | Remove random keys with expire set |
+| `allkeys-random` | Remove random keys |
+
+<Tip>
+For caching use cases, `allkeys-lru` is usually the best policy.
+</Tip>
+
+## Use Cases
+
+### 1. Caching
+
+```javascript
+// Cache with expiration
+redis.setex('user:1', 3600, JSON.stringify(userData));
+
+// Get cached data
+const cached = await redis.get('user:1');
+if (cached) {
+  return JSON.parse(cached);
+}
+```
+
+### 2. Session Storage
+
+```javascript
+const session = require('express-session');
+const RedisStore = require('connect-redis').default;
+
+app.use(session({
+  store: new RedisStore({ client: redis }),
+  secret: 'your-secret',
+  resave: false,
+  saveUninitialized: false
+}));
+```
+
+### 3. Rate Limiting
+
+```javascript
+async function rateLimit(userId, limit = 100) {
+  const key = `rate:${userId}:${Date.now() / 60000 | 0}`;
+  const count = await redis.incr(key);
+  await redis.expire(key, 60);
+  return count <= limit;
+}
+```
+
+### 4. Message Queue
+
+```javascript
+// Producer
+await redis.lpush('queue:tasks', JSON.stringify(task));
+
+// Consumer
+const task = await redis.brpop('queue:tasks', 0);
+```
+
+### 5. Pub/Sub
+
+```javascript
+// Subscriber
+redis.subscribe('notifications', (err, count) => {
+  console.log(`Subscribed to ${count} channels`);
+});
+
+redis.on('message', (channel, message) => {
+  console.log(`Received: ${message} from ${channel}`);
+});
+
+// Publisher
+redis.publish('notifications', 'Hello World!');
+```
+
+## Monitoring and Performance
+
+### Key Metrics to Monitor
+
+```bash
+# Memory usage
+INFO memory
+
+# Stats
+INFO stats
+
+# Keyspace
+INFO keyspace
+
+# CPU usage
+INFO cpu
+
+# Clients
+INFO clients
+
+# Replication
+INFO replication
+```
+
+### Slow Query Log
+
+```bash
+# Get slow queries
+SLOWLOG GET 10
+
+# Configure slow log threshold (microseconds)
+CONFIG SET slowlog-log-slower-than 10000
+```
+
+## Backups
+
+While Redis is typically used for caching and doesn't need backups, Dokploy supports Redis backups if persistence is enabled.
+
+### Manual Backup
+
+```bash
+# Trigger RDB snapshot
+SAVE
+# or background save
+BGSAVE
+
+# Copy RDB file
+docker cp $(docker ps -qf "name=my-redis"):/data/dump.rdb ./backup/
+```
+
+See the [Backups](/databases/backups) page for automated backup configuration.
+
+## Troubleshooting
+
+### Connection Refused
+
+- Verify the service is running in Dokploy UI
+- Check the service name matches your `appName`
+- Ensure your application is in the same Docker network
+
+### Authentication Failed
+
+- Verify password in the database settings
+- Check if password is correctly set in connection string
+- Use `-a password` flag with redis-cli
+
+### Out of Memory
+
+- Check current memory usage: `INFO memory`
+- Set `maxmemory` limit
+- Configure eviction policy
+- Increase memory limits in resource configuration
+
+### Performance Issues
+
+- Check slow query log: `SLOWLOG GET`
+- Monitor key sizes: Large keys can slow Redis
+- Use pipelining for multiple operations
+- Enable AOF if needed, but be aware of performance impact
+- Consider using Redis Cluster for large datasets
+
+## Best Practices
+
+1. **Use Specific Versions** - Pin to specific Redis versions (e.g., `redis:7.2.4-alpine`) instead of `latest`
+2. **Always Use Passwords** - Never run Redis without authentication in production
+3. **Set Max Memory** - Always configure `maxmemory` to prevent OOM issues
+4. **Choose Eviction Policy** - Select appropriate eviction policy for your use case
+5. **Don't Expose Publicly** - Keep Redis on internal networks
+6. **Monitor Memory** - Watch memory usage and key counts
+7. **Use Connection Pooling** - Reuse connections in your applications
+8. **Enable Persistence** - Use AOF or RDB if data durability is important
+9. **Avoid Large Keys** - Keep individual keys small (< 1MB recommended)
+10. **Use Key Expiration** - Set TTL on keys to prevent unbounded growth
+
+## Redis vs Other Caches
+
+| Feature | Redis | Memcached | In-Memory |
+|---------|-------|-----------|----------|
+| Data Types | Rich | Simple | Varies |
+| Persistence | Yes | No | No |
+| Replication | Yes | No | No |
+| Pub/Sub | Yes | No | No |
+| Transactions | Yes | No | Varies |
+| Lua Scripting | Yes | No | No |
+| Performance | Excellent | Excellent | Best |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Backups" icon="clock" href="/databases/backups">
+    Configure Redis persistence and backups
+  </Card>
+  <Card title="Overview" icon="database" href="/databases/overview">
+    Learn about other database options
+  </Card>
+</CardGroup>

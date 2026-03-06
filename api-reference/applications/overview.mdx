@@ -1,0 +1,128 @@
+---
+title: 'Applications Overview'
+description: 'Comprehensive guide to managing applications via the Dokploy API'
+---
+
+## Introduction
+
+The Dokploy Applications API allows you to programmatically manage your deployed applications. You can create, configure, deploy, and manage applications from various sources including GitHub, GitLab, Bitbucket, Docker registries, and custom Git repositories.
+
+## Application Sources
+
+Dokploy supports multiple application source types:
+
+- **GitHub**: Deploy from GitHub repositories with automatic webhooks
+- **GitLab**: Connect to GitLab projects with CI/CD integration
+- **Bitbucket**: Deploy from Bitbucket repositories
+- **Gitea**: Self-hosted Git service integration
+- **Docker**: Pull and deploy from Docker registries
+- **Git**: Connect to any Git repository via SSH/HTTPS
+- **Drop**: Upload and deploy application code directly
+
+## Build Types
+
+Applications can be built using various build systems:
+
+- **dockerfile**: Build using a Dockerfile
+- **nixpacks**: Automatic build detection and configuration
+- **heroku_buildpacks**: Heroku-compatible buildpacks
+- **paketo_buildpacks**: Cloud Native Buildpacks
+- **railpack**: Ruby on Rails optimized builds
+- **static**: Static site deployment
+
+## Application Status
+
+Applications can be in one of the following states:
+
+- `idle`: Application is not running
+- `running`: Deployment or operation in progress
+- `done`: Successfully deployed and running
+- `error`: Deployment or operation failed
+
+## Core Features
+
+### Deployment Management
+
+- Deploy applications from source code or Docker images
+- Redeploy with cache or clean builds
+- Rollback to previous deployments
+- Cancel ongoing deployments
+
+### Configuration
+
+- Environment variables and secrets
+- Build arguments and build-time secrets
+- Resource limits (CPU and memory)
+- Health checks and restart policies
+
+### Monitoring & Control
+
+- Start, stop, and reload applications
+- Monitor application status and health
+- View deployment logs and history
+- Read application metrics
+
+### Advanced Features
+
+- Preview deployments for pull requests
+- Multi-environment support
+- Traefik configuration for routing
+- Docker Swarm mode support
+
+## Authentication
+
+All application endpoints require authentication using a Bearer token:
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.create \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{...}'
+```
+
+## Common Parameters
+
+Most application endpoints use the following parameter:
+
+<ParamField path="applicationId" type="string" required>
+  Unique identifier for the application
+</ParamField>
+
+## Error Handling
+
+The API returns standard HTTP status codes:
+
+- `200`: Success
+- `400`: Bad request (invalid parameters)
+- `401`: Unauthorized (invalid or missing token)
+- `404`: Application not found
+- `500`: Internal server error
+
+Error responses follow this format:
+
+```json
+{
+  "error": {
+    "message": "Error description",
+    "code": "ERROR_CODE"
+  }
+}
+```
+
+## Rate Limiting
+
+API requests are subject to rate limiting to ensure service stability. If you exceed the rate limit, you'll receive a `429 Too Many Requests` response.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Create Application" icon="plus" href="/api-reference/applications/create">
+    Learn how to create new applications
+  </Card>
+  <Card title="Deploy Application" icon="rocket" href="/api-reference/applications/deploy">
+    Deploy and redeploy your applications
+  </Card>
+  <Card title="Manage Application" icon="sliders" href="/api-reference/applications/manage">
+    Manage application lifecycle and settings
+  </Card>
+</CardGroup>

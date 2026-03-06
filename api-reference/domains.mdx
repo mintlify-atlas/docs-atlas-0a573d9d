@@ -1,0 +1,317 @@
+---
+title: 'Domains'
+description: 'Manage domains and SSL certificates for your applications'
+---
+
+## Overview
+
+Domains in Dokploy allow you to configure custom domains for your applications and compose services with automatic SSL certificate management using Let's Encrypt or custom certificates.
+
+## Create Domain
+
+Add a new domain to an application or compose service.
+
+<ParamField body="host" type="string" required>
+  The domain name (e.g., `example.com`, `app.example.com`).
+</ParamField>
+
+<ParamField body="path" type="string" optional>
+  URL path for routing (e.g., `/api`, `/admin`). Leave empty for root path.
+</ParamField>
+
+<ParamField body="port" type="number" optional>
+  The container port to route traffic to.
+</ParamField>
+
+<ParamField body="https" type="boolean" default={true}>
+  Enable HTTPS for this domain.
+</ParamField>
+
+<ParamField body="certificateType" type="string" required>
+  SSL certificate type:
+  - `letsencrypt` - Automatic Let's Encrypt certificate
+  - `none` - No SSL (HTTP only)
+  - `custom` - Use a custom certificate
+</ParamField>
+
+<ParamField body="domainType" type="string" required>
+  The type of service: `application` or `compose`.
+</ParamField>
+
+<ParamField body="applicationId" type="string" optional>
+  Required if domainType is `application`.
+</ParamField>
+
+<ParamField body="composeId" type="string" optional>
+  Required if domainType is `compose`.
+</ParamField>
+
+<ParamField body="serviceName" type="string" optional>
+  For compose services, specify which service to route to.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/domain.create" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "host": "app.example.com",
+    "port": 3000,
+    "https": true,
+    "certificateType": "letsencrypt",
+    "domainType": "application",
+    "applicationId": "app-123"
+  }'
+```
+
+## Get Application Domains
+
+Retrieve all domains configured for an application.
+
+<ParamField query="applicationId" type="string" required>
+  The application ID to get domains for.
+</ParamField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/domain.byApplicationId?applicationId=app-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Get Compose Domains
+
+Retrieve all domains configured for a compose service.
+
+<ParamField query="composeId" type="string" required>
+  The compose application ID.
+</ParamField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/domain.byComposeId?composeId=compose-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Get Domain Details
+
+Get detailed information about a specific domain.
+
+<ParamField query="domainId" type="string" required>
+  The unique identifier of the domain.
+</ParamField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/domain.one?domainId=domain-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Update Domain
+
+Modify an existing domain configuration.
+
+<ParamField body="domainId" type="string" required>
+  The ID of the domain to update.
+</ParamField>
+
+<ParamField body="host" type="string" optional>
+  New domain name.
+</ParamField>
+
+<ParamField body="path" type="string" optional>
+  Updated path.
+</ParamField>
+
+<ParamField body="port" type="number" optional>
+  New port number.
+</ParamField>
+
+<ParamField body="https" type="boolean" optional>
+  Enable or disable HTTPS.
+</ParamField>
+
+<ParamField body="certificateType" type="string" optional>
+  Change certificate type.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/domain.update" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domainId": "domain-123",
+    "host": "new-domain.example.com",
+    "https": true
+  }'
+```
+
+## Delete Domain
+
+Remove a domain from an application or compose service.
+
+<ParamField body="domainId" type="string" required>
+  The ID of the domain to delete.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/domain.delete" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domainId": "domain-123"
+  }'
+```
+
+## Generate Traefik.me Domain
+
+Generate a wildcard domain using traefik.me for testing purposes.
+
+<ParamField body="appName" type="string" required>
+  The application name to generate domain for.
+</ParamField>
+
+<ParamField body="serverId" type="string" optional>
+  Server ID if deploying to a specific server.
+</ParamField>
+
+### Response
+
+Returns a generated domain in the format: `{appName}-{hash}.{server-ip}.traefik.me`
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/domain.generateDomain" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "appName": "my-app"
+  }'
+```
+
+## Check Traefik.me Availability
+
+Check if traefik.me domain generation is available for a server.
+
+<ParamField query="serverId" type="string" required>
+  The server ID to check.
+</ParamField>
+
+### Response
+
+Returns the server IP address if traefik.me domains can be generated.
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/domain.canGenerateTraefikMeDomains?serverId=server-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Validate Domain
+
+Verify that a domain's DNS is correctly configured.
+
+<ParamField body="domain" type="string" required>
+  The domain name to validate.
+</ParamField>
+
+<ParamField body="serverIp" type="string" optional>
+  Expected server IP address.
+</ParamField>
+
+### Response
+
+Returns validation status and DNS information.
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/domain.validateDomain" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domain": "app.example.com"
+  }'
+```
+
+## SSL Certificate Types
+
+### Let's Encrypt
+
+Automatic SSL certificates from Let's Encrypt:
+- Free and automatic renewal
+- Widely trusted
+- Requires domain to point to your server
+- HTTP-01 challenge for validation
+
+```json Example
+{
+  "certificateType": "letsencrypt",
+  "https": true
+}
+```
+
+### Custom Certificate
+
+Use your own SSL certificate:
+- Upload certificate and private key
+- Supports wildcard certificates
+- Manual renewal required
+
+<ParamField body="certificate" type="string">
+  PEM-encoded SSL certificate.
+</ParamField>
+
+<ParamField body="certificateKey" type="string">
+  PEM-encoded private key.
+</ParamField>
+
+### No SSL
+
+HTTP only (not recommended for production):
+```json Example
+{
+  "certificateType": "none",
+  "https": false
+}
+```
+
+## Path-Based Routing
+
+Route different paths to different services:
+
+```bash Example: Route /api to backend
+curl -X POST "https://your-dokploy-instance.com/api/domain.create" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "host": "example.com",
+    "path": "/api",
+    "port": 8080,
+    "https": true,
+    "certificateType": "letsencrypt",
+    "domainType": "application",
+    "applicationId": "backend-app"
+  }'
+```
+
+## Wildcard Domains
+
+For wildcard domains (e.g., `*.example.com`):
+1. Use a custom certificate that supports wildcards
+2. Configure DNS with a wildcard A record
+3. Set `host` to `*.example.com`
+
+## Domain Status
+
+<ResponseField name="uniqueConfigKey" type="string">
+  Unique identifier for the domain configuration in Traefik.
+</ResponseField>
+
+<ResponseField name="certificateType" type="string">
+  Current SSL certificate type.
+</ResponseField>
+
+<ResponseField name="https" type="boolean">
+  Whether HTTPS is enabled.
+</ResponseField>
+
+<ResponseField name="host" type="string">
+  The domain name.
+</ResponseField>
+
+<ResponseField name="port" type="number">
+  Container port for routing.
+</ResponseField>

@@ -1,0 +1,805 @@
+---
+title: Docker Registry Deployments
+description: Deploy pre-built Docker images from public and private container registries
+---
+
+## Overview
+
+Dokploy can deploy pre-built Docker images directly from container registries, bypassing the build process. This is ideal for:
+
+- **Pre-built Images** - Deploy official images from Docker Hub
+- **CI/CD Integration** - Deploy images built in external pipelines
+- **Multi-Architecture** - Use registry-built multi-arch images
+- **Private Images** - Deploy proprietary images from private registries
+
+## Docker Source Type
+
+Configure an application to use Docker images as the source:
+
+```typescript
+{
+  "name": "My Application",
+  "sourceType": "docker",
+  "dockerImage": "nginx:alpine",
+  "username": null,          // No auth for public images
+  "password": null,
+  "registryUrl": null        // Defaults to Docker Hub
+}
+```
+
+## Public Docker Images
+
+Deploy publicly available images without authentication.
+
+### Docker Hub
+
+Deploy images from Docker Hub:
+
+```typescript
+{
+  "sourceType": "docker",
+  "dockerImage": "nginx:latest",           // Official image
+  "dockerImage": "postgres:16-alpine",     // Official with tag
+  "dockerImage": "mycompany/myapp:v1.0.0"  // User/org image
+}
+```
+
+<CodeGroup>
+```typescript Official Images
+// Deploy official nginx
+{
+  "sourceType": "docker",
+  "dockerImage": "nginx:1.25-alpine"
+}
+
+// Deploy official PostgreSQL
+{
+  "sourceType": "docker",
+  "dockerImage": "postgres:16-alpine"
+}
+
+// Deploy official Redis
+{
+  "sourceType": "docker",
+  "dockerImage": "redis:7-alpine"
+}
+```
+
+```typescript Community Images
+// Deploy from user repository
+{
+  "sourceType": "docker",
+  "dockerImage": "traefik/traefik:v3.0"
+}
+
+// Deploy with specific tag
+{
+  "sourceType": "docker",
+  "dockerImage": "linuxserver/plex:latest"
+}
+```
+</CodeGroup>
+
+### GitHub Container Registry
+
+Deploy public images from GHCR:
+
+```typescript
+{
+  "sourceType": "docker",
+  "dockerImage": "ghcr.io/organization/image:tag",
+  "registryUrl": "ghcr.io"
+}
+```
+
+### Other Public Registries
+
+<Tabs>
+  <Tab title="Quay.io">
+    ```typescript
+    {
+      "sourceType": "docker",
+      "dockerImage": "quay.io/organization/image:tag",
+      "registryUrl": "quay.io"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Google Container Registry">
+    ```typescript
+    {
+      "sourceType": "docker",
+      "dockerImage": "gcr.io/project-id/image:tag",
+      "registryUrl": "gcr.io"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="AWS ECR Public">
+    ```typescript
+    {
+      "sourceType": "docker",
+      "dockerImage": "public.ecr.aws/organization/image:tag",
+      "registryUrl": "public.ecr.aws"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Private Docker Images
+
+Deploy images from private registries with authentication.
+
+### Docker Hub Private
+
+Authenticate with Docker Hub:
+
+```typescript
+{
+  "sourceType": "docker",
+  "dockerImage": "mycompany/private-app:v1.0.0",
+  "username": "dockerhub-username",
+  "password": "dckr_pat_xxxxxxxxxxxxx",  // Access token
+  "registryUrl": "https://index.docker.io/v1/"
+}
+```
+
+<Steps>
+  <Step title="Create Access Token">
+    1. Log in to [Docker Hub](https://hub.docker.com)
+    2. Go to **Account Settings** > **Security**
+    3. Click **New Access Token**
+    4. Set description and permissions:
+       - **Read** - Pull images only
+       - **Read, Write** - Pull and push images
+    5. Copy the token (shown only once)
+  </Step>
+  
+  <Step title="Configure Application">
+    ```typescript
+    {
+      "username": "your-dockerhub-username",
+      "password": "dckr_pat_xxxxxxxxxxxxx"
+    }
+    ```
+  </Step>
+</Steps>
+
+### GitHub Container Registry Private
+
+Authenticate with GitHub:
+
+```typescript
+{
+  "sourceType": "docker",
+  "dockerImage": "ghcr.io/myorg/private-app:latest",
+  "username": "github-username",
+  "password": "ghp_xxxxxxxxxxxxx",  // Personal access token
+  "registryUrl": "ghcr.io"
+}
+```
+
+<Steps>
+  <Step title="Create GitHub Token">
+    1. Go to GitHub **Settings** > **Developer settings**
+    2. Click **Personal access tokens** > **Tokens (classic)**
+    3. Generate new token with scopes:
+       ```yaml
+       read:packages - Download packages
+       write:packages - Upload packages
+       ```
+    4. Copy the token
+  </Step>
+  
+  <Step title="Configure Authentication">
+    ```typescript
+    {
+      "username": "your-github-username",
+      "password": "ghp_xxxxxxxxxxxxx",
+      "registryUrl": "ghcr.io"
+    }
+    ```
+  </Step>
+</Steps>
+
+### AWS Elastic Container Registry
+
+Authenticate with AWS ECR:
+
+```typescript
+{
+  "sourceType": "docker",
+  "dockerImage": "123456789.dkr.ecr.us-east-1.amazonaws.com/myapp:latest",
+  "username": "AWS",
+  "password": "<ecr-token>",  // Generated token
+  "registryUrl": "123456789.dkr.ecr.us-east-1.amazonaws.com"
+}
+```
+
+<Steps>
+  <Step title="Generate ECR Token">
+    ```bash
+    aws ecr get-login-password --region us-east-1
+    ```
+    
+    This outputs a token valid for 12 hours.
+  </Step>
+  
+  <Step title="Configure Application">
+    ```typescript
+    {
+      "username": "AWS",
+      "password": "eyJwYXlsb2FkIjoiY...",  // Token from step 1
+      "registryUrl": "123456789.dkr.ecr.us-east-1.amazonaws.com"
+    }
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  AWS ECR tokens expire after 12 hours. Consider using IAM roles or automated token refresh.
+</Warning>
+
+### Azure Container Registry
+
+Authenticate with Azure ACR:
+
+```typescript
+{
+  "sourceType": "docker",
+  "dockerImage": "myregistry.azurecr.io/myapp:latest",
+  "username": "myregistry",
+  "password": "<acr-password>",
+  "registryUrl": "myregistry.azurecr.io"
+}
+```
+
+<Steps>
+  <Step title="Enable Admin Access">
+    ```bash
+    az acr update --name myregistry --admin-enabled true
+    ```
+  </Step>
+  
+  <Step title="Get Credentials">
+    ```bash
+    az acr credential show --name myregistry
+    ```
+    
+    Use the username and password from the output.
+  </Step>
+</Steps>
+
+### Self-Hosted Registry
+
+Authenticate with private registries:
+
+```typescript
+{
+  "sourceType": "docker",
+  "dockerImage": "registry.example.com:5000/myapp:v1.0.0",
+  "username": "registry-user",
+  "password": "registry-password",
+  "registryUrl": "registry.example.com:5000"
+}
+```
+
+## Registry Integration
+
+Use configured registry credentials for better management.
+
+### Create Registry Configuration
+
+First, add a registry in Dokploy:
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/registry.create \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "registryName": "Docker Hub Production",
+    "registryUrl": "https://index.docker.io/v1/",
+    "username": "dockerhub-user",
+    "password": "dckr_pat_xxxxx",
+    "registryType": "cloud"
+  }'
+```
+
+<Info>
+  See [Container Registry](/configuration/registry) for detailed registry configuration.
+</Info>
+
+### Deploy with Registry
+
+Dokploy automatically uses configured registries for authentication:
+
+```typescript
+{
+  "sourceType": "docker",
+  "dockerImage": "mycompany/private-app:v1.0.0",
+  // No need to specify username/password if registry is configured
+}
+```
+
+Registry credentials are matched by URL and automatically applied during deployment.
+
+## Image Tags and Updates
+
+### Tag Strategies
+
+<AccordionGroup>
+  <Accordion title="Semantic Versioning">
+    ```typescript
+    {
+      "dockerImage": "myapp:1.0.0",      // Specific version
+      "dockerImage": "myapp:1.0",        // Minor version
+      "dockerImage": "myapp:1",          // Major version
+    }
+    ```
+    
+    **Best for:** Production deployments with controlled updates
+  </Accordion>
+  
+  <Accordion title="Latest Tag">
+    ```typescript
+    {
+      "dockerImage": "myapp:latest"  // Always pulls latest
+    }
+    ```
+    
+    **Best for:** Development environments, always get latest changes
+    
+    <Warning>
+      Using `latest` in production can lead to unexpected updates. Pin specific versions.
+    </Warning>
+  </Accordion>
+  
+  <Accordion title="Git Commit SHA">
+    ```typescript
+    {
+      "dockerImage": "myapp:abc1234"  // Specific commit
+    }
+    ```
+    
+    **Best for:** Reproducible deployments, exact version tracking
+  </Accordion>
+  
+  <Accordion title="Environment Tags">
+    ```typescript
+    {
+      "dockerImage": "myapp:production",  // Production build
+      "dockerImage": "myapp:staging",     // Staging build
+      "dockerImage": "myapp:develop"      // Development build
+    }
+    ```
+    
+    **Best for:** Environment-specific configurations
+  </Accordion>
+</AccordionGroup>
+
+### Updating Images
+
+Redeploy to pull the latest image:
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/application.redeploy \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "title": "Update to latest image"
+  }'
+```
+
+Dokploy will:
+1. Pull the latest version of the image
+2. Stop the current container
+3. Start a new container with the updated image
+
+## Multi-Architecture Images
+
+Deploy images that support multiple CPU architectures:
+
+```typescript
+{
+  "dockerImage": "nginx:alpine"  // Supports amd64, arm64, arm/v7, etc.
+}
+```
+
+Docker automatically pulls the correct architecture for your server:
+- **amd64** - x86_64 Intel/AMD processors
+- **arm64** - ARM 64-bit (Apple Silicon, AWS Graviton)
+- **arm/v7** - ARM 32-bit (Raspberry Pi)
+- **arm/v6** - Older ARM devices
+
+<Tip>
+  Multi-arch images use Docker manifests. The registry sends the correct image variant automatically.
+</Tip>
+
+## CI/CD Integration
+
+Integrate Dokploy with external CI/CD pipelines.
+
+### GitHub Actions
+
+```yaml
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Docker image
+        run: |
+          docker build -t mycompany/myapp:${{ github.sha }} .
+          docker tag mycompany/myapp:${{ github.sha }} mycompany/myapp:latest
+      
+      - name: Push to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker push mycompany/myapp:${{ github.sha }}
+          docker push mycompany/myapp:latest
+      
+      - name: Deploy to Dokploy
+        run: |
+          curl -X POST "https://dokploy.example.com/api/trpc/application.redeploy" \
+            -H "x-api-key: ${{ secrets.DOKPLOY_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "applicationId": "app-123",
+              "title": "Deploy commit ${{ github.sha }}",
+              "description": "Deployed from GitHub Actions"
+            }'
+```
+
+### GitLab CI
+
+```yaml
+stages:
+  - build
+  - deploy
+
+variables:
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+
+build:
+  stage: build
+  script:
+    - docker build -t $IMAGE_TAG .
+    - docker tag $IMAGE_TAG $CI_REGISTRY_IMAGE:latest
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker push $IMAGE_TAG
+    - docker push $CI_REGISTRY_IMAGE:latest
+
+deploy:
+  stage: deploy
+  script:
+    - |
+      curl -X POST "https://dokploy.example.com/api/trpc/application.redeploy" \
+        -H "x-api-key: $DOKPLOY_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "applicationId": "app-123",
+          "title": "Deploy '$CI_COMMIT_SHORT_SHA'",
+          "description": "Pipeline: '$CI_PIPELINE_ID'"
+        }'
+  only:
+    - main
+```
+
+### Bitbucket Pipelines
+
+```yaml
+image: docker:latest
+
+pipelines:
+  default:
+    - step:
+        name: Build and Push
+        services:
+          - docker
+        script:
+          - docker build -t mycompany/myapp:$BITBUCKET_COMMIT .
+          - docker tag mycompany/myapp:$BITBUCKET_COMMIT mycompany/myapp:latest
+          - echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          - docker push mycompany/myapp:$BITBUCKET_COMMIT
+          - docker push mycompany/myapp:latest
+    
+    - step:
+        name: Deploy to Dokploy
+        script:
+          - |
+            curl -X POST "https://dokploy.example.com/api/trpc/application.redeploy" \
+              -H "x-api-key: $DOKPLOY_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d '{"applicationId": "app-123"}'
+```
+
+## Image Verification
+
+Verify images before deployment.
+
+### Image Scanning
+
+Scan images for vulnerabilities:
+
+```bash
+# Using Trivy
+trivy image mycompany/myapp:latest
+
+# Using Docker Scout
+docker scout cves mycompany/myapp:latest
+```
+
+### Image Signing
+
+Verify image authenticity:
+
+```bash
+# Sign with Docker Content Trust
+export DOCKER_CONTENT_TRUST=1
+docker push mycompany/myapp:v1.0.0
+
+# Verify signature
+docker trust inspect mycompany/myapp:v1.0.0
+```
+
+## Configuration Examples
+
+### Production Application
+
+```typescript
+{
+  "name": "Production API",
+  "sourceType": "docker",
+  "dockerImage": "mycompany/api:v2.1.0",
+  "username": "mycompany",
+  "password": "dckr_pat_xxxxx",
+  "registryUrl": "https://index.docker.io/v1/",
+  "env": "DATABASE_URL=postgresql://...\nREDIS_URL=redis://...",
+  "memoryLimit": "2048MB",
+  "cpuLimit": "2",
+  "replicas": 3,
+  "ports": [{"targetPort": 3000, "publishedPort": 3000}]
+}
+```
+
+### Staging with Latest
+
+```typescript
+{
+  "name": "Staging API",
+  "sourceType": "docker",
+  "dockerImage": "mycompany/api:staging",
+  "username": "mycompany",
+  "password": "dckr_pat_xxxxx",
+  "env": "NODE_ENV=staging\nDEBUG=true",
+  "memoryLimit": "512MB",
+  "cpuLimit": "0.5",
+  "replicas": 1
+}
+```
+
+### Third-Party Service
+
+```typescript
+{
+  "name": "Redis Cache",
+  "sourceType": "docker",
+  "dockerImage": "redis:7.2-alpine",
+  "command": "redis-server --appendonly yes",
+  "volumes": [
+    {
+      "source": "redis-data",
+      "target": "/data",
+      "type": "volume"
+    }
+  ],
+  "memoryLimit": "256MB"
+}
+```
+
+## Best Practices
+
+### Image Management
+
+<CardGroup cols={2}>
+  <Card title="Pin Versions" icon="thumbtack">
+    Always use specific tags in production:
+    ```typescript
+    // Good
+    "dockerImage": "nginx:1.25.3-alpine"
+    
+    // Avoid
+    "dockerImage": "nginx:latest"
+    ```
+  </Card>
+  
+  <Card title="Small Images" icon="compress">
+    Use minimal base images:
+    ```typescript
+    // Alpine variants are smaller
+    "dockerImage": "node:20-alpine"
+    "dockerImage": "python:3.12-alpine"
+    ```
+  </Card>
+  
+  <Card title="Regular Updates" icon="arrows-rotate">
+    Keep base images updated:
+    ```bash
+    # Update monthly
+    docker pull nginx:1.25-alpine
+    ```
+  </Card>
+  
+  <Card title="Clean Tags" icon="broom">
+    Remove unused image tags:
+    ```bash
+    # Prune old images
+    docker image prune -a --filter "until=720h"
+    ```
+  </Card>
+</CardGroup>
+
+### Security
+
+1. **Scan Images** - Use vulnerability scanning before deployment
+2. **Private Registries** - Store proprietary images in private registries
+3. **Access Tokens** - Use tokens instead of passwords
+4. **Rotate Credentials** - Change registry passwords regularly
+5. **Least Privilege** - Grant minimal registry permissions
+
+### Performance
+
+1. **Registry Location** - Use registries geographically close to servers
+2. **Image Layers** - Optimize Dockerfile layers for caching
+3. **Compress Images** - Use tools like `docker-slim` to reduce size
+4. **Parallel Pulls** - Enable parallel layer downloads
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Image Pull Failed - Authentication Required">
+    **Symptoms:**
+    ```bash
+    Error response from daemon: pull access denied for mycompany/private-app
+    ```
+    
+    **Solutions:**
+    1. Verify credentials are correct:
+       ```bash
+       docker login -u username -p password
+       ```
+    2. Check username and password in application config
+    3. Ensure registry URL matches:
+       ```typescript
+       // Docker Hub requires full URL
+       "registryUrl": "https://index.docker.io/v1/"
+       ```
+    4. Verify user has access to the repository
+  </Accordion>
+  
+  <Accordion title="Image Not Found">
+    **Symptoms:**
+    ```bash
+    Error: manifest for myapp:v1.0.0 not found
+    ```
+    
+    **Solutions:**
+    1. Verify image name and tag are correct
+    2. Check image exists in registry:
+       ```bash
+       docker manifest inspect mycompany/myapp:v1.0.0
+       ```
+    3. Ensure tag was pushed:
+       ```bash
+       docker push mycompany/myapp:v1.0.0
+       ```
+    4. Try alternative tag (e.g., `latest`)
+  </Accordion>
+  
+  <Accordion title="Wrong Architecture Pulled">
+    **Symptoms:** Container fails with "exec format error"
+    
+    **Solutions:**
+    1. Verify server architecture:
+       ```bash
+       uname -m  # x86_64, aarch64, armv7l, etc.
+       ```
+    2. Check image supports your architecture:
+       ```bash
+       docker manifest inspect myapp:latest
+       ```
+    3. Build for correct architecture:
+       ```bash
+       docker buildx build --platform linux/amd64 -t myapp:latest .
+       ```
+    4. Use multi-arch images when possible
+  </Accordion>
+  
+  <Accordion title="Rate Limit Exceeded">
+    **Symptoms:**
+    ```bash
+    You have reached your pull rate limit
+    ```
+    
+    **Solutions:**
+    1. Authenticate with Docker Hub (increases rate limit)
+    2. Upgrade to Docker Hub Pro plan
+    3. Use alternative registries (GHCR, Quay.io)
+    4. Cache images locally:
+       ```bash
+       docker pull myapp:latest
+       docker tag myapp:latest localhost:5000/myapp:latest
+       docker push localhost:5000/myapp:latest
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+### Save Docker Provider
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/application.saveDockerProvider \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "dockerImage": "mycompany/myapp:v1.0.0",
+    "username": "dockerhub-user",
+    "password": "dckr_pat_xxxxx",
+    "registryUrl": "https://index.docker.io/v1/"
+  }'
+```
+
+### Update Docker Image
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/application.update \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "dockerImage": "mycompany/myapp:v2.0.0"
+  }'
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Registry Configuration"
+    icon="database"
+    href="/configuration/registry"
+  >
+    Configure container registries
+  </Card>
+  <Card
+    title="Environment Variables"
+    icon="key"
+    href="/deployments/environment-variables"
+  >
+    Configure application settings
+  </Card>
+  <Card
+    title="Build Configuration"
+    icon="hammer"
+    href="/deployments/build-configuration"
+  >
+    Build custom images
+  </Card>
+  <Card
+    title="Monitoring"
+    icon="chart-line"
+    href="/monitoring/real-time-metrics"
+  >
+    Monitor deployments
+  </Card>
+</CardGroup>

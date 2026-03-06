@@ -1,0 +1,472 @@
+---
+title: "FAQ"
+description: "Frequently asked questions about Dokploy"
+icon: "circle-question"
+---
+
+## General Questions
+
+<AccordionGroup>
+  <Accordion title="What is Dokploy?" icon="rocket">
+    Dokploy is a free, open-source, self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases. Think of it as a self-hosted alternative to platforms like Heroku, Vercel, or Netlify.
+    
+    Key features:
+    - Deploy any application (Node.js, Python, Go, PHP, Ruby, etc.)
+    - Manage databases (PostgreSQL, MySQL, MongoDB, MariaDB, Redis)
+    - Automated backups and monitoring
+    - Docker Compose support
+    - Multi-node deployment with Docker Swarm
+    - Built-in SSL certificates via Let's Encrypt
+  </Accordion>
+  
+  <Accordion title="Is Dokploy really free?" icon="dollar-sign">
+    Yes! Dokploy is completely free and open-source under the Apache 2.0 license. You can:
+    - Use it for personal and commercial projects
+    - Self-host on your own servers
+    - Modify and customize it
+    - Contribute to the project
+    
+    There's also [Dokploy Cloud](https://app.dokploy.com), a managed version if you prefer not to manage your own infrastructure.
+  </Accordion>
+  
+  <Accordion title="How does Dokploy compare to Vercel, Heroku, or Netlify?" icon="balance-scale">
+    **Similarities:**
+    - Easy application deployment
+    - Automatic SSL certificates
+    - Git integration
+    - Environment variable management
+    
+    **Differences:**
+    - **Self-hosted**: You control your infrastructure and data
+    - **No vendor lock-in**: Use any VPS provider
+    - **Cost**: No monthly fees (only your server costs)
+    - **Flexibility**: Full Docker support, any runtime, any database
+    - **Privacy**: Your data stays on your servers
+  </Accordion>
+  
+  <Accordion title="What are the system requirements?" icon="server">
+    **Minimum:**
+    - 1 vCPU
+    - 2GB RAM
+    - 20GB storage
+    - Ubuntu 20.04+ or Debian 11+ (recommended)
+    
+    **Recommended:**
+    - 2+ vCPUs
+    - 4GB+ RAM
+    - 50GB+ SSD storage
+    - Docker 20.10+
+    
+    For production workloads, scale according to your application needs.
+  </Accordion>
+  
+  <Accordion title="Which cloud providers are supported?" icon="cloud">
+    Dokploy works on any VPS provider that supports Docker:
+    
+    - DigitalOcean
+    - AWS EC2
+    - Google Cloud Platform
+    - Hetzner
+    - Linode
+    - Vultr
+    - OVH
+    - Any VPS with Ubuntu/Debian
+    
+    You can even install it on your own hardware!
+  </Accordion>
+</AccordionGroup>
+
+## Installation & Setup
+
+<AccordionGroup>
+  <Accordion title="How do I install Dokploy?" icon="download">
+    Installation is simple with one command:
+    
+    ```bash
+    curl -sSL https://dokploy.com/install.sh | sh
+    ```
+    
+    This will:
+    1. Install Docker (if not present)
+    2. Set up all required services
+    3. Configure Traefik for routing
+    4. Start the Dokploy web interface
+    
+    See the [Installation Guide](/getting-started/installation) for detailed steps.
+  </Accordion>
+  
+  <Accordion title="How long does installation take?" icon="clock">
+    Typically 2-5 minutes on a fresh server, depending on:
+    - Server speed and internet connection
+    - Whether Docker needs to be installed
+    - Initial image downloads
+  </Accordion>
+  
+  <Accordion title="Can I install Dokploy on an existing server?" icon="server">
+    Yes, but be cautious:
+    - Dokploy uses ports 80, 443, and 3000
+    - It installs and configures Traefik
+    - Existing Docker containers won't be affected
+    - Existing web servers (nginx, Apache) may conflict
+    
+    For production, we recommend a dedicated server.
+  </Accordion>
+  
+  <Accordion title="What happens during installation?" icon="gear">
+    The installation script:
+    1. Checks system requirements
+    2. Installs Docker and Docker Compose (if needed)
+    3. Downloads Dokploy Docker images
+    4. Creates necessary directories and configurations
+    5. Starts Dokploy services (app, database, Traefik)
+    6. Displays access URL and credentials
+  </Accordion>
+</AccordionGroup>
+
+## Deployments
+
+<AccordionGroup>
+  <Accordion title="What types of applications can I deploy?" icon="code">
+    Dokploy supports virtually any application:
+    
+    **Languages & Frameworks:**
+    - Node.js (Next.js, Express, Nest.js, etc.)
+    - Python (Django, Flask, FastAPI, etc.)
+    - Go
+    - PHP (Laravel, WordPress, etc.)
+    - Ruby (Rails, Sinatra, etc.)
+    - Java/Kotlin
+    - Rust
+    - Static sites (React, Vue, Angular, etc.)
+    
+    **Methods:**
+    - Git repository (automatic builds)
+    - Docker images
+    - Docker Compose
+    - Dockerfile
+  </Accordion>
+  
+  <Accordion title="How do deployments work?" icon="rocket">
+    Deployment process:
+    
+    1. **Connect Git repository** or provide Docker image
+    2. **Configure build settings** (optional)
+    3. **Set environment variables**
+    4. **Click Deploy**
+    5. Dokploy:
+       - Clones your repository
+       - Detects your runtime (or uses specified builder)
+       - Builds your application
+       - Creates Docker container
+       - Configures routing
+       - Starts your app
+    
+    Subsequent deployments are triggered by Git pushes or manual triggers.
+  </Accordion>
+  
+  <Accordion title="Which build systems are supported?" icon="hammer">
+    Dokploy supports multiple build strategies:
+    
+    - **Nixpacks** (recommended): Auto-detects and builds most applications
+    - **Buildpacks**: Cloud Native Buildpacks for standard frameworks
+    - **Dockerfile**: Use your own Dockerfile for custom builds
+    - **Docker Compose**: Deploy complex multi-container applications
+    - **Docker Image**: Pull and run existing images from registries
+  </Accordion>
+  
+  <Accordion title="Can I use webhooks for automatic deployments?" icon="webhook">
+    Yes! Dokploy provides:
+    
+    - **GitHub webhooks**: Auto-deploy on push
+    - **GitLab webhooks**: Auto-deploy on push
+    - **Bitbucket webhooks**: Auto-deploy on push
+    - **Generic webhooks**: Trigger deployments via HTTP POST
+    
+    Configure webhooks in your application settings to enable automatic deployments.
+  </Accordion>
+  
+  <Accordion title="How do I rollback a deployment?" icon="rotate-left">
+    Rollback options:
+    
+    1. **Redeploy previous version**: Select a previous deployment from history
+    2. **Git revert**: Push a revert commit to your repository
+    3. **Docker image tag**: Deploy a specific image tag/version
+    4. **Manual restore**: Restore from backup and redeploy
+    
+    Each deployment is tracked, making it easy to revert to any previous version.
+  </Accordion>
+</AccordionGroup>
+
+## Databases
+
+<AccordionGroup>
+  <Accordion title="Which databases are supported?" icon="database">
+    Dokploy supports:
+    
+    - **PostgreSQL** (recommended for most applications)
+    - **MySQL**
+    - **MariaDB**
+    - **MongoDB**
+    - **Redis** (caching, sessions, queues)
+    
+    Each database can be created with one click from the dashboard.
+  </Accordion>
+  
+  <Accordion title="Are databases automatically backed up?" icon="floppy-disk">
+    Yes! Dokploy provides:
+    
+    - **Scheduled backups**: Configure backup frequency (hourly, daily, weekly)
+    - **Multiple destinations**: Local storage, S3, or other cloud storage
+    - **Retention policies**: Automatically clean up old backups
+    - **Manual backups**: Create backups on demand
+    - **One-click restore**: Restore from any backup
+    
+    Configure backups in your database settings.
+  </Accordion>
+  
+  <Accordion title="Can I connect external databases?" icon="link">
+    Yes! You can:
+    
+    - Use external database providers (AWS RDS, DigitalOcean Managed Databases, etc.)
+    - Connect via standard connection strings
+    - Use any database Dokploy doesn't natively support
+    
+    Simply provide the connection string in your application's environment variables.
+  </Accordion>
+  
+  <Accordion title="How do I access my database?" icon="terminal">
+    Multiple access methods:
+    
+    1. **From your application**: Use internal Docker network hostname
+    2. **Database tools**: Connect via GUI tools (pgAdmin, MySQL Workbench, etc.)
+    3. **Terminal**: Direct access via Dokploy dashboard
+    4. **External access**: Configure port forwarding (not recommended for production)
+    
+    Connection details are available in your database settings.
+  </Accordion>
+</AccordionGroup>
+
+## Domains & SSL
+
+<AccordionGroup>
+  <Accordion title="How do I add a custom domain?" icon="globe">
+    Steps to add a custom domain:
+    
+    1. **Point your domain** to your server's IP address (A record)
+    2. **In Dokploy**, go to your application settings
+    3. **Add domain** in the Domains section
+    4. **Save** - Dokploy automatically configures routing
+    5. **SSL certificate** is issued automatically via Let's Encrypt
+    
+    Your application will be accessible at your custom domain within minutes.
+  </Accordion>
+  
+  <Accordion title="Are SSL certificates automatic?" icon="certificate">
+    Yes! Dokploy automatically:
+    
+    - Issues SSL certificates via Let's Encrypt
+    - Renews certificates before expiration
+    - Configures HTTPS redirection
+    - Handles multiple domains per application
+    
+    No manual certificate management needed!
+  </Accordion>
+  
+  <Accordion title="Can I use wildcard domains?" icon="asterisk">
+    Yes! Dokploy supports wildcard domains:
+    
+    - Configure `*.yourdomain.com`
+    - Useful for multi-tenant applications
+    - Automatic SSL for wildcard domains
+    
+    Note: Wildcard SSL requires DNS validation with Let's Encrypt.
+  </Accordion>
+</AccordionGroup>
+
+## Monitoring & Logs
+
+<AccordionGroup>
+  <Accordion title="What monitoring is available?" icon="chart-line">
+    Dokploy provides:
+    
+    - **Real-time metrics**: CPU, memory, network, disk usage
+    - **Container stats**: Per-application resource monitoring
+    - **Server monitoring**: Overall server health
+    - **Deployment history**: Track all deployments
+    - **Logs**: Real-time application and build logs
+    
+    All available in the dashboard without additional setup.
+  </Accordion>
+  
+  <Accordion title="How do I view application logs?" icon="file-lines">
+    View logs in multiple ways:
+    
+    1. **Dashboard**: Real-time logs in the web interface
+    2. **Download**: Export logs for analysis
+    3. **API**: Programmatic log access
+    4. **Docker CLI**: `docker logs <container-name>`
+    
+    Logs include both application output and system events.
+  </Accordion>
+  
+  <Accordion title="Can I set up alerts?" icon="bell">
+    Yes! Dokploy supports notifications via:
+    
+    - Slack
+    - Discord
+    - Telegram
+    - Email
+    - Webhooks (for custom integrations)
+    
+    Configure alerts for:
+    - Deployment success/failure
+    - Resource usage thresholds
+    - Application errors
+  </Accordion>
+</AccordionGroup>
+
+## Multi-Node & Scaling
+
+<AccordionGroup>
+  <Accordion title="Can I deploy to multiple servers?" icon="server">
+    Yes! Dokploy supports multi-node deployments using Docker Swarm:
+    
+    - Deploy across multiple servers
+    - Automatic load balancing
+    - High availability
+    - Horizontal scaling
+    
+    See the [Multi-Node Guide](/advanced/multi-node) for setup instructions.
+  </Accordion>
+  
+  <Accordion title="How do I scale my applications?" icon="chart-line">
+    Scaling options:
+    
+    - **Vertical**: Upgrade server resources (CPU, RAM)
+    - **Horizontal**: Add more servers with multi-node setup
+    - **Container replicas**: Run multiple instances of your application
+    - **Database scaling**: Use external managed databases
+    
+    Configure scaling in application settings.
+  </Accordion>
+</AccordionGroup>
+
+## API & Automation
+
+<AccordionGroup>
+  <Accordion title="Does Dokploy have an API?" icon="code">
+    Yes! Dokploy provides a complete REST API:
+    
+    - Full control over applications, databases, and deployments
+    - OpenAPI specification available
+    - Authentication via API tokens
+    - Perfect for CI/CD integration
+    
+    See the [API Reference](/api-reference/overview) for details.
+  </Accordion>
+  
+  <Accordion title="How do I integrate with CI/CD?" icon="gears">
+    Integrate Dokploy with your CI/CD pipeline:
+    
+    - **GitHub Actions**: Trigger deployments on push
+    - **GitLab CI**: Deploy from GitLab pipelines
+    - **Jenkins**: Use Dokploy API in Jenkins jobs
+    - **Any CI/CD tool**: Use webhooks or API calls
+    
+    See the [Automation Guide](/cli/automation) for examples.
+  </Accordion>
+</AccordionGroup>
+
+## Security & Privacy
+
+<AccordionGroup>
+  <Accordion title="Is Dokploy secure?" icon="shield">
+    Dokploy includes multiple security features:
+    
+    - **Automatic SSL/TLS**: All traffic encrypted
+    - **Isolated containers**: Docker container isolation
+    - **Authentication**: Secure admin access
+    - **API tokens**: Controlled API access
+    - **Regular updates**: Security patches and updates
+    
+    See [Security Best Practices](/configuration/security) for recommendations.
+  </Accordion>
+  
+  <Accordion title="Where is my data stored?" icon="database">
+    Your data stays on YOUR servers:
+    
+    - Application data: On your VPS
+    - Databases: On your VPS
+    - Backups: Your chosen storage (S3, local, etc.)
+    - Logs: On your VPS
+    
+    You have complete control and ownership of all data.
+  </Accordion>
+  
+  <Accordion title="How do I manage access?" icon="users">
+    Access management:
+    
+    - **Admin users**: Full dashboard access
+    - **API tokens**: Programmatic access
+    - **SSH keys**: Git repository access
+    - **Firewall**: Control network access
+    
+    Configure users and permissions in Settings.
+  </Accordion>
+</AccordionGroup>
+
+## Support & Community
+
+<AccordionGroup>
+  <Accordion title="Where can I get help?" icon="life-ring">
+    Multiple support channels:
+    
+    - **Discord**: [Join our community](https://discord.gg/2tBnJ3jDJc) for real-time help
+    - **GitHub Issues**: [Report bugs or request features](https://github.com/dokploy/dokploy/issues)
+    - **Documentation**: Browse guides and tutorials
+    - **Community**: Learn from other users
+  </Accordion>
+  
+  <Accordion title="How can I contribute?" icon="heart">
+    We welcome contributions!
+    
+    - **Code**: Submit pull requests
+    - **Documentation**: Improve guides and tutorials
+    - **Templates**: Share application templates
+    - **Bug reports**: Help identify issues
+    - **Feature ideas**: Suggest improvements
+    
+    See the [Contributing Guide](/community/contributing) to get started.
+  </Accordion>
+  
+  <Accordion title="Is there a managed version?" icon="cloud">
+    Yes! If you prefer not to manage infrastructure yourself:
+    
+    - **Dokploy Cloud**: [app.dokploy.com](https://app.dokploy.com)
+    - Fully managed hosting
+    - No server setup required
+    - Support included
+    
+    Perfect for those who want the Dokploy experience without the ops work.
+  </Accordion>
+</AccordionGroup>
+
+## Still have questions?
+
+<CardGroup cols={2}>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/2tBnJ3jDJc">
+    Join our Discord for real-time support
+  </Card>
+  
+  <Card title="GitHub Discussions" icon="github" href="https://github.com/dokploy/dokploy/discussions">
+    Ask questions and share knowledge
+  </Card>
+  
+  <Card title="Documentation" icon="book" href="/">
+    Browse the complete documentation
+  </Card>
+  
+  <Card title="Troubleshooting" icon="wrench" href="/community/troubleshooting">
+    Common issues and solutions
+  </Card>
+</CardGroup>

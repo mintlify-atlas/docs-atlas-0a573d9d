@@ -1,0 +1,425 @@
+---
+title: "SSL/TLS Certificates"
+description: "Configure automatic SSL certificates with Let's Encrypt or use custom certificates"
+---
+
+## Overview
+
+Dokploy provides automatic SSL/TLS certificate management through Traefik integration. You can use free Let's Encrypt certificates or bring your own custom certificates for secure HTTPS connections.
+
+<CardGroup cols={3}>
+  <Card title="Automatic SSL" icon="lock">
+    Free Let's Encrypt certificates with auto-renewal
+  </Card>
+  <Card title="Custom Certificates" icon="file-certificate">
+    Use your own SSL certificates
+  </Card>
+  <Card title="Wildcard Support" icon="asterisk">
+    Secure multiple subdomains with one certificate
+  </Card>
+</CardGroup>
+
+## SSL Certificate Types
+
+Dokploy supports three certificate types:
+
+<Tabs>
+  <Tab title="Let's Encrypt (Recommended)">
+    Automatic, free SSL certificates:
+    
+    - Automatic certificate issuance
+    - Auto-renewal before expiration
+    - Supports HTTP-01 and DNS-01 challenges
+    - Trusted by all major browsers
+    - Rate limit: 50 certificates per week per domain
+    
+    **Best for**: Production websites and APIs
+  </Tab>
+  
+  <Tab title="Custom Certificate">
+    Upload your own certificates:
+    
+    - Full control over certificate authority
+    - Support for internal CAs
+    - Wildcard certificates
+    - Extended Validation (EV) certificates
+    
+    **Best for**: Enterprise environments with existing PKI
+  </Tab>
+  
+  <Tab title="None (Development)">
+    No SSL (HTTP only):
+    
+    - For local development
+    - Internal tools behind VPN
+    - When using external SSL termination
+    
+    **Not recommended for production**
+  </Tab>
+</Tabs>
+
+## Let's Encrypt Configuration
+
+### Automatic HTTPS (HTTP-01 Challenge)
+
+The default method works for most use cases:
+
+<Steps>
+  <Step title="Configure Domain">
+    When adding a domain to your application:
+    
+    1. Enter your domain name (e.g., `example.com`)
+    2. Select **Let's Encrypt** as certificate type
+    3. Ensure your domain's DNS points to your server
+  </Step>
+  
+  <Step title="Deploy">
+    Dokploy automatically:
+    - Requests certificate from Let's Encrypt
+    - Completes HTTP-01 challenge
+    - Configures Traefik with the certificate
+    - Redirects HTTP to HTTPS
+  </Step>
+  
+  <Step title="Auto-Renewal">
+    Certificates are automatically renewed 30 days before expiration.
+  </Step>
+</Steps>
+
+### DNS-01 Challenge (Wildcard Certificates)
+
+For wildcard certificates (e.g., `*.example.com`):
+
+```yaml traefik-config.yml
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: admin@example.com
+      storage: /letsencrypt/acme.json
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+```
+
+<Info>
+DNS-01 requires API credentials for your DNS provider (Cloudflare, Route53, etc.).
+</Info>
+
+### Supported DNS Providers
+
+Traefik supports 100+ DNS providers:
+
+- Cloudflare
+- AWS Route53
+- Google Cloud DNS
+- DigitalOcean
+- Namecheap
+- GoDaddy
+- And many more
+
+See [Traefik DNS providers](https://doc.traefik.io/traefik/https/acme/#providers) for the full list.
+
+## Custom Certificates
+
+### Upload Certificate
+
+<Steps>
+  <Step title="Prepare Certificate Files">
+    You need:
+    - Certificate file (`.crt` or `.pem`)
+    - Private key file (`.key`)
+    - Optional: CA bundle/chain file
+  </Step>
+  
+  <Step title="Add Certificate in Dokploy">
+    Navigate to **Settings** → **Certificates** → **Add Certificate**
+    
+    <ParamField path="name" type="string" required>
+      A friendly name for the certificate
+    </ParamField>
+    
+    <ParamField path="certificateData" type="string" required>
+      The certificate content (PEM format)
+    </ParamField>
+    
+    <ParamField path="privateKey" type="string" required>
+      The private key content (PEM format)
+    </ParamField>
+    
+    <ParamField path="certificateChain" type="string">
+      Optional CA bundle/intermediate certificates
+    </ParamField>
+  </Step>
+  
+  <Step title="Assign to Domain">
+    When configuring a domain:
+    1. Select **Custom** as certificate type
+    2. Choose your uploaded certificate
+    3. Deploy
+  </Step>
+</Steps>
+
+### Using the API
+
+```bash Create Certificate
+curl -X POST https://your-dokploy-instance.com/api/certificates.create \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "example-com-cert",
+    "certificateData": "-----BEGIN CERTIFICATE-----\n...",
+    "privateKey": "-----BEGIN PRIVATE KEY-----\n..."
+  }'
+```
+
+### Certificate Format
+
+Certificates must be in PEM format:
+
+```text certificate.crt
+-----BEGIN CERTIFICATE-----
+MIIFXzCCBEegAwIBAgISA1...
+...
+-----END CERTIFICATE-----
+```
+
+```text private.key
+-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQ...
+...
+-----END PRIVATE KEY-----
+```
+
+<Warning>
+Never commit private keys to version control. Store them securely using environment variables or secret management tools.
+</Warning>
+
+## Wildcard Certificates
+
+Secure all subdomains with a single certificate:
+
+### Using Let's Encrypt
+
+1. Configure DNS-01 challenge (see above)
+2. Add domain as `*.example.com`
+3. Dokploy requests wildcard certificate
+
+### Using Custom Certificate
+
+1. Obtain wildcard certificate from your CA
+2. Upload to Dokploy
+3. Use for all subdomains
+
+```yaml Example Usage
+services:
+  app1:
+    labels:
+      - "traefik.http.routers.app1.rule=Host(`app1.example.com`)"
+      - "traefik.http.routers.app1.tls=true"
+  
+  app2:
+    labels:
+      - "traefik.http.routers.app2.rule=Host(`app2.example.com`)"
+      - "traefik.http.routers.app2.tls=true"
+```
+
+Both apps use the same `*.example.com` certificate.
+
+## Certificate Management
+
+### View Certificates
+
+```bash List Certificates
+curl https://your-dokploy-instance.com/api/certificates.all \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Update Certificate
+
+<Tabs>
+  <Tab title="Via Dashboard">
+    1. Go to **Settings** → **Certificates**
+    2. Click on the certificate
+    3. Upload new certificate/key
+    4. Save changes
+  </Tab>
+  
+  <Tab title="Via API">
+    ```bash
+    curl -X POST https://your-dokploy-instance.com/api/certificates.update \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "certificateId": "cert-id",
+        "certificateData": "...",
+        "privateKey": "..."
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### Certificate Renewal
+
+<AccordionGroup>
+  <Accordion title="Let's Encrypt Auto-Renewal">
+    Dokploy automatically renews Let's Encrypt certificates:
+    - Renewal starts 30 days before expiration
+    - Multiple retry attempts if renewal fails
+    - Email notifications on renewal failure
+    - Zero downtime during renewal
+  </Accordion>
+  
+  <Accordion title="Custom Certificate Renewal">
+    For custom certificates:
+    1. Obtain renewed certificate from your CA
+    2. Update in Dokploy (via dashboard or API)
+    3. Traefik hot-reloads without downtime
+    
+    <Tip>
+    Set up monitoring alerts 30 days before expiration.
+    </Tip>
+  </Accordion>
+</AccordionGroup>
+
+## SSL/TLS Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Strong Ciphers" icon="shield">
+    Configure Traefik with modern TLS 1.2+ and strong cipher suites
+  </Card>
+  <Card title="Enable HSTS" icon="lock">
+    Force HTTPS with HTTP Strict Transport Security headers
+  </Card>
+  <Card title="Certificate Monitoring" icon="bell">
+    Set up alerts for certificate expiration
+  </Card>
+  <Card title="Rotate Regularly" icon="rotate">
+    For custom certs, rotate annually or when compromised
+  </Card>
+</CardGroup>
+
+### Traefik TLS Configuration
+
+```yaml traefik-static.yml
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      cipherSuites:
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+```
+
+### HSTS Configuration
+
+Add HSTS headers to force HTTPS:
+
+```yaml docker-compose.yml
+services:
+  app:
+    labels:
+      - "traefik.http.middlewares.hsts.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.hsts.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.hsts.headers.stsPreload=true"
+      - "traefik.http.routers.app.middlewares=hsts"
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Let's Encrypt rate limit exceeded">
+    Let's Encrypt limits:
+    - 50 certificates per registered domain per week
+    - 5 duplicate certificates per week
+    
+    Solutions:
+    - Use staging environment for testing
+    - Use wildcard certificates
+    - Wait for rate limit reset (weekly)
+    - Consider custom certificates
+  </Accordion>
+  
+  <Accordion title="HTTP-01 challenge fails">
+    Common causes:
+    - DNS not pointing to your server
+    - Port 80 blocked by firewall
+    - Traefik not accessible on port 80
+    - Domain resolving to wrong IP
+    
+    Verify:
+    ```bash
+    curl http://your-domain.com/.well-known/acme-challenge/test
+    ```
+  </Accordion>
+  
+  <Accordion title="Certificate not trusted">
+    For custom certificates:
+    - Include complete certificate chain
+    - Verify certificate validity: `openssl x509 -in cert.crt -text -noout`
+    - Check certificate matches domain
+    - Ensure root CA is trusted
+  </Accordion>
+  
+  <Accordion title="SSL handshake errors">
+    - Verify TLS version compatibility
+    - Check cipher suite support
+    - Review Traefik logs: `docker logs traefik`
+    - Test with: `openssl s_client -connect domain:443`
+  </Accordion>
+  
+  <Accordion title="Certificate renewal fails">
+    Check Traefik logs:
+    ```bash
+    docker logs traefik | grep -i acme
+    ```
+    
+    Common issues:
+    - DNS propagation delays
+    - API credentials expired (DNS-01)
+    - Rate limits
+    - Network connectivity
+  </Accordion>
+</AccordionGroup>
+
+## Security Considerations
+
+<Warning>
+**Critical Security Practices:**
+
+1. Never expose private keys
+2. Use strong key sizes (2048-bit RSA minimum, 256-bit ECDSA)
+3. Rotate certificates before expiration
+4. Monitor certificate validity
+5. Use Let's Encrypt when possible (automatic rotation)
+6. Enable OCSP stapling for revocation checking
+</Warning>
+
+### Certificate Security Checklist
+
+- [ ] Private keys stored securely (not in git)
+- [ ] TLS 1.2 or higher enforced
+- [ ] Strong cipher suites configured
+- [ ] HSTS enabled
+- [ ] Certificate expiration monitoring
+- [ ] Auto-renewal configured
+- [ ] Regular security audits
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Domains & Routing" icon="globe" href="/core-concepts/domains-routing">
+    Configure domain routing with SSL
+  </Card>
+  <Card title="Security" icon="shield" href="/configuration/security">
+    Additional security configuration
+  </Card>
+  <Card title="Traefik" icon="shuffle" href="/configuration/server-settings">
+    Configure Traefik settings
+  </Card>
+  <Card title="Monitoring" icon="chart-line" href="/monitoring/overview">
+    Monitor SSL certificate status
+  </Card>
+</CardGroup>

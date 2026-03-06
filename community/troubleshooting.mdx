@@ -1,0 +1,470 @@
+---
+title: "Troubleshooting"
+description: "Common issues and solutions for Dokploy deployment and management"
+icon: "wrench"
+---
+
+## Common Issues
+
+This guide covers common problems you might encounter when using Dokploy and their solutions.
+
+## Installation Issues
+
+### Installation Script Fails
+
+<AccordionGroup>
+  <Accordion title="Docker not installed" icon="docker">
+    **Problem**: Installation fails because Docker is not installed.
+    
+    **Solution**:
+    ```bash
+    # Install Docker first
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    
+    # Then install Dokploy
+    curl -sSL https://dokploy.com/install.sh | sh
+    ```
+  </Accordion>
+  
+  <Accordion title="Port already in use" icon="network-wired">
+    **Problem**: Port 3000 or 80/443 is already in use.
+    
+    **Solution**:
+    ```bash
+    # Check what's using the port
+    sudo lsof -i :3000
+    sudo lsof -i :80
+    
+    # Stop conflicting services
+    sudo systemctl stop <service-name>
+    
+    # Or configure Dokploy to use different ports
+    ```
+  </Accordion>
+  
+  <Accordion title="Insufficient permissions" icon="lock">
+    **Problem**: Permission denied errors during installation.
+    
+    **Solution**:
+    ```bash
+    # Run installation with sudo
+    curl -sSL https://dokploy.com/install.sh | sudo sh
+    
+    # Or fix Docker permissions
+    sudo usermod -aG docker $USER
+    newgrp docker
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Deployment Issues
+
+### Build Failures
+
+<AccordionGroup>
+  <Accordion title="Build timeout" icon="clock">
+    **Problem**: Build process times out.
+    
+    **Solution**:
+    - Increase build timeout in application settings
+    - Optimize your build process (remove unnecessary dependencies)
+    - Check server resources (CPU, memory)
+    - Use Docker layer caching
+  </Accordion>
+  
+  <Accordion title="Out of memory during build" icon="memory">
+    **Problem**: Build fails with out of memory error.
+    
+    **Solution**:
+    ```bash
+    # Increase Docker memory limit
+    # Edit /etc/docker/daemon.json
+    {
+      "default-runtime": "runc",
+      "default-shm-size": "2g"
+    }
+    
+    # Restart Docker
+    sudo systemctl restart docker
+    ```
+    
+    Or upgrade your server to have more RAM.
+  </Accordion>
+  
+  <Accordion title="Nixpacks build fails" icon="box">
+    **Problem**: Nixpacks cannot detect or build your application.
+    
+    **Solution**:
+    - Ensure your project has the correct files (package.json, requirements.txt, etc.)
+    - Try using a different build provider (Buildpacks or Dockerfile)
+    - Check Nixpacks logs for specific errors
+    - Add a `nixpacks.toml` configuration file
+  </Accordion>
+  
+  <Accordion title="Git clone fails" icon="git">
+    **Problem**: Cannot clone repository.
+    
+    **Solution**:
+    - Verify repository URL is correct
+    - Check SSH key configuration for private repos
+    - Ensure branch name is correct
+    - Verify network connectivity
+    - Check Git provider authentication
+  </Accordion>
+</AccordionGroup>
+
+### Runtime Issues
+
+<AccordionGroup>
+  <Accordion title="Application won't start" icon="power-off">
+    **Problem**: Container starts but application doesn't run.
+    
+    **Solution**:
+    - Check application logs in Dokploy dashboard
+    - Verify environment variables are set correctly
+    - Ensure the start command is correct
+    - Check if required ports are exposed
+    - Verify database connections
+  </Accordion>
+  
+  <Accordion title="Application crashes immediately" icon="exclamation-triangle">
+    **Problem**: Container starts then immediately exits.
+    
+    **Solution**:
+    ```bash
+    # View container logs
+    docker logs <container-id>
+    
+    # Common issues:
+    # - Missing environment variables
+    # - Database connection errors
+    # - Port conflicts
+    # - File permission issues
+    ```
+  </Accordion>
+  
+  <Accordion title="502 Bad Gateway" icon="globe">
+    **Problem**: Getting 502 errors when accessing application.
+    
+    **Solution**:
+    - Verify application is listening on the correct port
+    - Check if application is running: `docker ps`
+    - Ensure port is correctly configured in Dokploy
+    - Check Traefik logs for routing issues
+    - Verify health check endpoint exists
+  </Accordion>
+</AccordionGroup>
+
+## Database Issues
+
+<AccordionGroup>
+  <Accordion title="Cannot connect to database" icon="database">
+    **Problem**: Application cannot connect to database.
+    
+    **Solution**:
+    - Verify database is running: Check in Dokploy dashboard
+    - Ensure connection string is correct
+    - Check database credentials in environment variables
+    - Verify network connectivity between containers
+    - Use internal Docker network hostnames
+    
+    Example connection string:
+    ```
+    postgresql://user:password@postgres-container:5432/dbname
+    ```
+  </Accordion>
+  
+  <Accordion title="Database backup fails" icon="floppy-disk">
+    **Problem**: Automated backups are failing.
+    
+    **Solution**:
+    - Check storage destination is configured correctly
+    - Verify S3/storage credentials
+    - Ensure sufficient disk space
+    - Check backup logs for specific errors
+    - Test manual backup first
+  </Accordion>
+  
+  <Accordion title="Database migration fails" icon="rotate">
+    **Problem**: Database migrations don't run or fail.
+    
+    **Solution**:
+    - Run migrations manually first
+    - Check migration scripts for errors
+    - Verify database user has sufficient privileges
+    - Ensure migration command is correct in deployment settings
+    - Check application logs for migration errors
+  </Accordion>
+</AccordionGroup>
+
+## Docker Issues
+
+<AccordionGroup>
+  <Accordion title="Docker daemon not running" icon="docker">
+    **Problem**: Cannot connect to Docker daemon.
+    
+    **Solution**:
+    ```bash
+    # Start Docker service
+    sudo systemctl start docker
+    
+    # Enable Docker to start on boot
+    sudo systemctl enable docker
+    
+    # Check Docker status
+    sudo systemctl status docker
+    ```
+  </Accordion>
+  
+  <Accordion title="Permission denied on Docker socket" icon="lock">
+    **Problem**: Cannot access Docker socket.
+    
+    **Solution**:
+    ```bash
+    # Add user to docker group
+    sudo usermod -aG docker $USER
+    
+    # Apply group changes
+    newgrp docker
+    
+    # Or fix socket permissions
+    sudo chmod 666 /var/run/docker.sock
+    ```
+  </Accordion>
+  
+  <Accordion title="Disk space issues" icon="hard-drive">
+    **Problem**: Running out of disk space.
+    
+    **Solution**:
+    ```bash
+    # Remove unused containers
+    docker container prune -f
+    
+    # Remove unused images
+    docker image prune -a -f
+    
+    # Remove unused volumes
+    docker volume prune -f
+    
+    # Clean up everything
+    docker system prune -a --volumes -f
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Network & SSL Issues
+
+<AccordionGroup>
+  <Accordion title="SSL certificate not issued" icon="certificate">
+    **Problem**: Let's Encrypt certificate fails to generate.
+    
+    **Solution**:
+    - Verify domain DNS points to your server IP
+    - Wait for DNS propagation (can take up to 48 hours)
+    - Ensure ports 80 and 443 are open
+    - Check for rate limiting from Let's Encrypt
+    - Verify email is configured correctly
+  </Accordion>
+  
+  <Accordion title="Domain not accessible" icon="globe">
+    **Problem**: Cannot access application via domain.
+    
+    **Solution**:
+    - Verify DNS A record points to server IP
+    - Check domain configuration in Dokploy
+    - Ensure Traefik is running properly
+    - Check firewall rules allow ports 80/443
+    - Verify application is running
+  </Accordion>
+  
+  <Accordion title="Traefik routing issues" icon="route">
+    **Problem**: Traefik not routing requests correctly.
+    
+    **Solution**:
+    ```bash
+    # Check Traefik logs
+    docker logs dokploy-traefik
+    
+    # Restart Traefik
+    docker restart dokploy-traefik
+    
+    # Verify Traefik configuration
+    docker exec dokploy-traefik cat /etc/traefik/traefik.yml
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Performance Issues
+
+<AccordionGroup>
+  <Accordion title="High CPU usage" icon="microchip">
+    **Problem**: Server experiencing high CPU usage.
+    
+    **Solution**:
+    - Check which containers are using CPU: `docker stats`
+    - Scale horizontally with multi-node setup
+    - Optimize application code
+    - Add CPU limits to containers
+    - Upgrade server resources
+  </Accordion>
+  
+  <Accordion title="High memory usage" icon="memory">
+    **Problem**: Running out of memory.
+    
+    **Solution**:
+    ```bash
+    # Check memory usage
+    docker stats --no-stream
+    
+    # Set memory limits for containers
+    # In Dokploy UI: Settings > Resources > Memory Limit
+    ```
+    
+    Consider upgrading server RAM or optimizing applications.
+  </Accordion>
+  
+  <Accordion title="Slow deployments" icon="clock">
+    **Problem**: Deployments take too long.
+    
+    **Solution**:
+    - Use Docker layer caching
+    - Optimize Dockerfile (multi-stage builds)
+    - Reduce image size
+    - Use faster storage (SSD)
+    - Upgrade network speed
+    - Pre-pull base images
+  </Accordion>
+</AccordionGroup>
+
+## API & Automation Issues
+
+<AccordionGroup>
+  <Accordion title="API authentication fails" icon="key">
+    **Problem**: API requests return 401 Unauthorized.
+    
+    **Solution**:
+    - Verify API token is correct
+    - Check token hasn't expired
+    - Ensure Authorization header is properly formatted:
+      ```bash
+      -H "Authorization: Bearer YOUR_TOKEN"
+      ```
+    - Generate a new API token if needed
+  </Accordion>
+  
+  <Accordion title="Webhook not triggering" icon="webhook">
+    **Problem**: Webhooks not triggering deployments.
+    
+    **Solution**:
+    - Verify webhook URL is correct
+    - Check webhook logs in Git provider
+    - Ensure webhook secret matches (if configured)
+    - Test webhook manually with curl
+    - Check firewall allows incoming webhook requests
+  </Accordion>
+</AccordionGroup>
+
+## Multi-Node Issues
+
+<AccordionGroup>
+  <Accordion title="Node connection fails" icon="server">
+    **Problem**: Cannot connect to remote node.
+    
+    **Solution**:
+    - Verify SSH access to remote server
+    - Check firewall rules on remote server
+    - Ensure Docker is installed on remote server
+    - Verify Docker Swarm is initialized
+    - Check network connectivity between nodes
+  </Accordion>
+  
+  <Accordion title="Swarm mode issues" icon="layer-group">
+    **Problem**: Docker Swarm not working properly.
+    
+    **Solution**:
+    ```bash
+    # Check swarm status
+    docker info | grep Swarm
+    
+    # List swarm nodes
+    docker node ls
+    
+    # Reinitialize swarm if needed
+    docker swarm leave --force
+    docker swarm init
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Logging & Debugging
+
+### View Logs
+
+```bash
+# Application logs (in Dokploy dashboard)
+# Or via Docker:
+docker logs <container-name>
+
+# Follow logs in real-time
+docker logs -f <container-name>
+
+# Last 100 lines
+docker logs --tail 100 <container-name>
+
+# Dokploy system logs
+docker logs dokploy-dokploy
+
+# Traefik logs
+docker logs dokploy-traefik
+
+# Database logs
+docker logs <database-container>
+```
+
+### Debug Mode
+
+Enable verbose logging for troubleshooting:
+
+```bash
+# Add to environment variables
+DEBUG=*
+LOG_LEVEL=debug
+```
+
+## Getting Help
+
+If you're still experiencing issues:
+
+<CardGroup cols={2}>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/2tBnJ3jDJc">
+    Get real-time help from the community
+  </Card>
+  
+  <Card title="GitHub Issues" icon="github" href="https://github.com/dokploy/dokploy/issues">
+    Report bugs or request features
+  </Card>
+  
+  <Card title="FAQ" icon="circle-question" href="/community/faq">
+    Check frequently asked questions
+  </Card>
+  
+  <Card title="Documentation" icon="book" href="/">
+    Browse the complete documentation
+  </Card>
+</CardGroup>
+
+## Reporting Issues
+
+When reporting an issue, include:
+
+1. **Dokploy version**: Check in dashboard settings
+2. **Server details**: OS, RAM, CPU
+3. **Error messages**: Complete error logs
+4. **Steps to reproduce**: What you did before the error
+5. **Expected vs actual behavior**: What should happen vs what happens
+6. **Screenshots**: If applicable
+
+<Tip>
+  The more information you provide, the faster we can help resolve your issue!
+</Tip>

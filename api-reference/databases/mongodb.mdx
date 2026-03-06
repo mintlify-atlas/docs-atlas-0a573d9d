@@ -1,0 +1,366 @@
+---
+title: MongoDB
+description: Manage MongoDB databases through the Dokploy API
+---
+
+## Create MongoDB Database
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mongo.create" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production MongoDB",
+    "appName": "prod-mongo",
+    "databaseUser": "appuser",
+    "databasePassword": "SecurePass123!",
+    "dockerImage": "mongo:15",
+    "environmentId": "env_123456",
+    "description": "Main production MongoDB database",
+    "replicaSets": false
+  }'
+```
+</RequestExample>
+
+<ParamField path="name" type="string" required>
+  Display name for the MongoDB database
+</ParamField>
+
+<ParamField path="appName" type="string" required>
+  Unique application name used for Docker container identification
+</ParamField>
+
+<ParamField path="databaseUser" type="string" required>
+  Username for database access
+</ParamField>
+
+<ParamField path="databasePassword" type="string" required>
+  Password for database user. Must match pattern: `^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$`
+</ParamField>
+
+<ParamField path="environmentId" type="string" required>
+  ID of the environment where this database will be deployed
+</ParamField>
+
+<ParamField path="dockerImage" type="string" default="mongo:15">
+  Docker image to use for MongoDB
+</ParamField>
+
+<ParamField path="description" type="string">
+  Optional description of the database instance
+</ParamField>
+
+<ParamField path="replicaSets" type="boolean" default={false}>
+  Enable MongoDB replica sets for high availability
+</ParamField>
+
+<ParamField path="serverId" type="string">
+  Optional server ID for deployment on specific server
+</ParamField>
+
+<ResponseField name="mongoId" type="string">
+  Unique identifier for the created MongoDB instance
+</ResponseField>
+
+<ResponseField name="appName" type="string">
+  Application name of the database
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name of the database
+</ResponseField>
+
+## Get MongoDB Database
+
+<RequestExample>
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/mongo.one?mongoId=mongo_123456" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+</RequestExample>
+
+<ParamField query="mongoId" type="string" required>
+  ID of the MongoDB database to retrieve
+</ParamField>
+
+<ResponseField name="mongoId" type="string">
+  Database identifier
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name
+</ResponseField>
+
+<ResponseField name="appName" type="string">
+  Application name
+</ResponseField>
+
+<ResponseField name="databaseUser" type="string">
+  Database username
+</ResponseField>
+
+<ResponseField name="dockerImage" type="string">
+  MongoDB Docker image
+</ResponseField>
+
+<ResponseField name="applicationStatus" type="string">
+  Current status: `idle`, `running`, `done`, or `error`
+</ResponseField>
+
+<ResponseField name="externalPort" type="number">
+  External port for database access (if configured)
+</ResponseField>
+
+<ResponseField name="replicaSets" type="boolean">
+  Whether replica sets are enabled
+</ResponseField>
+
+## Deploy MongoDB
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mongo.deploy" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mongoId": "mongo_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mongoId" type="string" required>
+  ID of the MongoDB database to deploy
+</ParamField>
+
+## Start MongoDB
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mongo.start" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mongoId": "mongo_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mongoId" type="string" required>
+  ID of the MongoDB database to start
+</ParamField>
+
+## Stop MongoDB
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mongo.stop" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mongoId": "mongo_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mongoId" type="string" required>
+  ID of the MongoDB database to stop
+</ParamField>
+
+## Update MongoDB
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mongo.update" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mongoId": "mongo_123456",
+    "name": "Updated MongoDB Database",
+    "description": "Updated description",
+    "memoryLimit": "2g",
+    "memoryReservation": "1g",
+    "cpuLimit": "1",
+    "cpuReservation": "0.5"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mongoId" type="string" required>
+  ID of the MongoDB database to update
+</ParamField>
+
+<ParamField body="name" type="string">
+  New display name
+</ParamField>
+
+<ParamField body="appName" type="string">
+  New application name
+</ParamField>
+
+<ParamField body="description" type="string">
+  New description
+</ParamField>
+
+<ParamField body="databaseUser" type="string">
+  Database username
+</ParamField>
+
+<ParamField body="databasePassword" type="string">
+  User password
+</ParamField>
+
+<ParamField body="memoryLimit" type="string">
+  Maximum memory (e.g., "2g", "512m")
+</ParamField>
+
+<ParamField body="memoryReservation" type="string">
+  Guaranteed memory allocation
+</ParamField>
+
+<ParamField body="cpuLimit" type="string">
+  Maximum CPU cores
+</ParamField>
+
+<ParamField body="cpuReservation" type="string">
+  Guaranteed CPU allocation
+</ParamField>
+
+<ParamField body="command" type="string">
+  Custom command override
+</ParamField>
+
+<ParamField body="args" type="array">
+  Command arguments
+</ParamField>
+
+## Save External Port
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mongo.saveExternalPort" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mongoId": "mongo_123456",
+    "externalPort": 27017
+  }'
+```
+</RequestExample>
+
+<ParamField body="mongoId" type="string" required>
+  ID of the MongoDB database
+</ParamField>
+
+<ParamField body="externalPort" type="number">
+  Port number for external access. Set to `null` to remove external port.
+</ParamField>
+
+## Save Environment Variables
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mongo.saveEnvironment" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mongoId": "mongo_123456",
+    "env": "MONGO_INITDB_DATABASE=myapp\nMONGO_CUSTOM_CONFIG=value"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mongoId" type="string" required>
+  ID of the MongoDB database
+</ParamField>
+
+<ParamField body="env" type="string">
+  Environment variables in KEY=VALUE format, separated by newlines
+</ParamField>
+
+## Reload MongoDB
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mongo.reload" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mongoId": "mongo_123456",
+    "appName": "prod-mongo"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mongoId" type="string" required>
+  ID of the MongoDB database
+</ParamField>
+
+<ParamField body="appName" type="string" required>
+  Application name of the database
+</ParamField>
+
+## Rebuild MongoDB
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mongo.rebuild" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mongoId": "mongo_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mongoId" type="string" required>
+  ID of the MongoDB database to rebuild
+</ParamField>
+
+## Remove MongoDB
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mongo.remove" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mongoId": "mongo_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mongoId" type="string" required>
+  ID of the MongoDB database to remove
+</ParamField>
+
+## Connection String Format
+
+### Standard Connection
+```bash
+mongodb://[databaseUser]:[databasePassword]@[appName]:27017
+```
+
+Example:
+```bash
+mongodb://appuser:SecurePass123!@prod-mongo:27017
+```
+
+### With Database Name
+```bash
+mongodb://[databaseUser]:[databasePassword]@[appName]:27017/[databaseName]
+```
+
+### External Connection
+```bash
+mongodb://appuser:SecurePass123!@your-server.com:27017
+```
+
+### Replica Set Connection
+```bash
+mongodb://[databaseUser]:[databasePassword]@host1:27017,host2:27017,host3:27017/?replicaSet=myReplicaSet
+```
+
+## Mount Path
+
+MongoDB data is stored at `/data/db` inside the container.

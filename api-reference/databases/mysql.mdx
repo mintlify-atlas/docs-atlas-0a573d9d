@@ -1,0 +1,368 @@
+---
+title: MySQL
+description: Manage MySQL databases through the Dokploy API
+---
+
+## Create MySQL Database
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mysql.create" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production MySQL",
+    "appName": "prod-mysql",
+    "databaseName": "myapp",
+    "databaseUser": "appuser",
+    "databasePassword": "SecurePass123!",
+    "databaseRootPassword": "RootPass456!",
+    "dockerImage": "mysql:8",
+    "environmentId": "env_123456",
+    "description": "Main production MySQL database"
+  }'
+```
+</RequestExample>
+
+<ParamField path="name" type="string" required>
+  Display name for the MySQL database
+</ParamField>
+
+<ParamField path="appName" type="string" required>
+  Unique application name used for Docker container identification
+</ParamField>
+
+<ParamField path="databaseName" type="string" required>
+  Name of the database to create
+</ParamField>
+
+<ParamField path="databaseUser" type="string" required>
+  Username for database access
+</ParamField>
+
+<ParamField path="databasePassword" type="string" required>
+  Password for database user. Must match pattern: `^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$`
+</ParamField>
+
+<ParamField path="databaseRootPassword" type="string" required>
+  Root password for MySQL. Must match pattern: `^[a-zA-Z0-9@#%^&*()_+\-=[\]{}|;:,.<>?~`]*$`
+</ParamField>
+
+<ParamField path="environmentId" type="string" required>
+  ID of the environment where this database will be deployed
+</ParamField>
+
+<ParamField path="dockerImage" type="string" default="mysql:8">
+  Docker image to use for MySQL
+</ParamField>
+
+<ParamField path="description" type="string">
+  Optional description of the database instance
+</ParamField>
+
+<ParamField path="serverId" type="string">
+  Optional server ID for deployment on specific server
+</ParamField>
+
+<ResponseField name="mysqlId" type="string">
+  Unique identifier for the created MySQL instance
+</ResponseField>
+
+<ResponseField name="appName" type="string">
+  Application name of the database
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name of the database
+</ResponseField>
+
+## Get MySQL Database
+
+<RequestExample>
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/mysql.one?mysqlId=mysql_123456" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+</RequestExample>
+
+<ParamField query="mysqlId" type="string" required>
+  ID of the MySQL database to retrieve
+</ParamField>
+
+<ResponseField name="mysqlId" type="string">
+  Database identifier
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name
+</ResponseField>
+
+<ResponseField name="appName" type="string">
+  Application name
+</ResponseField>
+
+<ResponseField name="databaseName" type="string">
+  Database name
+</ResponseField>
+
+<ResponseField name="databaseUser" type="string">
+  Database username
+</ResponseField>
+
+<ResponseField name="dockerImage" type="string">
+  MySQL Docker image
+</ResponseField>
+
+<ResponseField name="applicationStatus" type="string">
+  Current status: `idle`, `running`, `done`, or `error`
+</ResponseField>
+
+<ResponseField name="externalPort" type="number">
+  External port for database access (if configured)
+</ResponseField>
+
+## Deploy MySQL
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mysql.deploy" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mysqlId": "mysql_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mysqlId" type="string" required>
+  ID of the MySQL database to deploy
+</ParamField>
+
+## Start MySQL
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mysql.start" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mysqlId": "mysql_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mysqlId" type="string" required>
+  ID of the MySQL database to start
+</ParamField>
+
+## Stop MySQL
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mysql.stop" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mysqlId": "mysql_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mysqlId" type="string" required>
+  ID of the MySQL database to stop
+</ParamField>
+
+## Update MySQL
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mysql.update" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mysqlId": "mysql_123456",
+    "name": "Updated MySQL Database",
+    "description": "Updated description",
+    "memoryLimit": "2g",
+    "memoryReservation": "1g",
+    "cpuLimit": "1",
+    "cpuReservation": "0.5"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mysqlId" type="string" required>
+  ID of the MySQL database to update
+</ParamField>
+
+<ParamField body="name" type="string">
+  New display name
+</ParamField>
+
+<ParamField body="appName" type="string">
+  New application name
+</ParamField>
+
+<ParamField body="description" type="string">
+  New description
+</ParamField>
+
+<ParamField body="databaseName" type="string">
+  Database name
+</ParamField>
+
+<ParamField body="databaseUser" type="string">
+  Database username
+</ParamField>
+
+<ParamField body="databasePassword" type="string">
+  User password
+</ParamField>
+
+<ParamField body="databaseRootPassword" type="string">
+  Root password
+</ParamField>
+
+<ParamField body="memoryLimit" type="string">
+  Maximum memory (e.g., "2g", "512m")
+</ParamField>
+
+<ParamField body="memoryReservation" type="string">
+  Guaranteed memory allocation
+</ParamField>
+
+<ParamField body="cpuLimit" type="string">
+  Maximum CPU cores
+</ParamField>
+
+<ParamField body="cpuReservation" type="string">
+  Guaranteed CPU allocation
+</ParamField>
+
+<ParamField body="command" type="string">
+  Custom command override
+</ParamField>
+
+<ParamField body="args" type="array">
+  Command arguments
+</ParamField>
+
+## Save External Port
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mysql.saveExternalPort" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mysqlId": "mysql_123456",
+    "externalPort": 3306
+  }'
+```
+</RequestExample>
+
+<ParamField body="mysqlId" type="string" required>
+  ID of the MySQL database
+</ParamField>
+
+<ParamField body="externalPort" type="number">
+  Port number for external access. Set to `null` to remove external port.
+</ParamField>
+
+## Save Environment Variables
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mysql.saveEnvironment" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mysqlId": "mysql_123456",
+    "env": "MYSQL_MAX_CONNECTIONS=200\nMYSQL_INNODB_BUFFER_POOL_SIZE=256M"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mysqlId" type="string" required>
+  ID of the MySQL database
+</ParamField>
+
+<ParamField body="env" type="string">
+  Environment variables in KEY=VALUE format, separated by newlines
+</ParamField>
+
+## Reload MySQL
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mysql.reload" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mysqlId": "mysql_123456",
+    "appName": "prod-mysql"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mysqlId" type="string" required>
+  ID of the MySQL database
+</ParamField>
+
+<ParamField body="appName" type="string" required>
+  Application name of the database
+</ParamField>
+
+## Rebuild MySQL
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mysql.rebuild" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mysqlId": "mysql_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mysqlId" type="string" required>
+  ID of the MySQL database to rebuild
+</ParamField>
+
+## Remove MySQL
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/mysql.remove" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mysqlId": "mysql_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="mysqlId" type="string" required>
+  ID of the MySQL database to remove
+</ParamField>
+
+## Connection String Format
+
+```bash
+mysql://[databaseUser]:[databasePassword]@[appName]:3306/[databaseName]
+```
+
+Example:
+```bash
+mysql://appuser:SecurePass123!@prod-mysql:3306/myapp
+```
+
+For external connections:
+```bash
+mysql://appuser:SecurePass123!@your-server.com:3306/myapp
+```
+
+## Mount Path
+
+MySQL data is stored at `/var/lib/mysql` inside the container.

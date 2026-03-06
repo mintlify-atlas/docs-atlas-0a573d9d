@@ -1,0 +1,565 @@
+---
+title: 'Deploy Applications'
+description: 'Deploy, redeploy, and manage application deployments'
+---
+
+## Deploy Application
+
+Trigger a new deployment of an application from the configured source.
+
+### Endpoint
+
+```
+POST /application.deploy
+```
+
+### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application to deploy
+</ParamField>
+
+<ParamField path="title" type="string">
+  Title for the deployment log (default: "Manual deployment")
+</ParamField>
+
+<ParamField path="description" type="string">
+  Description for the deployment log
+</ParamField>
+
+### Response
+
+Returns success status. The deployment runs asynchronously in the background.
+
+### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.deploy \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456",
+    "title": "Deploy version 2.1.0",
+    "description": "Deploying new features and bug fixes"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true
+}
+```
+
+## Redeploy Application
+
+Redeploy an application, optionally clearing the build cache.
+
+### Endpoint
+
+```
+POST /application.redeploy
+```
+
+### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application to redeploy
+</ParamField>
+
+<ParamField path="title" type="string">
+  Title for the deployment log (default: "Rebuild deployment")
+</ParamField>
+
+<ParamField path="description" type="string">
+  Description for the deployment log
+</ParamField>
+
+### Response
+
+Returns success status. The redeployment runs asynchronously.
+
+### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.redeploy \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456",
+    "title": "Rebuild with clean cache",
+    "description": "Rebuilding to resolve build issues"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true
+}
+```
+
+## Cancel Deployment
+
+Cancel an ongoing deployment (cloud version only).
+
+### Endpoint
+
+```
+POST /application.cancelDeployment
+```
+
+### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application with ongoing deployment
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Whether the cancellation request was successful
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Status message
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.cancelDeployment \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "message": "Deployment cancellation requested"
+}
+```
+
+## Configure Git Providers
+
+### Save GitHub Provider
+
+Configure GitHub as the application source.
+
+#### Endpoint
+
+```
+POST /application.saveGithubProvider
+```
+
+#### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+<ParamField path="owner" type="string" required>
+  GitHub repository owner or organization
+</ParamField>
+
+<ParamField path="githubId" type="string" required>
+  GitHub integration ID
+</ParamField>
+
+<ParamField path="enableSubmodules" type="boolean" required>
+  Whether to clone Git submodules
+</ParamField>
+
+<ParamField path="repository" type="string">
+  Repository name
+</ParamField>
+
+<ParamField path="branch" type="string">
+  Branch to deploy from
+</ParamField>
+
+<ParamField path="buildPath" type="string">
+  Path within repository to build from (default: "/")
+</ParamField>
+
+<ParamField path="watchPaths" type="array">
+  Array of paths to watch for changes (for monorepo support)
+</ParamField>
+
+<ParamField path="triggerType" type="string" default="push">
+  Deployment trigger: `push` or `tag`
+</ParamField>
+
+#### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.saveGithubProvider \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456",
+    "owner": "my-org",
+    "repository": "my-repo",
+    "branch": "main",
+    "buildPath": "/apps/frontend",
+    "githubId": "gh_abc123",
+    "watchPaths": ["apps/frontend/**"],
+    "enableSubmodules": false,
+    "triggerType": "push"
+  }'
+```
+
+### Save GitLab Provider
+
+Configure GitLab as the application source.
+
+#### Endpoint
+
+```
+POST /application.saveGitlabProvider
+```
+
+#### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+<ParamField path="gitlabBranch" type="string" required>
+  GitLab branch to deploy from
+</ParamField>
+
+<ParamField path="gitlabBuildPath" type="string" required>
+  Build path within repository
+</ParamField>
+
+<ParamField path="gitlabOwner" type="string" required>
+  GitLab owner/group
+</ParamField>
+
+<ParamField path="gitlabRepository" type="string" required>
+  Repository name
+</ParamField>
+
+<ParamField path="gitlabId" type="string" required>
+  GitLab integration ID
+</ParamField>
+
+<ParamField path="gitlabProjectId" type="number" required>
+  GitLab project ID
+</ParamField>
+
+<ParamField path="gitlabPathNamespace" type="string" required>
+  GitLab path namespace
+</ParamField>
+
+<ParamField path="enableSubmodules" type="boolean" required>
+  Whether to clone Git submodules
+</ParamField>
+
+<ParamField path="watchPaths" type="array">
+  Array of paths to watch for changes
+</ParamField>
+
+#### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.saveGitlabProvider \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456",
+    "gitlabOwner": "my-group",
+    "gitlabRepository": "my-project",
+    "gitlabBranch": "main",
+    "gitlabBuildPath": "/",
+    "gitlabId": "gl_xyz789",
+    "gitlabProjectId": 12345,
+    "gitlabPathNamespace": "my-group/my-project",
+    "enableSubmodules": false
+  }'
+```
+
+### Save Docker Provider
+
+Configure Docker registry as the application source.
+
+#### Endpoint
+
+```
+POST /application.saveDockerProvider
+```
+
+#### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+<ParamField path="dockerImage" type="string">
+  Docker image name (e.g., "nginx:latest")
+</ParamField>
+
+<ParamField path="username" type="string">
+  Registry username (for private registries)
+</ParamField>
+
+<ParamField path="password" type="string">
+  Registry password (for private registries)
+</ParamField>
+
+<ParamField path="registryUrl" type="string">
+  Custom registry URL (default: Docker Hub)
+</ParamField>
+
+#### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.saveDockerProvider \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456",
+    "dockerImage": "myorg/myapp:v2.1.0",
+    "username": "myuser",
+    "password": "mypassword",
+    "registryUrl": "https://registry.example.com"
+  }'
+```
+
+### Save Custom Git Provider
+
+Configure a custom Git repository via SSH or HTTPS.
+
+#### Endpoint
+
+```
+POST /application.saveGitProvider
+```
+
+#### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+<ParamField path="enableSubmodules" type="boolean" required>
+  Whether to clone Git submodules
+</ParamField>
+
+<ParamField path="customGitUrl" type="string">
+  Git repository URL
+</ParamField>
+
+<ParamField path="customGitBranch" type="string">
+  Branch to deploy from
+</ParamField>
+
+<ParamField path="customGitBuildPath" type="string">
+  Build path within repository
+</ParamField>
+
+<ParamField path="customGitSSHKeyId" type="string">
+  SSH key ID for authentication
+</ParamField>
+
+<ParamField path="watchPaths" type="array">
+  Array of paths to watch for changes
+</ParamField>
+
+#### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.saveGitProvider \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456",
+    "customGitUrl": "git@git.example.com:org/repo.git",
+    "customGitBranch": "production",
+    "customGitBuildPath": "/",
+    "customGitSSHKeyId": "key_abc123",
+    "enableSubmodules": true
+  }'
+```
+
+### Disconnect Git Provider
+
+Disconnect the configured Git provider from an application.
+
+#### Endpoint
+
+```
+POST /application.disconnectGitProvider
+```
+
+#### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+#### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.disconnectGitProvider \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456"
+  }'
+```
+
+## Configure Build Settings
+
+### Save Build Type
+
+Configure the build system and related settings for an application.
+
+#### Endpoint
+
+```
+POST /application.saveBuildType
+```
+
+#### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+<ParamField path="buildType" type="string" required>
+  Build system: `dockerfile`, `nixpacks`, `heroku_buildpacks`, `paketo_buildpacks`, `railpack`, or `static`
+</ParamField>
+
+<ParamField path="dockerContextPath" type="string" required>
+  Docker build context path
+</ParamField>
+
+<ParamField path="dockerBuildStage" type="string" required>
+  Docker build stage (for multi-stage builds)
+</ParamField>
+
+<ParamField path="dockerfile" type="string">
+  Path to Dockerfile (for dockerfile build type)
+</ParamField>
+
+<ParamField path="publishDirectory" type="string">
+  Directory to publish (for static sites)
+</ParamField>
+
+<ParamField path="isStaticSpa" type="boolean">
+  Whether the static site is a Single Page Application
+</ParamField>
+
+<ParamField path="herokuVersion" type="string">
+  Heroku buildpack version
+</ParamField>
+
+<ParamField path="railpackVersion" type="string">
+  Railpack version
+</ParamField>
+
+#### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.saveBuildType \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456",
+    "buildType": "dockerfile",
+    "dockerfile": "./Dockerfile",
+    "dockerContextPath": "./",
+    "dockerBuildStage": "production"
+  }'
+```
+
+### Save Environment Variables
+
+Configure environment variables, build arguments, and build secrets.
+
+#### Endpoint
+
+```
+POST /application.saveEnvironment
+```
+
+#### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+<ParamField path="createEnvFile" type="boolean" required>
+  Whether to create an .env file from environment variables
+</ParamField>
+
+<ParamField path="env" type="string">
+  Environment variables (newline-separated KEY=VALUE pairs)
+</ParamField>
+
+<ParamField path="buildArgs" type="string">
+  Build-time arguments (newline-separated KEY=VALUE pairs)
+</ParamField>
+
+<ParamField path="buildSecrets" type="string">
+  Build-time secrets (newline-separated KEY=VALUE pairs)
+</ParamField>
+
+#### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.saveEnvironment \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456",
+    "env": "NODE_ENV=production\nPORT=3000\nDATABASE_URL=postgresql://...",
+    "buildArgs": "NODE_VERSION=18\nYARN_VERSION=1.22.19",
+    "buildSecrets": "NPM_TOKEN=secret_token",
+    "createEnvFile": true
+  }'
+```
+
+## Clear Deployments
+
+Remove old deployment records and artifacts to free up disk space.
+
+### Endpoint
+
+```
+POST /application.clearDeployments
+```
+
+### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.clearDeployments \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true
+}
+```

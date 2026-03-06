@@ -1,0 +1,900 @@
+---
+title: "Features"
+description: "Comprehensive overview of Dokploy's capabilities for deploying and managing applications and databases"
+---
+
+## Application Deployment
+
+Dokploy supports multiple application deployment strategies to fit your workflow.
+
+### Source Types
+
+Deploy applications from various sources:
+
+<Accordion title="Git Repositories">
+  Connect to any Git provider for automatic deployments:
+  
+  - **GitHub**: OAuth integration with automatic webhook setup
+  - **GitLab**: Support for self-hosted and GitLab.com
+  - **Bitbucket**: Cloud and self-hosted Bitbucket
+  - **Gitea**: Self-hosted Git service integration
+  - **Generic Git**: Any Git repository via SSH or HTTPS
+  
+  ```typescript
+  // Supported source types
+  sourceType: "github" | "gitlab" | "bitbucket" | "gitea" | "git"
+  ```
+  
+  Features include:
+  - Automatic deployments on push
+  - Branch selection and switching
+  - Submodule support
+  - Custom SSH key authentication
+  - Watch paths for selective deployments
+</Accordion>
+
+<Accordion title="Docker Registries">
+  Pull and deploy pre-built images from:
+  
+  - Docker Hub
+  - GitHub Container Registry (ghcr.io)
+  - GitLab Container Registry
+  - Private registries with authentication
+  - Custom registry URLs
+  
+  ```typescript
+  sourceType: "docker"
+  dockerImage: "nginx:latest"
+  ```
+</Accordion>
+
+<Accordion title="Drop Deployment">
+  Upload and deploy applications directly:
+  
+  - Drag-and-drop file upload
+  - Archive extraction (zip, tar.gz)
+  - Direct deployment without Git
+  
+  ```typescript
+  sourceType: "drop"
+  ```
+</Accordion>
+
+### Build Systems
+
+Choose the right build system for your application:
+
+<CardGroup cols={2}>
+  <Card title="Nixpacks" icon="box">
+    Automatic language detection and building. Zero configuration for most applications.
+    
+    ```bash
+    # Nixpacks automatically detects:
+    # - Node.js (package.json)
+    # - Python (requirements.txt)
+    # - Go (go.mod)
+    # - Ruby (Gemfile)
+    # - And more...
+    ```
+  </Card>
+  
+  <Card title="Heroku Buildpacks" icon="cubes">
+    Use the extensive Heroku buildpack ecosystem.
+    
+    ```bash
+    buildType: "heroku_buildpacks"
+    # Supports all official Heroku buildpacks
+    ```
+  </Card>
+  
+  <Card title="Paketo Buildpacks" icon="layer-group">
+    Cloud Native Buildpacks for production deployments.
+    
+    ```bash
+    buildType: "paketo_buildpacks"
+    # Enterprise-grade builds
+    ```
+  </Card>
+  
+  <Card title="Dockerfile" icon="docker">
+    Complete control with custom Dockerfiles.
+    
+    ```dockerfile
+    # Use your own Dockerfile
+    FROM node:20-alpine
+    WORKDIR /app
+    COPY . .
+    RUN npm install
+    CMD ["npm", "start"]
+    ```
+  </Card>
+  
+  <Card title="Railpack" icon="train">
+    Optimized builds for Ruby on Rails applications.
+    
+    ```bash
+    buildType: "railpack"
+    ```
+  </Card>
+  
+  <Card title="Static Sites" icon="file-code">
+    Host static files with automatic web server.
+    
+    ```bash
+    buildType: "static"
+    # Serves HTML, CSS, JS with nginx
+    ```
+  </Card>
+</CardGroup>
+
+### Application Configuration
+
+Fine-tune your deployments with advanced options:
+
+<Tabs>
+  <Tab title="Environment Variables">
+    Manage environment variables securely:
+    
+    ```bash
+    # Set environment variables
+    NODE_ENV=production
+    DATABASE_URL=postgresql://user:pass@host:5432/db
+    API_KEY=secret-key
+    
+    # Variables are injected at runtime
+    # Support for multi-line values
+    # Automatic escaping and validation
+    ```
+  </Tab>
+  
+  <Tab title="Resource Limits">
+    Control CPU and memory allocation:
+    
+    ```typescript
+    {
+      cpuLimit: 2.0,           // Maximum CPU cores
+      cpuReservation: 0.5,     // Guaranteed CPU
+      memoryLimit: 2048,       // Maximum memory (MB)
+      memoryReservation: 512   // Guaranteed memory (MB)
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Build Configuration">
+    Customize the build process:
+    
+    ```bash
+    # Custom build arguments
+    --build-arg NODE_VERSION=20
+    --build-arg BUILD_ENV=production
+    
+    # Build secrets (not in image)
+    --secret id=npmrc,src=.npmrc
+    
+    # Custom build path
+    dockerFilePath: "./docker/Dockerfile.prod"
+    ```
+  </Tab>
+  
+  <Tab title="Command & Args">
+    Override container command and arguments:
+    
+    ```typescript
+    {
+      command: "node",
+      args: ["--max-old-space-size=4096", "server.js"]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Database Management
+
+Create and manage production-ready databases with automated setup.
+
+### Supported Databases
+
+<CardGroup cols={2}>
+  <Card title="PostgreSQL" icon="elephant">
+    The world's most advanced open source database.
+    
+    ```typescript
+    {
+      name: "production-db",
+      databaseName: "myapp",
+      databaseUser: "appuser",
+      databasePassword: "secure-password",
+      dockerImage: "postgres:16-alpine"
+    }
+    ```
+    
+    - Automatic user and database creation
+    - Multiple PostgreSQL versions
+    - pgvector support for AI workloads
+  </Card>
+  
+  <Card title="MySQL" icon="database">
+    Popular relational database system.
+    
+    ```typescript
+    {
+      name: "mysql-db",
+      databaseName: "myapp",
+      databaseUser: "appuser",
+      databasePassword: "user-pass",
+      databaseRootPassword: "root-pass",
+      dockerImage: "mysql:8.0"
+    }
+    ```
+    
+    - Root and user account setup
+    - MySQL 5.7, 8.0, 8.4 support
+    - Automatic configuration
+  </Card>
+  
+  <Card title="MongoDB" icon="leaf">
+    Leading NoSQL document database.
+    
+    ```typescript
+    {
+      name: "mongo-db",
+      databaseUser: "admin",
+      databasePassword: "secure-pass",
+      dockerImage: "mongo:7"
+    }
+    ```
+    
+    - Replica set support
+    - MongoDB 4.x, 5.x, 6.x, 7.x
+    - Sharding capabilities
+  </Card>
+  
+  <Card title="MariaDB" icon="database">
+    MySQL-compatible community database.
+    
+    ```typescript
+    {
+      name: "mariadb",
+      databaseName: "myapp",
+      databaseUser: "appuser",
+      databasePassword: "pass",
+      databaseRootPassword: "root-pass",
+      dockerImage: "mariadb:11"
+    }
+    ```
+    
+    - Drop-in MySQL replacement
+    - Enhanced performance
+    - Full compatibility
+  </Card>
+  
+  <Card title="Redis" icon="memory">
+    In-memory data structure store.
+    
+    ```typescript
+    {
+      name: "redis-cache",
+      databasePassword: "redis-pass",
+      dockerImage: "redis:7-alpine"
+    }
+    ```
+    
+    - Cache layer for applications
+    - Session storage
+    - Message queuing
+  </Card>
+  
+  <Card title="Custom Databases" icon="docker">
+    Deploy any database using Docker images.
+    
+    ```typescript
+    // Examples:
+    - CouchDB
+    - Cassandra
+    - InfluxDB
+    - TimescaleDB
+    - And more...
+    ```
+  </Card>
+</CardGroup>
+
+### Database Features
+
+<Accordion title="Automated Backups">
+  Schedule automatic backups to external storage:
+  
+  ```typescript
+  {
+    schedule: "0 2 * * *",  // Daily at 2 AM
+    enabled: true,
+    database: "myapp",
+    prefix: "backup",
+    destinationId: "s3-destination",
+    keepLatestCount: 7      // Retain 7 backups
+  }
+  ```
+  
+  - **Destinations**: S3, MinIO, local storage, any S3-compatible service
+  - **Retention**: Automatic cleanup of old backups
+  - **Notifications**: Alerts on backup success/failure
+  - **Scheduling**: Flexible cron expressions
+</Accordion>
+
+<Accordion title="Volume Persistence">
+  Databases use Docker volumes for data persistence:
+  
+  ```typescript
+  // Automatic volume creation
+  mounts: [{
+    type: "volume",
+    volumeName: `${appName}-data`,
+    mountPath: "/var/lib/postgresql/data"
+  }]
+  ```
+  
+  - Survives container restarts
+  - Can be backed up
+  - Migratable across servers
+</Accordion>
+
+<Accordion title="Connection Management">
+  Easy access to connection details:
+  
+  ```bash
+  # Internal connection (from applications)
+  DATABASE_URL=postgresql://user:pass@postgres-appname:5432/dbname
+  
+  # External connection (from host)
+  Host: your-server-ip
+  Port: exposed-port
+  Database: dbname
+  User: user
+  Password: pass
+  ```
+</Accordion>
+
+## Docker Compose Support
+
+Deploy complex multi-container applications with full Docker Compose compatibility.
+
+### Compose Deployment
+
+<Tabs>
+  <Tab title="Repository Compose">
+    Deploy compose files from Git repositories:
+    
+    ```yaml
+    # docker-compose.yml
+    version: '3.8'
+    services:
+      web:
+        image: nginx:alpine
+        ports:
+          - "80:80"
+      app:
+        build: .
+        environment:
+          - DATABASE_URL=${DATABASE_URL}
+      db:
+        image: postgres:16
+        volumes:
+          - pgdata:/var/lib/postgresql/data
+    
+    volumes:
+      pgdata:
+    ```
+    
+    ```typescript
+    {
+      sourceType: "github",
+      repository: "myorg/myapp",
+      branch: "main",
+      composePath: "./docker-compose.yml"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Raw Compose">
+    Paste compose content directly:
+    
+    ```typescript
+    {
+      sourceType: "raw",
+      composeFile: `version: '3.8'
+    services:
+      app:
+        image: myapp:latest
+        ports:
+          - "3000:3000"`
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Docker Stack">
+    Deploy as Docker Swarm stack:
+    
+    ```typescript
+    {
+      composeType: "stack",  // Instead of "docker-compose"
+      // Enables swarm-specific features
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Compose Features
+
+<CardGroup cols={2}>
+  <Card title="Environment Variables" icon="key">
+    Inject variables into compose services:
+    
+    ```bash
+    # Set in Dokploy UI
+    DATABASE_URL=postgresql://...
+    API_KEY=secret
+    
+    # Available to all services
+    ```
+  </Card>
+  
+  <Card title="Service Isolation" icon="shield">
+    Isolated or shared networking:
+    
+    ```typescript
+    isolatedDeployment: true
+    // Creates isolated network per deployment
+    ```
+  </Card>
+  
+  <Card title="Custom Commands" icon="terminal">
+    Pre/post deployment commands:
+    
+    ```bash
+    command: "docker compose exec app npm run migrate"
+    ```
+  </Card>
+  
+  <Card title="Auto Deploy" icon="rotate">
+    Automatic deployments on git push:
+    
+    ```typescript
+    autoDeploy: true
+    triggerType: "push"
+    ```
+  </Card>
+</CardGroup>
+
+## Domain Management & Routing
+
+Dokploy integrates with Traefik for automatic routing and SSL certificates.
+
+### Domain Configuration
+
+<Steps>
+  <Step title="Add Domain">
+    Configure custom domains for your applications:
+    
+    ```typescript
+    {
+      host: "app.example.com",
+      port: 3000,
+      https: true,
+      path: "/",
+      certificateType: "letsencrypt"
+    }
+    ```
+  </Step>
+  
+  <Step title="SSL Certificates">
+    Automatic SSL with Let's Encrypt:
+    
+    - Automatic certificate provisioning
+    - Auto-renewal before expiration
+    - Custom certificate resolvers
+    - Wildcard certificate support
+  </Step>
+  
+  <Step title="Routing Rules">
+    Advanced Traefik routing:
+    
+    ```yaml
+    # Automatic generation
+    http:
+      routers:
+        app-router:
+          rule: "Host(`app.example.com`)"
+          service: "app-service"
+          tls:
+            certResolver: "letsencrypt"
+    ```
+  </Step>
+</Steps>
+
+### Advanced Routing
+
+<Accordion title="Path-Based Routing">
+  Route different paths to different services:
+  
+  ```typescript
+  [
+    { host: "api.example.com", path: "/v1", port: 3000 },
+    { host: "api.example.com", path: "/v2", port: 4000 }
+  ]
+  ```
+</Accordion>
+
+<Accordion title="Redirects">
+  Configure HTTP to HTTPS and custom redirects:
+  
+  ```typescript
+  {
+    type: "www-to-non-www",
+    target: "https://example.com"
+  }
+  ```
+</Accordion>
+
+<Accordion title="Load Balancing">
+  Distribute traffic across multiple containers:
+  
+  ```yaml
+  services:
+    app-service:
+      loadBalancer:
+        servers:
+          - url: "http://app-1:3000"
+          - url: "http://app-2:3000"
+        passHostHeader: true
+  ```
+</Accordion>
+
+## Multi-Node & Docker Swarm
+
+Scale applications across multiple servers for high availability.
+
+### Docker Swarm Integration
+
+<CardGroup cols={2}>
+  <Card title="Multi-Server Setup" icon="server">
+    Connect multiple servers to form a cluster:
+    
+    - Manager and worker nodes
+    - Automatic service distribution
+    - Built-in load balancing
+    - Failure recovery
+  </Card>
+  
+  <Card title="Service Replication" icon="copy">
+    Run multiple replicas of your application:
+    
+    ```typescript
+    serviceModeSwarm: {
+      mode: "replicated",
+      replicas: 3
+    }
+    ```
+  </Card>
+  
+  <Card title="Placement Constraints" icon="filter">
+    Control where services run:
+    
+    ```typescript
+    placementSwarm: {
+      constraints: [
+        "node.role==worker",
+        "node.labels.region==us-west"
+      ]
+    }
+    ```
+  </Card>
+  
+  <Card title="Update Strategies" icon="arrows-rotate">
+    Zero-downtime rolling updates:
+    
+    ```typescript
+    updateConfigSwarm: {
+      parallelism: 1,
+      delay: "10s",
+      order: "start-first"
+    }
+    ```
+  </Card>
+</CardGroup>
+
+### Swarm Configuration
+
+```typescript
+// Complete swarm configuration example
+{
+  serviceModeSwarm: {
+    mode: "replicated",
+    replicas: 3
+  },
+  placementSwarm: {
+    constraints: ["node.role==worker"],
+    preferences: [{ spread: "node.id" }]
+  },
+  updateConfigSwarm: {
+    parallelism: 1,
+    delay: "10s",
+    failureAction: "rollback",
+    order: "start-first"
+  },
+  restartPolicySwarm: {
+    condition: "on-failure",
+    delay: "5s",
+    maxAttempts: 3,
+    window: "120s"
+  }
+}
+```
+
+## Real-Time Monitoring
+
+Built-in monitoring powered by a Go-based metrics service.
+
+### Server Metrics
+
+Monitor your infrastructure in real-time:
+
+<Tabs>
+  <Tab title="System Resources">
+    ```json
+    {
+      "timestamp": "2025-01-19T21:44:54.232164Z",
+      "cpu": 24.57,
+      "cpu_model": "Intel Xeon E5-2680",
+      "cpu_cores": 8,
+      "mem_used": 81.91,
+      "mem_used_gb": 13.11,
+      "mem_total": 16.0,
+      "disk_used": 89.34,
+      "total_disk": 460.43,
+      "network_in": 54.78,
+      "network_out": 31.72
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Container Metrics">
+    ```json
+    {
+      "timestamp": "2025-01-19T22:16:30Z",
+      "container_name": "myapp-web-1",
+      "CPU": 83.76,
+      "Memory": {
+        "percentage": 0.03,
+        "used": 2.262,
+        "total": 7.654,
+        "usedUnit": "MB",
+        "totalUnit": "GB"
+      },
+      "Network": {
+        "input": 306,
+        "output": 0,
+        "inputUnit": "B",
+        "outputUnit": "B"
+      },
+      "BlockIO": {
+        "read": 28.7,
+        "write": 0,
+        "readUnit": "kB",
+        "writeUnit": "B"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Configuration">
+    ```json
+    {
+      "server": {
+        "refreshRate": 25,
+        "retentionDays": 7,
+        "cronJob": "0 0 * * *",
+        "thresholds": {
+          "cpu": 80,
+          "memory": 90
+        }
+      },
+      "containers": {
+        "refreshRate": 25,
+        "services": {
+          "include": ["myapp-*"],
+          "exclude": []
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Monitoring Features
+
+- **Historical Data**: Store metrics for up to 30 days
+- **Custom Refresh Rates**: Configure collection intervals (default: 25 seconds)
+- **Threshold Alerts**: Receive notifications when limits are exceeded
+- **Container Filtering**: Monitor specific services or all containers
+- **API Access**: Query metrics programmatically via REST API
+
+## Notifications & Alerts
+
+Stay informed about deployments, backups, and system events.
+
+### Notification Channels
+
+<CardGroup cols={3}>
+  <Card title="Slack" icon="slack">
+    Send alerts to Slack channels
+  </Card>
+  <Card title="Discord" icon="discord">
+    Discord webhook integration
+  </Card>
+  <Card title="Telegram" icon="telegram">
+    Telegram bot notifications
+  </Card>
+  <Card title="Email (SMTP)" icon="envelope">
+    Standard email alerts
+  </Card>
+  <Card title="Resend" icon="paper-plane">
+    Modern email API
+  </Card>
+  <Card title="Teams" icon="microsoft">
+    Microsoft Teams webhooks
+  </Card>
+  <Card title="Gotify" icon="bell">
+    Self-hosted notification server
+  </Card>
+  <Card title="Ntfy" icon="message">
+    Simple HTTP notifications
+  </Card>
+  <Card title="Pushover" icon="mobile">
+    Mobile push notifications
+  </Card>
+</CardGroup>
+
+### Notification Events
+
+Configure which events trigger notifications:
+
+```typescript
+{
+  appDeploy: true,           // Application deployed successfully
+  appBuildError: true,       // Build/deployment failed
+  databaseBackup: true,      // Database backup completed
+  volumeBackup: true,        // Volume backup completed
+  dokployRestart: true,      // Dokploy system restarted
+  dockerCleanup: true,       // Docker cleanup executed
+  serverThreshold: true      // CPU/memory threshold exceeded
+}
+```
+
+## CLI & API Access
+
+Manage Dokploy programmatically for automation and CI/CD integration.
+
+### API Features
+
+<CardGroup cols={2}>
+  <Card title="Full REST API" icon="brackets-curly">
+    Complete API for all Dokploy operations
+    
+    - Application management
+    - Database operations
+    - Deployments
+    - Monitoring data
+    - Server administration
+  </Card>
+  
+  <Card title="OpenAPI Specification" icon="file-code">
+    Auto-generated API documentation
+    
+    - Interactive API explorer
+    - Type definitions
+    - Code generation support
+  </Card>
+</CardGroup>
+
+### CLI Tool
+
+Command-line interface for server management:
+
+```bash
+# Deploy application
+dokploy deploy --app myapp
+
+# View logs
+dokploy logs myapp --follow
+
+# Scale service
+dokploy scale myapp --replicas 3
+
+# Backup database
+dokploy backup create mydb
+```
+
+## Security Features
+
+<Accordion title="Authentication & Authorization">
+  - User account system
+  - Organization support
+  - Role-based access control
+  - API token authentication
+</Accordion>
+
+<Accordion title="SSL/TLS">
+  - Automatic Let's Encrypt certificates
+  - Custom certificate upload
+  - Wildcard certificate support
+  - HTTP to HTTPS redirect
+</Accordion>
+
+<Accordion title="Network Security">
+  - Isolated Docker networks
+  - Firewall rule management
+  - Private network support
+  - Security headers configuration
+</Accordion>
+
+<Accordion title="Secret Management">
+  - Encrypted environment variables
+  - Build secrets (not in image layers)
+  - Database credential management
+  - Registry authentication storage
+</Accordion>
+
+## Additional Features
+
+<CardGroup cols={2}>
+  <Card title="Templates" icon="puzzle-piece">
+    One-click deployment of popular applications:
+    
+    - Plausible Analytics
+    - Pocketbase
+    - Cal.com
+    - n8n
+    - And more...
+  </Card>
+  
+  <Card title="Git Provider Integration" icon="code-branch">
+    OAuth integration with:
+    
+    - GitHub
+    - GitLab
+    - Bitbucket
+    - Self-hosted instances
+  </Card>
+  
+  <Card title="Preview Deployments" icon="eye">
+    Automatic preview environments:
+    
+    - Per pull request
+    - Isolated environments
+    - Automatic cleanup
+  </Card>
+  
+  <Card title="Rollbacks" icon="clock-rotate-left">
+    Easy rollback to previous versions:
+    
+    - One-click rollback
+    - Deployment history
+    - Image registry integration
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Get Started" icon="rocket" href="/getting-started/installation">
+    Install Dokploy and deploy your first app
+  </Card>
+  <Card title="Core Concepts" icon="book" href="/core-concepts/projects">
+    Learn the fundamental concepts
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Explore the API documentation
+  </Card>
+  <Card title="Join Community" icon="users" href="https://discord.gg/2tBnJ3jDJc">
+    Get help and share feedback
+  </Card>
+</CardGroup>

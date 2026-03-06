@@ -1,0 +1,538 @@
+---
+title: Deployments Overview
+description: Understanding Dokploy's deployment workflows, methods, and lifecycle management
+---
+
+## Overview
+
+Dokploy provides flexible deployment workflows that support multiple source types, build methods, and deployment strategies. Deploy from Git repositories, Docker registries, or direct file uploads with automated builds and rollback capabilities.
+
+## Deployment Workflow
+
+Every deployment in Dokploy follows a consistent lifecycle:
+
+<Steps>
+  <Step title="Source Retrieval">
+    Dokploy fetches your application code from:
+    - Git repository (GitHub, GitLab, Bitbucket, Gitea, or custom Git)
+    - Docker registry (pre-built images)
+    - Direct upload (ZIP file drop)
+  </Step>
+  
+  <Step title="Build Phase">
+    Your application is built using one of:
+    - **Nixpacks** - Auto-detect framework and build
+    - **Dockerfile** - Custom Docker build
+    - **Heroku Buildpacks** - Heroku-compatible builds
+    - **Paketo Buildpacks** - Cloud Native Buildpacks
+    - **Railpack** - Optimized for Ruby on Rails
+    - **Static** - Static site generation
+  </Step>
+  
+  <Step title="Image Creation">
+    A Docker image is created and optionally pushed to a registry:
+    ```bash
+    myapp:latest
+    # or with registry
+    registry.example.com/myapp:latest
+    ```
+  </Step>
+  
+  <Step title="Container Deployment">
+    The image is deployed as a Docker Swarm service with:
+    - Environment variables
+    - Volume mounts
+    - Port mappings
+    - Resource limits
+    - Health checks
+  </Step>
+  
+  <Step title="Health Verification">
+    Dokploy verifies the deployment:
+    - Container starts successfully
+    - Health checks pass (if configured)
+    - Application responds on configured port
+  </Step>
+</Steps>
+
+## Deployment Types
+
+### Manual Deployment
+
+Trigger deployments manually from the Dokploy dashboard.
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/application.deploy \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "title": "Manual deployment",
+    "description": "Deploying latest changes"
+  }'
+```
+
+**Use cases:**
+- Initial deployment
+- Testing before automation
+- Emergency hotfixes
+- Rollback to specific version
+
+### Automatic Deployment
+
+Deploy automatically when code changes are pushed to your repository.
+
+**Trigger types:**
+- **Push** - Deploy on every push to the configured branch
+- **Tag** - Deploy only when new Git tags are created
+- **Pull Request** - Create preview deployments for PRs
+
+<Info>
+  Automatic deployments require webhook configuration. See [Git Integration](/deployments/git-integration) for setup instructions.
+</Info>
+
+### Rebuild Deployment
+
+Rebuild an application without fetching new code from the repository.
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/application.redeploy \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "title": "Rebuild deployment",
+    "description": "Rebuilding with updated environment variables"
+  }'
+```
+
+**Use cases:**
+- Environment variable changes
+- Build configuration updates
+- Clear cache and rebuild
+- Apply new base image updates
+
+### Drop Deployment
+
+Upload and deploy a ZIP file directly without Git integration.
+
+```typescript
+const formData = new FormData();
+formData.append('zip', zipFile);
+formData.append('applicationId', 'app-123');
+formData.append('dropBuildPath', '/');
+
+await fetch('https://your-domain.com/api/trpc/application.dropDeployment', {
+  method: 'POST',
+  headers: { 'x-api-key': process.env.API_KEY },
+  body: formData
+});
+```
+
+**Use cases:**
+- Quick prototypes
+- Closed-source applications
+- Build artifacts from CI/CD
+- Temporary deployments
+
+## Deployment States
+
+Applications transition through different states during deployment:
+
+<CardGroup cols={2}>
+  <Card title="idle" icon="circle" iconType="regular" color="#gray">
+    No deployment in progress. Application is stopped or ready to deploy.
+  </Card>
+  
+  <Card title="running" icon="spinner" iconType="solid" color="#3b82f6">
+    Deployment in progress. Building or starting the application.
+  </Card>
+  
+  <Card title="done" icon="circle-check" iconType="solid" color="#10b981">
+    Deployment completed successfully. Application is running.
+  </Card>
+  
+  <Card title="error" icon="circle-xmark" iconType="solid" color="#ef4444">
+    Deployment failed. Check logs for error details.
+  </Card>
+</CardGroup>
+
+## Deployment History
+
+Dokploy maintains a complete history of all deployments:
+
+```typescript
+// Get deployment history for an application
+const deployments = await fetch(
+  'https://your-domain.com/api/trpc/deployment.all?applicationId=app-123',
+  { headers: { 'x-api-key': process.env.API_KEY } }
+);
+```
+
+Each deployment record includes:
+
+<ParamField path="deploymentId" type="string">
+  Unique deployment identifier
+</ParamField>
+
+<ParamField path="title" type="string">
+  Deployment title (e.g., commit message)
+</ParamField>
+
+<ParamField path="description" type="string">
+  Additional deployment details (e.g., commit hash)
+</ParamField>
+
+<ParamField path="status" type="enum">
+  Deployment status: `running`, `done`, `error`, `cancelled`
+</ParamField>
+
+<ParamField path="logPath" type="string">
+  Path to deployment logs for debugging
+</ParamField>
+
+<ParamField path="createdAt" type="string">
+  Deployment timestamp
+</ParamField>
+
+<ParamField path="pid" type="number" optional>
+  Process ID of the deployment job (for cancellation)
+</ParamField>
+
+## Deployment Logs
+
+All deployment output is streamed to logs in real-time:
+
+```bash
+# View deployment logs
+tail -f /var/lib/dokploy/logs/app-123/deployment-456.log
+```
+
+**Log format:**
+```bash
+[01] Cloning repository from github.com/user/repo...
+[02] ✓ Repository cloned successfully
+[03] Applying patches...
+[04] Building with Nixpacks...
+[05] ✓ Build completed successfully
+[06] Creating Docker image: myapp:latest
+[07] ✓ Image created
+[08] Starting container...
+[09] ✓ Container started
+[10] ✓ Deployment complete!
+```
+
+<Tip>
+  Logs are preserved even after deployment completion for debugging and auditing.
+</Tip>
+
+## Queue Management
+
+Dokploy uses a job queue to manage concurrent deployments:
+
+```typescript
+// View deployment queue
+const queue = await fetch(
+  'https://your-domain.com/api/trpc/deployment.queueList',
+  { headers: { 'x-api-key': process.env.API_KEY } }
+);
+```
+
+**Queue states:**
+- `waiting` - Job is queued but not started
+- `active` - Job is currently executing
+- `completed` - Job finished successfully
+- `failed` - Job failed with errors
+- `delayed` - Job is scheduled for later
+
+### Cancelling Deployments
+
+Cancel a running deployment:
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/application.cancelDeployment \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"applicationId": "app-123"}'
+```
+
+<Warning>
+  Cancelling a deployment may leave the application in an inconsistent state. Consider redeploying after cancellation.
+</Warning>
+
+## Rollback Deployments
+
+Dokploy supports rolling back to previous deployments:
+
+### Enable Rollback
+
+```typescript
+await fetch('https://your-domain.com/api/trpc/application.update', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.API_KEY
+  },
+  body: JSON.stringify({
+    applicationId: 'app-123',
+    rollbackActive: true,
+    rollbackRegistryId: 'registry-123'  // Registry to store rollback images
+  })
+});
+```
+
+### Perform Rollback
+
+1. Navigate to **Deployments** tab
+2. Find the previous successful deployment
+3. Click **Rollback** button
+4. Confirm rollback action
+
+<Info>
+  Rollback images are automatically tagged and stored in the configured rollback registry.
+</Info>
+
+## Multi-Server Deployments
+
+Deploy applications across multiple servers:
+
+```typescript
+{
+  "applicationId": "app-123",
+  "serverId": "server-456",        // Deployment target server
+  "buildServerId": "server-789"    // Build server (optional)
+}
+```
+
+**Benefits:**
+- **Centralized builds** - Build on powerful servers
+- **Edge deployment** - Deploy close to users
+- **Resource isolation** - Separate build and runtime
+- **Multi-region** - Deploy globally
+
+<Note>
+  Multi-server deployments are available in Dokploy Cloud. Self-hosted instances support single-server deployments.
+</Note>
+
+## Build Caching
+
+Speed up deployments with build caching:
+
+### Enable Cache
+
+```typescript
+{
+  "applicationId": "app-123",
+  "cleanCache": false  // Keep build cache
+}
+```
+
+### Clear Cache
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/application.clearDeployments \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"applicationId": "app-123"}'
+```
+
+**Cache benefits:**
+- Faster dependency installation
+- Reduced network bandwidth
+- Lower build times
+- Improved consistency
+
+<Warning>
+  Clear cache if you encounter build issues or need to force fresh installations.
+</Warning>
+
+## Deployment Notifications
+
+Receive notifications about deployment events:
+
+<CardGroup cols={2}>
+  <Card title="Build Success" icon="circle-check" color="#10b981">
+    Notify when deployments complete successfully
+  </Card>
+  
+  <Card title="Build Failure" icon="circle-xmark" color="#ef4444">
+    Alert when deployments fail with error details
+  </Card>
+  
+  <Card title="Application Down" icon="triangle-exclamation" color="#f59e0b">
+    Warn when applications stop unexpectedly
+  </Card>
+  
+  <Card title="Health Check Failed" icon="heart-crack" color="#ef4444">
+    Alert when health checks fail repeatedly
+  </Card>
+</CardGroup>
+
+See [Notifications](/configuration/notifications) for setup instructions.
+
+## Best Practices
+
+### Build Configuration
+
+<AccordionGroup>
+  <Accordion title="Use Specific Base Images">
+    ```dockerfile
+    # Bad - uses latest tag
+    FROM node:latest
+    
+    # Good - pins specific version
+    FROM node:20.11.0-alpine
+    ```
+    
+    Pinning versions ensures consistent builds across deployments.
+  </Accordion>
+  
+  <Accordion title="Optimize Build Context">
+    ```dockerfile
+    # .dockerignore
+    node_modules
+    .git
+    .env
+    *.log
+    README.md
+    ```
+    
+    Exclude unnecessary files to speed up builds and reduce image size.
+  </Accordion>
+  
+  <Accordion title="Multi-Stage Builds">
+    ```dockerfile
+    # Build stage
+    FROM node:20-alpine AS builder
+    WORKDIR /app
+    COPY package*.json ./
+    RUN npm ci
+    COPY . .
+    RUN npm run build
+    
+    # Production stage
+    FROM node:20-alpine
+    WORKDIR /app
+    COPY --from=builder /app/dist ./dist
+    COPY --from=builder /app/node_modules ./node_modules
+    CMD ["node", "dist/index.js"]
+    ```
+    
+    Smaller images deploy faster and use less disk space.
+  </Accordion>
+</AccordionGroup>
+
+### Deployment Strategy
+
+1. **Test in Staging** - Always test deployments in staging before production
+2. **Use Health Checks** - Configure health checks for automatic recovery
+3. **Monitor Resources** - Watch CPU and memory usage during deployments
+4. **Enable Rollback** - Store previous images for quick rollback
+5. **Review Logs** - Check deployment logs after each deployment
+
+### Security
+
+1. **Never Commit Secrets** - Use environment variables for sensitive data
+2. **Scan Images** - Enable vulnerability scanning on registries
+3. **Update Dependencies** - Keep base images and packages updated
+4. **Minimize Permissions** - Run containers with minimal privileges
+5. **Use Private Registries** - Store proprietary images in private registries
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card
+    title="Git Integration"
+    icon="code-branch"
+    href="/deployments/git-integration"
+  >
+    Connect Git repositories and configure webhooks
+  </Card>
+  <Card
+    title="Docker Registry"
+    icon="docker"
+    href="/deployments/docker-registry"
+  >
+    Configure registries for pulling and pushing images
+  </Card>
+  <Card
+    title="Build Configuration"
+    icon="hammer"
+    href="/deployments/build-configuration"
+  >
+    Customize build process and optimize builds
+  </Card>
+  <Card
+    title="Environment Variables"
+    icon="key"
+    href="/deployments/environment-variables"
+  >
+    Manage application configuration and secrets
+  </Card>
+  <Card
+    title="First Deployment"
+    icon="rocket"
+    href="/getting-started/first-deployment"
+  >
+    Step-by-step deployment tutorial
+  </Card>
+  <Card
+    title="Monitoring"
+    icon="chart-line"
+    href="/monitoring/real-time-metrics"
+  >
+    Monitor deployments and application health
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Deployment Stuck in Running State">
+    **Symptoms:** Deployment shows `running` but never completes
+    
+    **Solutions:**
+    1. Check deployment logs for errors:
+       ```bash
+       docker service logs dokploy
+       ```
+    2. Verify sufficient disk space:
+       ```bash
+       df -h
+       ```
+    3. Kill stuck deployment process:
+       ```bash
+       curl -X POST https://your-domain.com/api/trpc/deployment.killProcess \
+         -H "x-api-key: your-api-key" \
+         -d '{"deploymentId": "deploy-123"}'
+       ```
+  </Accordion>
+  
+  <Accordion title="Build Fails with Network Errors">
+    **Symptoms:** Timeouts or connection refused errors during build
+    
+    **Solutions:**
+    1. Check server internet connectivity
+    2. Verify DNS resolution
+    3. Configure HTTP proxy if behind firewall:
+       ```bash
+       HTTP_PROXY=http://proxy.example.com:3128
+       HTTPS_PROXY=http://proxy.example.com:3128
+       ```
+    4. Increase timeout limits in build configuration
+  </Accordion>
+  
+  <Accordion title="Container Starts Then Immediately Stops">
+    **Symptoms:** Deployment completes but application status shows error
+    
+    **Solutions:**
+    1. Check application logs:
+       ```bash
+       docker service logs myapp
+       ```
+    2. Verify start command is correct
+    3. Ensure port configuration matches application
+    4. Check for missing environment variables
+    5. Verify database connectivity
+  </Accordion>
+</AccordionGroup>

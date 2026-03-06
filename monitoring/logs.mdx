@@ -1,0 +1,377 @@
+---
+title: "Logs"
+description: "View and analyze application and container logs in Dokploy"
+---
+
+Dokploy provides comprehensive logging capabilities for applications, containers, and deployment operations. Access logs through the dashboard to troubleshoot issues, monitor application behavior, and track deployment progress.
+
+## Log Types
+
+### Application Logs
+
+View real-time logs from running applications and services:
+
+- **Container stdout/stderr**: Standard output and error streams from running containers
+- **Docker Compose logs**: Aggregated logs from multi-container applications
+- **Database logs**: PostgreSQL, MySQL, MariaDB, MongoDB, and Redis logs
+
+### Deployment Logs
+
+Track the progress and outcome of deployment operations:
+
+- **Build logs**: Docker image build output, including layer creation and dependency installation
+- **Deploy logs**: Container startup, health checks, and initialization
+- **Git operations**: Clone, pull, and repository sync messages
+- **Error logs**: Failed deployments, build errors, and validation issues
+
+### System Logs
+
+Monitor Dokploy infrastructure operations:
+
+- **Docker cleanup**: Automated cleanup of unused images, containers, and volumes
+- **Backup operations**: Database backup and restore processes
+- **Server operations**: Remote server deployment and configuration
+- **Stats collection**: Monitoring service operations
+
+## Viewing Logs
+
+### Application Logs
+
+Access logs for a running application:
+
+1. Navigate to your **Project**
+2. Select the **Application** or **Service**
+3. Click the **Logs** tab
+4. View real-time log output with automatic scrolling
+
+#### Log Features
+
+- **Auto-refresh**: Logs update automatically as new entries are added
+- **Search**: Filter logs by keyword or pattern
+- **Timestamps**: View exact time of each log entry
+- **Color coding**: Differentiate log levels (info, warning, error)
+- **Download**: Export logs for offline analysis
+
+### Deployment Logs
+
+Track deployment progress in real-time:
+
+1. Navigate to **Application > Deployments**
+2. Select a deployment from the list
+3. Click **View Logs** to see the complete deployment process
+4. Monitor build, test, and deploy stages
+
+#### Deployment Log Stages
+
+**Build Stage**:
+```
+[Building] Pulling source code...
+[Building] Running npm install...
+[Building] Creating Docker image...
+[Building] ✅ Build completed successfully
+```
+
+**Deploy Stage**:
+```
+[Deploying] Stopping old containers...
+[Deploying] Starting new containers...
+[Deploying] Running health checks...
+[Deploying] ✅ Deployment completed
+```
+
+### Database Logs
+
+View logs for managed databases:
+
+1. Navigate to **Project > Database** (Postgres, MySQL, MariaDB, MongoDB, or Redis)
+2. Click the **Logs** tab
+3. View database-specific logs including queries, connections, and errors
+
+#### Database Log Examples
+
+**PostgreSQL**:
+```
+2024-01-19 10:30:45.123 UTC [1] LOG:  database system is ready to accept connections
+2024-01-19 10:31:12.456 UTC [123] ERROR:  relation "users" does not exist at character 15
+```
+
+**MySQL**:
+```
+2024-01-19T10:30:45.123456Z 0 [System] [MY-010931] /usr/sbin/mysqld: ready for connections.
+2024-01-19T10:31:12.456789Z 8 [Warning] [MY-013360] Plugin mysql_native_password is not loaded
+```
+
+**MongoDB**:
+```
+{"t":{"$date":"2024-01-19T10:30:45.123Z"},"s":"I","c":"NETWORK","msg":"Waiting for connections","attr":{"port":27017}}
+{"t":{"$date":"2024-01-19T10:31:12.456Z"},"s":"E","c":"COMMAND","msg":"Command failed"}
+```
+
+## Log Retention
+
+### Application Logs
+
+Application logs are stored in Docker containers and follow Docker's logging driver configuration:
+
+- **Default driver**: `json-file` with automatic rotation
+- **Retention**: Logs are retained as long as the container exists
+- **Size limits**: Configurable per container (default: 10MB per file, 3 files)
+
+### Deployment Logs
+
+Deployment logs are stored in the Dokploy database:
+
+- **Retention**: All deployment logs are kept indefinitely
+- **Access**: Available through the Deployments tab
+- **Storage**: Database records include deployment status, timestamps, and full logs
+
+### System Logs
+
+System operation logs are stored in designated paths:
+
+- **Path**: `/home/dokploy/logs/` (configurable)
+- **Retention**: Managed by log cleanup cron job
+- **Cleanup schedule**: Configurable via `logCleanupCron` (default: daily at midnight)
+
+## Log Cleanup
+
+### Configure Cleanup Schedule
+
+Set up automatic log cleanup to manage disk space:
+
+1. Navigate to **Settings > Server**
+2. Enable **Docker Cleanup**
+3. Set **Log Cleanup Cron**: Cron expression for cleanup schedule
+
+```typescript
+{
+  "enableDockerCleanup": true,
+  "logCleanupCron": "0 0 * * *"  // Daily at midnight
+}
+```
+
+### Manual Cleanup
+
+Clean up logs manually:
+
+```bash
+# Remove old Docker container logs
+docker system prune -a --volumes
+
+# Clean up specific application logs
+docker logs --tail 1000 container-name > container-name.log
+docker rm container-name
+
+# Remove deployment logs (database query)
+DELETE FROM deployments WHERE createdAt < NOW() - INTERVAL '30 days';
+```
+
+## Log Analysis
+
+### Searching Logs
+
+Use the built-in search functionality:
+
+1. Open the Logs tab
+2. Use the search box to filter by keyword
+3. Search supports:
+   - Simple text matching
+   - Regular expressions
+   - Case-sensitive/insensitive options
+
+### Log Patterns
+
+Common patterns to search for:
+
+**Errors**:
+```
+error|ERROR|Error|exception|Exception|failed|Failed
+```
+
+**Performance Issues**:
+```
+timeout|slow|latency|delayed
+```
+
+**Security Events**:
+```
+unauthorized|forbidden|authentication|permission denied
+```
+
+### Exporting Logs
+
+Export logs for external analysis:
+
+1. Click the **Download** button in the Logs tab
+2. Choose format: Plain text or JSON
+3. Save to local file system
+
+Command-line export:
+```bash
+# Export container logs via Docker
+docker logs container-name > logs.txt
+
+# Export with timestamps
+docker logs --timestamps container-name > logs-timestamped.txt
+
+# Export last 1000 lines
+docker logs --tail 1000 container-name > logs-recent.txt
+```
+
+## Integration with External Tools
+
+### Forwarding to Log Aggregators
+
+Configure Docker logging drivers to forward logs:
+
+**Syslog**:
+```json
+{
+  "log-driver": "syslog",
+  "log-opts": {
+    "syslog-address": "tcp://192.168.1.100:514"
+  }
+}
+```
+
+**Fluentd**:
+```json
+{
+  "log-driver": "fluentd",
+  "log-opts": {
+    "fluentd-address": "localhost:24224",
+    "tag": "dokploy.{{.Name}}"
+  }
+}
+```
+
+**JSON File with Rotation**:
+```json
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+```
+
+### Monitoring Integration
+
+Integrate logs with monitoring tools:
+
+1. **Configure log shipping**: Use Docker logging drivers or log forwarders
+2. **Set up alerts**: Configure notification rules based on log patterns
+3. **Create dashboards**: Visualize log metrics and trends
+
+## Troubleshooting
+
+### Logs Not Appearing
+
+**Check container status**:
+```bash
+docker ps -a
+docker inspect container-name
+```
+
+**Verify logging driver**:
+```bash
+docker inspect --format='{{.HostConfig.LogConfig.Type}}' container-name
+```
+
+**Check disk space**:
+```bash
+df -h
+```
+
+### Logs Growing Too Large
+
+1. Configure log rotation in Docker daemon:
+```json
+{
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "5"
+  }
+}
+```
+
+2. Enable Docker cleanup in Dokploy settings
+3. Set up regular log cleanup cron jobs
+
+### Missing Historical Logs
+
+- **Container logs**: Lost when container is removed
+- **Deployment logs**: Check database for records
+- **System logs**: Verify log cleanup schedule hasn't removed needed logs
+
+### Performance Issues
+
+If logging impacts performance:
+
+1. Reduce log verbosity in application configuration
+2. Use asynchronous logging in applications
+3. Configure appropriate log rotation limits
+4. Consider using a dedicated logging driver
+
+## Best Practices
+
+1. **Set Log Rotation**: Configure max-size and max-file to prevent disk exhaustion
+2. **Enable Timestamps**: Always include timestamps for accurate troubleshooting
+3. **Use Structured Logging**: Output JSON logs for easier parsing and analysis
+4. **Monitor Log Volume**: Track log growth and adjust retention policies
+5. **Implement Log Levels**: Use appropriate severity levels (debug, info, warn, error)
+6. **Secure Sensitive Data**: Never log passwords, API keys, or personal information
+7. **Regular Cleanup**: Schedule automatic cleanup of old logs
+8. **Centralize Logs**: Consider log aggregation for multi-container applications
+
+## Log Format Examples
+
+### Application Log Format
+
+**JSON Format** (Recommended):
+```json
+{
+  "timestamp": "2024-01-19T10:30:45.123Z",
+  "level": "error",
+  "message": "Failed to connect to database",
+  "service": "api",
+  "error": {
+    "code": "ECONNREFUSED",
+    "stack": "..."
+  }
+}
+```
+
+**Plain Text Format**:
+```
+[2024-01-19 10:30:45] ERROR: Failed to connect to database
+```
+
+### Deployment Log Format
+
+```
+=== Deployment Started ===
+Timestamp: 2024-01-19T10:30:00.000Z
+Application: my-app
+Commit: abc123
+
+[Build] Cloning repository...
+[Build] ✅ Clone completed
+[Build] Building Docker image...
+[Build] ✅ Build completed
+
+[Deploy] Stopping old containers...
+[Deploy] Starting new containers...
+[Deploy] ✅ Deployment successful
+
+=== Deployment Completed ===
+Duration: 2m 34s
+Status: Success
+```
+
+## Next Steps
+
+- [Configure Real-Time Metrics](/monitoring/real-time-metrics) for performance tracking
+- [Set Up Notifications](/monitoring/notifications) for log-based alerts
+- [Monitor Overview](/monitoring/overview) for complete observability setup

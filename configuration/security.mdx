@@ -1,0 +1,357 @@
+---
+title: Security
+description: Configure authentication and security settings for your applications
+---
+
+## Overview
+
+Dokploy provides built-in HTTP Basic Authentication to protect your applications. Security settings are configured per application and stored securely in the database.
+
+## Basic Authentication
+
+HTTP Basic Authentication adds a username and password prompt before users can access your application.
+
+### Creating Security Credentials
+
+<ParamField path="applicationId" type="string" required>
+  The ID of the application to protect
+</ParamField>
+
+<ParamField path="username" type="string" required>
+  Username for authentication. Must be at least 1 character.
+  
+  ```bash
+  admin
+  ```
+</ParamField>
+
+<ParamField path="password" type="string" required>
+  Password for authentication. Must be at least 1 character.
+  
+  ```bash
+  securePassword123!
+  ```
+  
+  <Warning>
+    Use strong passwords with a mix of uppercase, lowercase, numbers, and special characters.
+  </Warning>
+</ParamField>
+
+### Configuration Example
+
+```typescript
+// Create security credentials
+const security = await fetch('https://your-domain.com/api/trpc/security.create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'your-api-key'
+  },
+  body: JSON.stringify({
+    applicationId: 'app-123',
+    username: 'admin',
+    password: 'securePassword123!'
+  })
+});
+```
+
+## Managing Security Settings
+
+### Retrieve Security Configuration
+
+Get the current security settings for an application:
+
+```bash
+curl https://your-domain.com/api/trpc/security.one \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"securityId": "security-123"}'
+```
+
+Response:
+```json
+{
+  "securityId": "security-123",
+  "username": "admin",
+  "password": "securePassword123!",
+  "applicationId": "app-123",
+  "createdAt": "2024-01-15T10:30:00.000Z"
+}
+```
+
+### Update Security Credentials
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/security.update \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "securityId": "security-123",
+    "username": "newadmin",
+    "password": "newSecurePassword456!"
+  }'
+```
+
+### Delete Security Configuration
+
+Remove authentication from an application:
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/security.delete \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"securityId": "security-123"}'
+```
+
+## Authorization
+
+Dokploy implements role-based access control (RBAC) to ensure users can only access their authorized resources.
+
+### Organization-Level Access
+
+- Users can only access applications within their active organization
+- Each security configuration is scoped to an organization
+- Cross-organization access is prevented automatically
+
+### Permission Checks
+
+Before any security operation, Dokploy verifies:
+1. User is authenticated
+2. Application belongs to user's active organization
+3. User has permission to modify security settings
+
+```typescript
+// Authorization check example (internal)
+if (application.environment.project.organizationId !== session.activeOrganizationId) {
+  throw new Error('Unauthorized: Cannot access this application');
+}
+```
+
+## Multiple Credentials
+
+Each application can have multiple username/password combinations:
+
+```bash
+# Create first set of credentials
+curl -X POST https://your-domain.com/api/trpc/security.create \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "username": "admin",
+    "password": "adminPassword"
+  }'
+
+# Create second set of credentials
+curl -X POST https://your-domain.com/api/trpc/security.create \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "username": "viewer",
+    "password": "viewerPassword"
+  }'
+```
+
+<Info>
+  Username must be unique per application. You cannot create multiple credentials with the same username for one application.
+</Info>
+
+## Security Best Practices
+
+### Password Requirements
+
+While Dokploy doesn't enforce password complexity at the database level, follow these guidelines:
+
+- Minimum 12 characters
+- Mix of uppercase and lowercase letters
+- Include numbers and special characters
+- Avoid common words or patterns
+- Don't reuse passwords across applications
+
+### Credential Rotation
+
+Regularly update your credentials:
+
+```bash
+# Rotate credentials every 90 days
+*/90 * * * * curl -X POST https://your-domain.com/api/trpc/security.update \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"securityId": "security-123", "password": "newPassword"}'
+```
+
+### Audit Logging
+
+All security operations are logged with timestamps:
+- Credential creation
+- Credential updates
+- Credential deletion
+- Failed authentication attempts (via Traefik logs)
+
+## Traefik Integration
+
+Dokploy integrates with Traefik to enforce Basic Authentication:
+
+### Middleware Configuration
+
+When you create security credentials, Dokploy automatically:
+1. Creates a Traefik BasicAuth middleware
+2. Attaches it to the application's router
+3. Updates the Traefik configuration
+
+```yaml
+http:
+  middlewares:
+    app-123-auth:
+      basicAuth:
+        users:
+          - "admin:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/"
+          - "viewer:$apr1$3CzIFywo$G6h3nGp5LfcpVbNgVJ54R0"
+```
+
+### Password Hashing
+
+Passwords are hashed using APR1 (Apache MD5) before storing in Traefik:
+
+```typescript
+// Password hashing (internal)
+import { hash } from 'bcrypt';
+
+const hashedPassword = await hash(password, 10);
+```
+
+<Warning>
+  Never store passwords in plain text or in environment variables.
+</Warning>
+
+## Removing Authentication
+
+To remove authentication from an application:
+
+1. Delete all security credentials
+2. Traefik configuration is automatically updated
+3. Application becomes publicly accessible
+
+```bash
+# Remove all authentication
+curl -X POST https://your-domain.com/api/trpc/security.delete \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"securityId": "security-123"}'
+```
+
+## Database Schema
+
+Security credentials are stored in the `security` table:
+
+```typescript
+{
+  securityId: string;        // Unique identifier
+  username: string;          // Username (unique per application)
+  password: string;          // Hashed password
+  applicationId: string;     // Associated application
+  createdAt: string;        // Creation timestamp
+}
+```
+
+### Constraints
+
+- `securityId` is the primary key (auto-generated)
+- `username` + `applicationId` must be unique
+- Deleting an application cascades to its security credentials
+
+## Error Handling
+
+### Common Errors
+
+<CodeGroup>
+```json Unauthorized Access
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "You are not authorized to access this application"
+  }
+}
+```
+
+```json Duplicate Username
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Username already exists for this application"
+  }
+}
+```
+
+```json Invalid Credentials
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Username and password are required"
+  }
+}
+```
+</CodeGroup>
+
+## API Reference
+
+All security endpoints require authentication:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/trpc/security.create` | POST | Create new credentials |
+| `/api/trpc/security.one` | GET | Get credentials by ID |
+| `/api/trpc/security.update` | POST | Update existing credentials |
+| `/api/trpc/security.delete` | POST | Delete credentials |
+
+### Request Headers
+
+```bash
+Content-Type: application/json
+x-api-key: your-api-key
+```
+
+## Example: Full Workflow
+
+```typescript
+// 1. Create application
+const app = await createApplication({
+  name: 'My App',
+  // ... other config
+});
+
+// 2. Add security
+const security = await fetch('https://your-domain.com/api/trpc/security.create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.API_KEY
+  },
+  body: JSON.stringify({
+    applicationId: app.applicationId,
+    username: 'admin',
+    password: process.env.ADMIN_PASSWORD
+  })
+});
+
+// 3. Access protected app
+const response = await fetch('https://my-app.example.com', {
+  headers: {
+    'Authorization': 'Basic ' + btoa('admin:' + process.env.ADMIN_PASSWORD)
+  }
+});
+
+// 4. Update credentials (after 90 days)
+await fetch('https://your-domain.com/api/trpc/security.update', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.API_KEY
+  },
+  body: JSON.stringify({
+    securityId: security.securityId,
+    password: process.env.NEW_PASSWORD
+  })
+});
+```

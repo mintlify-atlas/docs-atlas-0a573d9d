@@ -1,0 +1,551 @@
+---
+title: "Quickstart"
+description: "Learn the essential workflows and features of Dokploy in 10 minutes"
+---
+
+## Overview
+
+This quickstart guide walks you through the core features of Dokploy, from creating your first project to deploying an application. By the end, you'll understand how to manage applications, databases, and deployments.
+
+<Note>
+  Before starting, ensure you have [installed Dokploy](/getting-started/installation) on your server and created your admin account.
+</Note>
+
+## Understanding Dokploy's Structure
+
+Dokploy organizes your deployments using a simple hierarchy:
+
+```
+Dokploy Instance
+├── Projects (organizational units)
+│   ├── Applications (your code)
+│   ├── Databases (PostgreSQL, MySQL, MongoDB, etc.)
+│   └── Docker Compose (multi-container apps)
+└── Settings (global configuration)
+```
+
+<Info>
+  **Projects** are logical groupings that help organize related applications and databases. For example, you might have separate projects for "Production", "Staging", or different clients.
+</Info>
+
+## Your First Project
+
+Projects are the top-level containers for organizing your applications and databases.
+
+<Steps>
+  <Step title="Create a new project">
+    1. Log in to your Dokploy dashboard at `http://your-server-ip:3000`
+    2. Click **Create Project** on the dashboard
+    3. Enter a project name (e.g., "my-first-project")
+    4. Optionally add a description
+    5. Click **Create**
+    
+    <Tip>
+      Use descriptive project names that reflect the environment or purpose, like "production-web", "staging-api", or "client-acme".
+    </Tip>
+  </Step>
+  
+  <Step title="Explore your project">
+    Once created, you'll see the project dashboard with tabs for:
+    - **Applications** - Your deployed code
+    - **Databases** - Managed database instances
+    - **Compose** - Docker Compose stacks
+    - **Monitoring** - Resource usage metrics
+    - **Settings** - Project configuration
+  </Step>
+</Steps>
+
+## Deploy Your First Application
+
+Let's deploy a sample application from a Git repository.
+
+<Steps>
+  <Step title="Add an application">
+    From your project dashboard:
+    
+    1. Click the **Applications** tab
+    2. Click **Create Application**
+    3. Enter an application name (e.g., "hello-world")
+    4. Choose **Git** as the source type
+  </Step>
+  
+  <Step title="Configure the Git source">
+    Connect your Git repository:
+    
+    <CodeGroup>
+    ```text GitHub Repository
+    Repository URL: https://github.com/yourusername/your-repo
+    Branch: main
+    ```
+    
+    ```text GitLab Repository
+    Repository URL: https://gitlab.com/yourusername/your-repo
+    Branch: main
+    ```
+    
+    ```text Bitbucket Repository
+    Repository URL: https://bitbucket.org/yourusername/your-repo
+    Branch: main
+    ```
+    </CodeGroup>
+    
+    For private repositories:
+    1. Add an SSH key or personal access token
+    2. Navigate to **Settings** > **Git Providers**
+    3. Authenticate with your Git provider
+    4. Select the authenticated provider when creating the application
+  </Step>
+  
+  <Step title="Select build method">
+    Choose how Dokploy should build your application:
+    
+    <Tabs>
+      <Tab title="Nixpacks (Recommended)">
+        Automatically detects your application type and builds appropriately.
+        
+        **Supports:**
+        - Node.js / TypeScript
+        - Python
+        - Go
+        - Ruby
+        - PHP
+        - Rust
+        - And more...
+        
+        No configuration needed for most applications.
+      </Tab>
+      
+      <Tab title="Dockerfile">
+        Use your own Dockerfile for complete control.
+        
+        1. Select **Dockerfile** as the build method
+        2. Specify the Dockerfile path (default: `./Dockerfile`)
+        3. Optionally set build context and build arguments
+      </Tab>
+      
+      <Tab title="Buildpacks">
+        Cloud Native Buildpacks for standardized builds.
+        
+        Best for applications following standard conventions.
+      </Tab>
+    </Tabs>
+  </Step>
+  
+  <Step title="Configure environment variables (optional)">
+    Add environment variables your application needs:
+    
+    1. Click **Environment Variables**
+    2. Click **Add Variable**
+    3. Enter key-value pairs:
+    
+    ```bash
+    NODE_ENV=production
+    API_URL=https://api.example.com
+    DATABASE_URL=postgresql://...
+    ```
+    
+    <Warning>
+      Never commit secrets to Git. Use environment variables for API keys, passwords, and other sensitive data.
+    </Warning>
+  </Step>
+  
+  <Step title="Set port and domains (optional)">
+    Configure how users access your application:
+    
+    **Port Configuration:**
+    - Enter the port your application listens on (e.g., `3000`, `8080`)
+    
+    **Domain Configuration:**
+    1. Click **Domains**
+    2. Click **Add Domain**
+    3. Enter your domain (e.g., `app.example.com`)
+    4. Dokploy will automatically configure SSL with Let's Encrypt
+    
+    <Tip>
+      If you don't have a domain, you can access your app via `http://your-server-ip:port`
+    </Tip>
+  </Step>
+  
+  <Step title="Deploy the application">
+    Ready to deploy:
+    
+    1. Click **Create & Deploy**
+    2. Watch the build logs in real-time
+    3. Wait for the deployment to complete (usually 2-5 minutes)
+    
+    You'll see:
+    - Git clone progress
+    - Build steps and output
+    - Docker image creation
+    - Container startup
+    
+    When complete, the status will change to **Running** ✓
+  </Step>
+</Steps>
+
+## Create a Database
+
+Dokploy makes it easy to provision and manage databases.
+
+<Steps>
+  <Step title="Add a database">
+    From your project dashboard:
+    
+    1. Click the **Databases** tab
+    2. Click **Create Database**
+    3. Choose your database type
+  </Step>
+  
+  <Step title="Select database type">
+    <Tabs>
+      <Tab title="PostgreSQL">
+        ```yaml
+        Name: my-postgres
+        Version: 16-alpine
+        Database Name: myapp
+        Username: myapp_user
+        Password: [auto-generated or custom]
+        ```
+      </Tab>
+      
+      <Tab title="MySQL">
+        ```yaml
+        Name: my-mysql
+        Version: 8.0
+        Database Name: myapp
+        Username: myapp_user
+        Password: [auto-generated or custom]
+        Root Password: [auto-generated or custom]
+        ```
+      </Tab>
+      
+      <Tab title="MongoDB">
+        ```yaml
+        Name: my-mongo
+        Version: 7.0
+        Database Name: myapp
+        Username: myapp_user
+        Password: [auto-generated or custom]
+        ```
+      </Tab>
+      
+      <Tab title="Redis">
+        ```yaml
+        Name: my-redis
+        Version: 7-alpine
+        Password: [optional]
+        ```
+      </Tab>
+      
+      <Tab title="MariaDB">
+        ```yaml
+        Name: my-mariadb
+        Version: 11.2
+        Database Name: myapp
+        Username: myapp_user
+        Password: [auto-generated or custom]
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  
+  <Step title="Configure database settings">
+    Optional configurations:
+    
+    - **Port:** External port for database access (default: standard port for each DB type)
+    - **Volume:** Persistent storage path (automatically configured)
+    - **Memory Limit:** Restrict memory usage (e.g., `512m`, `1g`)
+    - **CPU Limit:** Restrict CPU usage (e.g., `0.5`, `1.0`)
+  </Step>
+  
+  <Step title="Create and start the database">
+    1. Click **Create Database**
+    2. Wait for the container to start (usually 10-30 seconds)
+    3. Copy the connection string from the database details page
+    
+    Example connection string:
+    ```bash
+    postgresql://myapp_user:password@postgres:5432/myapp
+    ```
+  </Step>
+  
+  <Step title="Connect your application">
+    Link the database to your application:
+    
+    1. Go to your application's settings
+    2. Add an environment variable:
+    ```bash
+    DATABASE_URL=postgresql://myapp_user:password@postgres:5432/myapp
+    ```
+    3. Redeploy your application to apply changes
+  </Step>
+</Steps>
+
+## Monitor Your Deployments
+
+Dokploy provides real-time monitoring for all your resources.
+
+<Tabs>
+  <Tab title="Application Monitoring">
+    View application metrics:
+    
+    1. Open your application
+    2. Click the **Monitoring** tab
+    
+    You'll see:
+    - **CPU Usage** - Current and historical CPU consumption
+    - **Memory Usage** - RAM utilization over time
+    - **Network I/O** - Incoming and outgoing traffic
+    - **Logs** - Real-time application logs
+    
+    <Tip>
+      Click **View Logs** to stream live logs or filter by time range and severity.
+    </Tip>
+  </Tab>
+  
+  <Tab title="Database Monitoring">
+    Monitor database performance:
+    
+    1. Open your database
+    2. Click the **Monitoring** tab
+    
+    Metrics include:
+    - Query performance
+    - Connection count
+    - Storage usage
+    - Backup status
+  </Tab>
+  
+  <Tab title="System Monitoring">
+    View overall server health:
+    
+    1. Navigate to **Settings** > **Server**
+    2. Click **Monitoring**
+    
+    System-wide metrics:
+    - Total CPU across all services
+    - Total memory usage
+    - Disk space
+    - Docker container count
+  </Tab>
+</Tabs>
+
+## Essential Operations
+
+Common tasks you'll perform regularly:
+
+<AccordionGroup>
+  <Accordion title="Redeploying an application" icon="rotate">
+    Trigger a new deployment:
+    
+    1. Open your application
+    2. Click **Deploy** in the top right
+    3. Choose:
+       - **Redeploy** - Use the same code
+       - **Deploy Latest** - Pull latest from Git
+    
+    Or set up automatic deployments:
+    1. Go to application **Settings**
+    2. Enable **Auto Deploy**
+    3. Every Git push will trigger a deployment
+  </Accordion>
+  
+  <Accordion title="Viewing logs" icon="file-lines">
+    Access application logs:
+    
+    1. Open your application
+    2. Click **Logs**
+    3. Use filters:
+       - **Time range** - Last hour, day, week
+       - **Log level** - Error, warn, info, debug
+       - **Search** - Find specific text
+    
+    Download logs:
+    ```bash
+    # Via Docker CLI
+    docker logs <container-name> > app-logs.txt
+    ```
+  </Accordion>
+  
+  <Accordion title="Scaling applications" icon="up-right-and-down-left-from-center">
+    Adjust resource limits:
+    
+    1. Open application **Settings**
+    2. Scroll to **Resources**
+    3. Set limits:
+       ```yaml
+       Memory: 512MB
+       CPU: 0.5 cores
+       ```
+    
+    For horizontal scaling (multiple instances), see [Multi-node Deployment](/advanced/multi-node).
+  </Accordion>
+  
+  <Accordion title="Managing environment variables" icon="key">
+    Update environment variables:
+    
+    1. Open application **Settings**
+    2. Go to **Environment Variables**
+    3. Add, edit, or remove variables
+    4. Click **Save**
+    5. Click **Redeploy** to apply changes
+    
+    <Warning>
+      Applications must be redeployed for environment variable changes to take effect.
+    </Warning>
+  </Accordion>
+  
+  <Accordion title="Backing up databases" icon="clock">
+    Configure automatic backups:
+    
+    1. Open your database
+    2. Click **Backups**
+    3. Click **Configure Backup**
+    4. Choose:
+       - **Schedule** - Daily, weekly, or custom cron
+       - **Destination** - S3, local, or other storage
+       - **Retention** - How many backups to keep
+    5. Click **Enable**
+    
+    Manual backup:
+    ```bash
+    # Click "Backup Now" in the database dashboard
+    ```
+  </Accordion>
+  
+  <Accordion title="Stopping and starting services" icon="power-off">
+    Control application lifecycle:
+    
+    1. Open your application or database
+    2. Use the controls:
+       - **Stop** - Gracefully shut down
+       - **Start** - Start the container
+       - **Restart** - Stop and start
+       - **Delete** - Permanently remove (WARNING: cannot be undone)
+    
+    Via Docker CLI:
+    ```bash
+    docker stop <container-name>
+    docker start <container-name>
+    docker restart <container-name>
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Using Templates
+
+Dokploy includes one-click templates for popular open-source applications.
+
+<Steps>
+  <Step title="Browse templates">
+    1. From the dashboard, click **Templates**
+    2. Browse available templates:
+       - Plausible Analytics
+       - Pocketbase
+       - Cal.com
+       - Ghost CMS
+       - And many more...
+  </Step>
+  
+  <Step title="Deploy a template">
+    1. Click on a template
+    2. Review the description and requirements
+    3. Click **Deploy**
+    4. Configure any required settings:
+       - Domain name
+       - Admin credentials
+       - Environment-specific variables
+    5. Click **Deploy Template**
+  </Step>
+  
+  <Step title="Access your deployed template">
+    Once deployed:
+    1. Note the URL or IP address provided
+    2. Complete any first-time setup in the application
+    3. The template is now ready to use
+  </Step>
+</Steps>
+
+## Next Steps
+
+Now that you understand the basics, explore more advanced features:
+
+<CardGroup cols={2}>
+  <Card
+    title="Deploy from Git"
+    icon="git-alt"
+    href="/getting-started/first-deployment"
+  >
+    Detailed walkthrough of deploying a real application
+  </Card>
+  <Card
+    title="Docker Compose"
+    icon="docker"
+    href="/core-concepts/docker-compose"
+  >
+    Deploy multi-container applications
+  </Card>
+  <Card
+    title="Custom Domains"
+    icon="globe"
+    href="/core-concepts/domains-routing"
+  >
+    Set up custom domains with automatic SSL
+  </Card>
+  <Card
+    title="Database Backups"
+    icon="database"
+    href="/databases/backups"
+  >
+    Configure automated database backups
+  </Card>
+  <Card
+    title="Notifications"
+    icon="bell"
+    href="/monitoring/notifications"
+  >
+    Get alerts for deployments and errors
+  </Card>
+  <Card
+    title="CLI & API"
+    icon="terminal"
+    href="/cli/overview"
+  >
+    Automate with command line and API
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+If you run into issues:
+
+<CardGroup cols={2}>
+  <Card
+    title="Documentation"
+    icon="book"
+    href="/community/troubleshooting"
+  >
+    Check the troubleshooting guide
+  </Card>
+  <Card
+    title="Discord Community"
+    icon="discord"
+    href="https://discord.gg/2tBnJ3jDJc"
+  >
+    Get help from the community
+  </Card>
+  <Card
+    title="GitHub Issues"
+    icon="github"
+    href="https://github.com/Dokploy/dokploy/issues"
+  >
+    Report bugs or request features
+  </Card>
+  <Card
+    title="FAQ"
+    icon="circle-question"
+    href="/community/faq"
+  >
+    Common questions and answers
+  </Card>
+</CardGroup>

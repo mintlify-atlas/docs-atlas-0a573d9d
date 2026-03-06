@@ -1,0 +1,263 @@
+---
+title: 'Docker Compose'
+description: 'Manage Docker Compose applications in Dokploy'
+---
+
+## Overview
+
+Docker Compose support in Dokploy allows you to deploy and manage multi-container applications using `docker-compose.yml` files. You can connect to Git repositories or use raw compose files.
+
+## Create Compose Application
+
+Create a new Docker Compose application in your environment.
+
+<ParamField body="name" type="string" required>
+  Display name for the compose application.
+</ParamField>
+
+<ParamField body="appName" type="string" required>
+  Unique application identifier (used in container names).
+</ParamField>
+
+<ParamField body="environmentId" type="string" required>
+  The environment ID where this compose app will be deployed.
+</ParamField>
+
+<ParamField body="description" type="string" optional>
+  Optional description of the application.
+</ParamField>
+
+<ParamField body="serverId" type="string" optional>
+  Server ID for deployment (required for cloud instances).
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/compose.create" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Compose App",
+    "appName": "myapp-compose",
+    "environmentId": "env-123",
+    "description": "Multi-container application"
+  }'
+```
+
+## Get Compose Application
+
+Retrieve details about a specific compose application.
+
+<ParamField query="composeId" type="string" required>
+  The unique identifier of the compose application.
+</ParamField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/compose.one?composeId=compose-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Update Compose Application
+
+Update configuration for an existing compose application.
+
+<ParamField body="composeId" type="string" required>
+  The ID of the compose application to update.
+</ParamField>
+
+<ParamField body="composeFile" type="string" optional>
+  The docker-compose.yml content.
+</ParamField>
+
+<ParamField body="env" type="string" optional>
+  Environment variables in KEY=VALUE format (one per line).
+</ParamField>
+
+<ParamField body="sourceType" type="string" optional>
+  Source of the compose file: `github`, `gitlab`, `bitbucket`, `gitea`, `git`, or `raw`.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/compose.update" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "composeId": "compose-123",
+    "env": "DATABASE_URL=postgresql://localhost\nREDIS_URL=redis://localhost"
+  }'
+```
+
+## Deploy Compose Application
+
+Trigger a deployment of the compose application.
+
+<ParamField body="composeId" type="string" required>
+  The ID of the compose application to deploy.
+</ParamField>
+
+<ParamField body="title" type="string" optional>
+  Title for the deployment log entry.
+</ParamField>
+
+<ParamField body="description" type="string" optional>
+  Description for the deployment.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/compose.deploy" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "composeId": "compose-123",
+    "title": "Production deployment",
+    "description": "Deploying version 2.0"
+  }'
+```
+
+## Redeploy Compose Application
+
+Rebuild and redeploy the compose application.
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/compose.redeploy" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "composeId": "compose-123",
+    "title": "Rebuild"
+  }'
+```
+
+## Start Compose Application
+
+Start all containers in the compose application.
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/compose.start" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "composeId": "compose-123"
+  }'
+```
+
+## Stop Compose Application
+
+Stop all containers in the compose application.
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/compose.stop" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "composeId": "compose-123"
+  }'
+```
+
+## Delete Compose Application
+
+Delete a compose application and optionally its volumes.
+
+<ParamField body="composeId" type="string" required>
+  The ID of the compose application to delete.
+</ParamField>
+
+<ParamField body="deleteVolumes" type="boolean" optional default={false}>
+  Whether to delete associated Docker volumes.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/compose.delete" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "composeId": "compose-123",
+    "deleteVolumes": true
+  }'
+```
+
+## Load Services
+
+Retrieve the list of services defined in the compose file.
+
+<ParamField query="composeId" type="string" required>
+  The compose application ID.
+</ParamField>
+
+<ParamField query="type" type="string" required>
+  The type of deployment: `stack` or `docker-compose`.
+</ParamField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/compose.loadServices?composeId=compose-123&type=docker-compose" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Get Converted Compose
+
+Retrieve the processed compose file with domains and configurations applied.
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/compose.getConvertedCompose?composeId=compose-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Deploy from Template
+
+Deploy a compose application from a pre-built template.
+
+<ParamField body="environmentId" type="string" required>
+  The environment where the template will be deployed.
+</ParamField>
+
+<ParamField body="id" type="string" required>
+  The template identifier.
+</ParamField>
+
+<ParamField body="serverId" type="string" optional>
+  Server ID for cloud deployments.
+</ParamField>
+
+<ParamField body="baseUrl" type="string" optional>
+  Custom base URL for template repository.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/compose.deployTemplate" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "environmentId": "env-123",
+    "id": "wordpress"
+  }'
+```
+
+## List Templates
+
+Get available compose templates.
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/compose.templates" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Move Compose Application
+
+Move a compose application to a different environment.
+
+<ParamField body="composeId" type="string" required>
+  The ID of the compose application to move.
+</ParamField>
+
+<ParamField body="targetEnvironmentId" type="string" required>
+  The destination environment ID.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/compose.move" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "composeId": "compose-123",
+    "targetEnvironmentId": "env-456"
+  }'
+```

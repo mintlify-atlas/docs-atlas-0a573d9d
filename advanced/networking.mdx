@@ -1,0 +1,583 @@
+---
+title: "Advanced Networking"
+description: "Configure networks, routing, and inter-service communication in Dokploy"
+---
+
+## Overview
+
+Dokploy leverages Docker networking and Traefik to provide flexible, secure networking for your applications. Understanding networking is crucial for multi-container applications, microservices, and production deployments.
+
+<CardGroup cols={3}>
+  <Card title="Automatic Routing" icon="route">
+    Traefik automatically routes traffic to your services
+  </Card>
+  <Card title="Service Discovery" icon="magnifying-glass">
+    DNS-based discovery for inter-service communication
+  </Card>
+  <Card title="Network Isolation" icon="shield">
+    Isolated networks for security and organization
+  </Card>
+</CardGroup>
+
+## Network Types
+
+Docker provides several network drivers:
+
+<Tabs>
+  <Tab title="Bridge (Default)">
+    Default network for standalone containers:
+    
+    - Isolated from host network
+    - Containers can communicate by name
+    - Suitable for single-host deployments
+    - Port mapping required for external access
+    
+    ```yaml
+    networks:
+      default:
+        driver: bridge
+    ```
+  </Tab>
+  
+  <Tab title="Overlay (Swarm)">
+    Multi-host networking for Docker Swarm:
+    
+    - Spans multiple Docker hosts
+    - Encrypted by default
+    - Required for multi-node deployments
+    - Automatic service discovery
+    
+    ```yaml
+    networks:
+      app-network:
+        driver: overlay
+        encrypted: true
+    ```
+  </Tab>
+  
+  <Tab title="Host">
+    Uses host's network stack directly:
+    
+    - No network isolation
+    - Best performance
+    - Port conflicts possible
+    - Use sparingly
+    
+    ```yaml
+    network_mode: host
+    ```
+  </Tab>
+  
+  <Tab title="None">
+    No networking:
+    
+    - Complete isolation
+    - No external connectivity
+    - For sensitive workloads
+    
+    ```yaml
+    network_mode: none
+    ```
+  </Tab>
+</Tabs>
+
+## Dokploy Network Architecture
+
+Dokploy creates these networks automatically:
+
+### dokploy-network
+
+The main network for all Dokploy services:
+
+```yaml
+networks:
+  dokploy-network:
+    external: true
+    name: dokploy-network
+```
+
+- Traefik runs on this network
+- Applications attach to this network for routing
+- Enables communication between projects
+
+### Project Networks
+
+Each project can have isolated networks:
+
+```yaml
+networks:
+  project-network:
+    driver: bridge
+    internal: false
+```
+
+## Service Communication
+
+### Internal Communication
+
+Services in the same network communicate using service names:
+
+```yaml docker-compose.yml
+services:
+  web:
+    image: nginx
+    networks:
+      - app-network
+  
+  api:
+    image: node:20
+    environment:
+      - API_URL=http://web  # DNS resolves to 'web' service
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+```
+
+### Cross-Project Communication
+
+Services in different projects can communicate if they share a network:
+
+```yaml Project A
+services:
+  service-a:
+    networks:
+      - dokploy-network
+      - default
+
+networks:
+  dokploy-network:
+    external: true
+```
+
+```yaml Project B
+services:
+  service-b:
+    environment:
+      - API_URL=http://service-a  # Can reach service-a
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+```
+
+## Traefik Routing
+
+Traefik is Dokploy's built-in reverse proxy and load balancer.
+
+### Automatic Routing
+
+Dokploy automatically configures Traefik labels:
+
+```yaml
+services:
+  app:
+    image: myapp:latest
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`example.com`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls=true"
+      - "traefik.http.routers.app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.app.loadbalancer.server.port=3000"
+```
+
+### Custom Routing Rules
+
+Advanced routing based on:
+
+<Tabs>
+  <Tab title="Host">
+    Route by domain:
+    ```yaml
+    - "traefik.http.routers.app.rule=Host(`example.com`)"
+    ```
+  </Tab>
+  
+  <Tab title="Path">
+    Route by URL path:
+    ```yaml
+    - "traefik.http.routers.api.rule=Host(`example.com`) && PathPrefix(`/api`)"
+    ```
+  </Tab>
+  
+  <Tab title="Headers">
+    Route by headers:
+    ```yaml
+    - "traefik.http.routers.app.rule=Host(`example.com`) && Headers(`X-API-Version`, `2`)"
+    ```
+  </Tab>
+  
+  <Tab title="Query Parameters">
+    Route by query string:
+    ```yaml
+    - "traefik.http.routers.app.rule=Host(`example.com`) && Query(`version`, `beta`)"
+    ```
+  </Tab>
+</Tabs>
+
+### Multiple Domains
+
+Route multiple domains to one service:
+
+```yaml
+labels:
+  - "traefik.http.routers.app.rule=Host(`example.com`) || Host(`www.example.com`)"
+```
+
+### Path-Based Routing
+
+Route different paths to different services:
+
+```yaml
+services:
+  frontend:
+    labels:
+      - "traefik.http.routers.frontend.rule=Host(`example.com`) && PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.priority=1"
+  
+  api:
+    labels:
+      - "traefik.http.routers.api.rule=Host(`example.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.priority=2"
+```
+
+<Info>
+Higher priority rules are evaluated first.
+</Info>
+
+## Network Security
+
+### Internal Networks
+
+Create internal-only networks for sensitive services:
+
+```yaml
+networks:
+  frontend:
+    driver: bridge
+    internal: false  # External access via Traefik
+  
+  backend:
+    driver: bridge
+    internal: true   # No external access
+
+services:
+  web:
+    networks:
+      - frontend
+      - backend
+  
+  database:
+    networks:
+      - backend  # Only accessible from 'backend' network
+```
+
+### Firewall Rules
+
+Use Docker's built-in firewall (iptables):
+
+```bash
+# Allow only specific source IPs
+docker run --add-host=api.internal:10.0.0.5 myapp
+```
+
+### Network Policies
+
+For advanced control, use Docker's network policies:
+
+```yaml
+services:
+  app:
+    networks:
+      app-network:
+        ipv4_address: 172.28.0.10
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+          gateway: 172.28.0.1
+```
+
+## Load Balancing
+
+Traefik provides automatic load balancing:
+
+### Round Robin (Default)
+
+```yaml
+services:
+  api:
+    image: myapi:latest
+    deploy:
+      replicas: 3  # Traefik balances across 3 instances
+```
+
+### Weighted Load Balancing
+
+```yaml
+labels:
+  - "traefik.http.services.app.loadbalancer.server.port=3000"
+  - "traefik.http.services.app.loadbalancer.server.weight=10"
+```
+
+### Sticky Sessions
+
+Route users to the same backend:
+
+```yaml
+labels:
+  - "traefik.http.services.app.loadbalancer.sticky.cookie=true"
+  - "traefik.http.services.app.loadbalancer.sticky.cookie.name=lb"
+  - "traefik.http.services.app.loadbalancer.sticky.cookie.secure=true"
+```
+
+## Health Checks
+
+Configure health checks for automatic recovery:
+
+```yaml
+services:
+  api:
+    image: myapi:latest
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.http.services.api.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.api.loadbalancer.healthcheck.interval=10s"
+```
+
+## Custom DNS
+
+Add custom DNS entries:
+
+```yaml
+services:
+  app:
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    dns_search:
+      - example.com
+```
+
+## IPv6 Support
+
+Enable IPv6 in Docker daemon:
+
+```json /etc/docker/daemon.json
+{
+  "ipv6": true,
+  "fixed-cidr-v6": "2001:db8:1::/64"
+}
+```
+
+Then in your compose file:
+
+```yaml
+networks:
+  app-network:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: 2001:db8:1::/64
+```
+
+## Debugging Network Issues
+
+### Inspect Networks
+
+```bash
+# List networks
+docker network ls
+
+# Inspect network
+docker network inspect dokploy-network
+
+# See which containers are on a network
+docker network inspect dokploy-network | grep Name
+```
+
+### Test Connectivity
+
+```bash
+# Enter container
+docker exec -it container_name sh
+
+# Test DNS resolution
+nslookup service_name
+
+# Test connectivity
+ping service_name
+telnet service_name 80
+curl http://service_name
+```
+
+### View Traefik Configuration
+
+Access Traefik dashboard:
+
+```yaml
+services:
+  traefik:
+    command:
+      - --api.dashboard=true
+    labels:
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.example.com`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+```
+
+## Performance Optimization
+
+<AccordionGroup>
+  <Accordion title="Use Host Network for High Performance">
+    For latency-sensitive applications:
+    ```yaml
+    network_mode: host
+    ```
+    
+    **Trade-offs**: No isolation, port conflicts
+  </Accordion>
+  
+  <Accordion title="Enable MTU Optimization">
+    Match your network's MTU:
+    ```yaml
+    networks:
+      app-network:
+        driver_opts:
+          com.docker.network.driver.mtu: 1500
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Overlay with IPSec for Security">
+    Encrypt overlay network traffic:
+    ```yaml
+    networks:
+      secure-network:
+        driver: overlay
+        driver_opts:
+          encrypted: "true"
+    ```
+  </Accordion>
+  
+  <Accordion title="Optimize DNS Resolution">
+    Use custom DNS servers:
+    ```yaml
+    services:
+      app:
+        dns:
+          - 1.1.1.1  # Cloudflare
+          - 8.8.8.8  # Google
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Common Networking Patterns
+
+### Frontend-Backend Separation
+
+```yaml
+services:
+  frontend:
+    networks:
+      - public
+  
+  backend:
+    networks:
+      - public
+      - private
+  
+  database:
+    networks:
+      - private
+
+networks:
+  public:
+    driver: bridge
+  private:
+    driver: bridge
+    internal: true
+```
+
+### Service Mesh Pattern
+
+```yaml
+services:
+  service-a:
+    networks:
+      - mesh
+  
+  service-b:
+    networks:
+      - mesh
+  
+  service-c:
+    networks:
+      - mesh
+
+networks:
+  mesh:
+    driver: overlay
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Container can't reach other containers">
+    - Verify both containers are on the same network
+    - Check network exists: `docker network ls`
+    - Inspect network: `docker network inspect network_name`
+    - Try using IP address instead of hostname
+  </Accordion>
+  
+  <Accordion title="DNS resolution failing">
+    - Check container's DNS config: `docker exec container cat /etc/resolv.conf`
+    - Verify service name is correct
+    - Restart Docker daemon: `systemctl restart docker`
+    - Check for DNS conflicts with host
+  </Accordion>
+  
+  <Accordion title="Traefik not routing traffic">
+    - Verify container has correct labels
+    - Check Traefik logs: `docker logs traefik`
+    - Ensure container is on dokploy-network
+    - Verify domain DNS points to server
+    - Check firewall rules allow ports 80/443
+  </Accordion>
+  
+  <Accordion title="Network performance issues">
+    - Check MTU settings
+    - Monitor network usage: `docker stats`
+    - Consider host network mode
+    - Check for DNS resolution delays
+    - Verify no packet loss: `ping -c 100 service_name`
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Domains & Routing" icon="globe" href="/core-concepts/domains-routing">
+    Configure domain routing
+  </Card>
+  <Card title="Multi-Node" icon="server" href="/advanced/multi-node">
+    Deploy across multiple servers
+  </Card>
+  <Card title="Docker Swarm" icon="docker" href="/advanced/docker-swarm">
+    Swarm networking configuration
+  </Card>
+  <Card title="Security" icon="shield" href="/configuration/security">
+    Network security best practices
+  </Card>
+</CardGroup>

@@ -1,0 +1,238 @@
+---
+title: 'Projects'
+description: 'Manage projects in Dokploy'
+---
+
+## Overview
+
+Projects in Dokploy are the top-level organizational unit that contain environments and services. Each project can have multiple environments (e.g., production, staging, development) with their own applications, databases, and compose services.
+
+## Create Project
+
+Create a new project in your organization.
+
+<ParamField body="name" type="string" required>
+  The name of the project.
+</ParamField>
+
+<ParamField body="description" type="string" optional>
+  Optional description of the project.
+</ParamField>
+
+<ParamField body="env" type="string" optional>
+  Project-level environment variables (KEY=VALUE format, one per line).
+</ParamField>
+
+### Response
+
+<ResponseField name="project" type="object">
+  The created project object.
+</ResponseField>
+
+<ResponseField name="environment" type="object">
+  The default environment created with the project.
+</ResponseField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/project.create" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Application",
+    "description": "Production application for e-commerce platform"
+  }'
+```
+
+## Get Project
+
+Retrieve details about a specific project including all environments and services.
+
+<ParamField query="projectId" type="string" required>
+  The unique identifier of the project.
+</ParamField>
+
+### Response
+
+Returns the project with nested environments containing applications, databases (postgres, mysql, mariadb, mongo, redis), and compose services.
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/project.one?projectId=project-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## List All Projects
+
+Get all projects in your organization.
+
+### Response
+
+Returns an array of projects with their environments and service summaries.
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/project.all" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Update Project
+
+Update project configuration.
+
+<ParamField body="projectId" type="string" required>
+  The ID of the project to update.
+</ParamField>
+
+<ParamField body="name" type="string" optional>
+  New project name.
+</ParamField>
+
+<ParamField body="description" type="string" optional>
+  New project description.
+</ParamField>
+
+<ParamField body="env" type="string" optional>
+  Project-level environment variables.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/project.update" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectId": "project-123",
+    "name": "Updated Project Name",
+    "description": "Updated description"
+  }'
+```
+
+## Delete Project
+
+Delete a project and all its environments and services.
+
+<ParamField body="projectId" type="string" required>
+  The ID of the project to delete.
+</ParamField>
+
+<Warning>
+  This action is irreversible and will delete all environments, applications, databases, and compose services within the project.
+</Warning>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/project.remove" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "projectId": "project-123"
+  }'
+```
+
+## Duplicate Project
+
+Create a copy of an environment, optionally including services.
+
+<ParamField body="sourceEnvironmentId" type="string" required>
+  The environment ID to duplicate from.
+</ParamField>
+
+<ParamField body="name" type="string" required>
+  Name for the new project or environment.
+</ParamField>
+
+<ParamField body="description" type="string" optional>
+  Description for the duplicated project.
+</ParamField>
+
+<ParamField body="includeServices" type="boolean" default={true}>
+  Whether to copy services from the source environment.
+</ParamField>
+
+<ParamField body="selectedServices" type="array" optional>
+  Specific services to duplicate. If not provided, all services are copied.
+  
+  Each service object contains:
+  - `id` (string) - The service ID
+  - `type` (string) - One of: `application`, `postgres`, `mariadb`, `mongo`, `mysql`, `redis`, `compose`
+</ParamField>
+
+<ParamField body="duplicateInSameProject" type="boolean" default={false}>
+  If true, creates a new environment in the same project. If false, creates a new project.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/project.duplicate" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sourceEnvironmentId": "env-123",
+    "name": "Staging Clone",
+    "description": "Cloned from production",
+    "includeServices": true,
+    "duplicateInSameProject": true
+  }'
+```
+
+## Search Projects
+
+Search and filter projects in your organization.
+
+<ParamField query="q" type="string" optional>
+  General search query (searches name and description).
+</ParamField>
+
+<ParamField query="name" type="string" optional>
+  Filter by project name (partial match).
+</ParamField>
+
+<ParamField query="description" type="string" optional>
+  Filter by description (partial match).
+</ParamField>
+
+<ParamField query="limit" type="number" optional default={20}>
+  Number of results to return (1-100).
+</ParamField>
+
+<ParamField query="offset" type="number" optional default={0}>
+  Number of results to skip for pagination.
+</ParamField>
+
+### Response
+
+<ResponseField name="items" type="array">
+  Array of matching projects.
+</ResponseField>
+
+<ResponseField name="total" type="number">
+  Total count of matching projects.
+</ResponseField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/project.search?q=ecommerce&limit=10" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Project Structure
+
+A typical project structure in Dokploy:
+
+```
+Project
+├── Environment: Production
+│   ├── Applications
+│   ├── Databases (Postgres, MySQL, etc.)
+│   └── Compose Services
+├── Environment: Staging
+│   ├── Applications
+│   └── Databases
+└── Environment: Development
+    └── Applications
+```
+
+## Environment Variables
+
+Project-level environment variables are inherited by all services within the project. You can override them at the environment or service level.
+
+Format environment variables as:
+```
+DATABASE_URL=postgresql://localhost:5432/mydb
+REDIS_URL=redis://localhost:6379
+API_KEY=your_api_key_here
+```

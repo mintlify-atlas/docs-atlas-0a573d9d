@@ -1,0 +1,625 @@
+---
+title: Domains & Routing
+description: Configure custom domains and routing for your applications in Dokploy
+---
+
+Dokploy uses Traefik as a reverse proxy to route HTTP/HTTPS traffic to your applications and services. You can configure custom domains, SSL certificates, path-based routing, and advanced routing rules.
+
+## Overview
+
+Domains in Dokploy provide:
+
+- Custom domain routing to applications and compose services
+- Automatic SSL certificate management with Let's Encrypt
+- Path-based routing and URL rewriting
+- HTTP to HTTPS redirects
+- Multiple domains per application
+- Service name routing for compose deployments
+
+<CardGroup cols={2}>
+  <Card title="Custom Domains" icon="globe">
+    Point your own domains to applications and services.
+  </Card>
+  <Card title="Auto SSL" icon="lock">
+    Automatic SSL certificate generation and renewal with Let's Encrypt.
+  </Card>
+  <Card title="Path Routing" icon="route">
+    Route different paths to different services or applications.
+  </Card>
+  <Card title="Preview Domains" icon="eye">
+    Automatically generated domains for preview deployments.
+  </Card>
+</CardGroup>
+
+## Domain Types
+
+Dokploy supports three types of domain configurations:
+
+### Application Domains
+
+Route traffic to standalone applications:
+
+```typescript
+{
+  domainType: "application",
+  applicationId: "app_123",
+  host: "myapp.example.com",
+  port: 3000,
+  path: "/",
+  https: true,
+  certificateType: "letsencrypt"
+}
+```
+
+### Compose Service Domains
+
+Route traffic to specific services in a compose deployment:
+
+```typescript
+{
+  domainType: "compose",
+  composeId: "compose_123",
+  serviceName: "web",          // Service name from compose file
+  host: "app.example.com",
+  port: 80,
+  path: "/",
+  https: true,
+  certificateType: "letsencrypt"
+}
+```
+
+### Preview Deployment Domains
+
+Automatic domains for pull request preview deployments:
+
+```typescript
+{
+  domainType: "preview",
+  previewDeploymentId: "preview_123",
+  host: "pr-42.preview.example.com",
+  port: 3000,
+  https: true
+}
+```
+
+
+
+## Domain Configuration
+
+### Basic Settings
+
+<ParamField path="host" type="string" required>
+  The domain or subdomain (e.g., `app.example.com`, `api.mysite.org`)
+</ParamField>
+
+<ParamField path="port" type="number" default={3000}>
+  The port your application listens on inside the container
+</ParamField>
+
+<ParamField path="path" type="string" default="/">
+  The URL path to match (e.g., `/`, `/api`, `/v1/users`)
+</ParamField>
+
+<ParamField path="https" type="boolean" default={false}>
+  Enable HTTPS for this domain
+</ParamField>
+
+### SSL Certificates
+
+<ParamField path="certificateType" type="enum" default="none">
+  Certificate type: `none`, `letsencrypt`, or `custom`
+</ParamField>
+
+<Tabs>
+  <Tab title="Let's Encrypt">
+    Automatic certificate generation and renewal:
+    
+    ```typescript
+    {
+      certificateType: "letsencrypt",
+      https: true
+    }
+    ```
+    
+    Requirements:
+    - Domain must point to your server's IP address
+    - Port 80 and 443 must be accessible
+    - Valid email configured in Dokploy settings
+    
+    <Info>
+      Let's Encrypt certificates are automatically renewed before expiration.
+    </Info>
+  </Tab>
+  
+  <Tab title="Custom Resolver">
+    Use a custom certificate resolver:
+    
+    ```typescript
+    {
+      certificateType: "letsencrypt",
+      customCertResolver: "cloudflare",
+      https: true
+    }
+    ```
+    
+    Supports DNS challenge providers like:
+    - Cloudflare
+    - Route53
+    - Google Cloud DNS
+    - And many more...
+  </Tab>
+  
+  <Tab title="No Certificate">
+    HTTP only (not recommended for production):
+    
+    ```typescript
+    {
+      certificateType: "none",
+      https: false
+    }
+    ```
+  </Tab>
+</Tabs>
+
+
+
+## Path-Based Routing
+
+### Basic Path Routing
+
+Route different paths to different applications:
+
+```typescript
+// Main application
+{
+  host: "example.com",
+  path: "/",
+  applicationId: "app_frontend",
+  port: 3000
+}
+
+// API backend
+{
+  host: "example.com",
+  path: "/api",
+  applicationId: "app_backend",
+  port: 8000
+}
+```
+
+### Internal Path Mapping
+
+<ParamField path="internalPath" type="string" default="/">
+  The path to forward to the application (useful for path rewriting)
+</ParamField>
+
+<ParamField path="stripPath" type="boolean" default={false}>
+  Remove the matched path before forwarding to the application
+</ParamField>
+
+### Example: Path Stripping
+
+```typescript
+// Request: https://example.com/api/users
+{
+  host: "example.com",
+  path: "/api",
+  internalPath: "/",
+  stripPath: true,     // Forwards as: http://app:8000/users
+  applicationId: "app_backend",
+  port: 8000
+}
+
+// Without stripPath
+{
+  host: "example.com",
+  path: "/api",
+  stripPath: false,    // Forwards as: http://app:8000/api/users
+  applicationId: "app_backend",
+  port: 8000
+}
+```
+
+
+
+## Traefik.me Domains
+
+Dokploy can automatically generate `.traefik.me` domains for testing:
+
+### Generating Traefik.me Domains
+
+```typescript
+POST /api/domain.generateDomain
+{
+  appName: "myapp-abc123",
+  serverId: "server_456"  // Optional
+}
+
+// Returns: http://myapp-abc123.192.168.1.100.traefik.me
+```
+
+<Info>
+  Traefik.me is a free service that provides wildcard DNS resolution to any IP address. It's perfect for testing before configuring real domains.
+</Info>
+
+How it works:
+- `{appName}.{ip-address}.traefik.me` resolves to `{ip-address}`
+- No DNS configuration needed
+- Works immediately
+- Supports HTTPS with Let's Encrypt
+
+
+
+## Managing Domains
+
+### Creating a Domain
+
+```typescript
+POST /api/domain.create
+{
+  domainType: "application",
+  applicationId: "app_123",
+  host: "myapp.example.com",
+  port: 3000,
+  path: "/",
+  https: true,
+  certificateType: "letsencrypt"
+}
+```
+
+
+
+### Updating a Domain
+
+```typescript
+POST /api/domain.update
+{
+  domainId: "domain_123",
+  host: "newdomain.example.com",
+  https: true,
+  certificateType: "letsencrypt"
+}
+```
+
+When you update a domain, Dokploy automatically:
+1. Updates the Traefik configuration
+2. Regenerates SSL certificates if needed
+3. Applies the new routing rules
+
+
+
+### Deleting a Domain
+
+```typescript
+POST /api/domain.delete
+{
+  domainId: "domain_123"
+}
+```
+
+This removes:
+- The domain configuration
+- Traefik routing rules
+- SSL certificates (if not used by other domains)
+
+
+
+## Domain Validation
+
+Validate that a domain is correctly configured:
+
+```typescript
+POST /api/domain.validateDomain
+{
+  domain: "myapp.example.com",
+  serverIp: "192.168.1.100"  // Optional
+}
+```
+
+This checks:
+- DNS resolution
+- IP address matches server
+- Port accessibility
+- SSL certificate validity
+
+
+
+## Multiple Domains per Application
+
+Applications can have multiple domains configured:
+
+```typescript
+// Primary domain
+{
+  host: "myapp.com",
+  path: "/",
+  https: true,
+  certificateType: "letsencrypt"
+}
+
+// www subdomain
+{
+  host: "www.myapp.com",
+  path: "/",
+  https: true,
+  certificateType: "letsencrypt"
+}
+
+// API subdomain
+{
+  host: "api.myapp.com",
+  path: "/",
+  port: 8000,
+  https: true,
+  certificateType: "letsencrypt"
+}
+```
+
+## Compose Service Routing
+
+For Docker Compose deployments, route different domains to different services:
+
+```yaml
+# docker-compose.yml
+services:
+  web:
+    image: nginx:alpine
+    
+  api:
+    image: node:18
+    
+  admin:
+    image: custom/admin:latest
+```
+
+```typescript
+// Domain configuration
+[
+  {
+    host: "myapp.com",
+    serviceName: "web",
+    port: 80,
+    https: true
+  },
+  {
+    host: "api.myapp.com",
+    serviceName: "api",
+    port: 3000,
+    https: true
+  },
+  {
+    host: "admin.myapp.com",
+    serviceName: "admin",
+    port: 8080,
+    https: true
+  }
+]
+```
+
+
+
+## Advanced Routing
+
+### Redirects
+
+Configure URL redirects at the application level:
+
+```typescript
+// Redirect www to non-www
+{
+  regex: "^https://www\\.example\\.com/(.*)",
+  replacement: "https://example.com/$1",
+  permanent: true
+}
+
+// Redirect old paths
+{
+  regex: "^/old-path/(.*)",
+  replacement: "/new-path/$1",
+  permanent: true
+}
+```
+
+### Headers
+
+Traefik automatically adds common security headers. You can customize these through Traefik configuration.
+
+### Load Balancing
+
+For applications with multiple replicas, Traefik automatically load balances traffic using round-robin.
+
+## DNS Configuration
+
+To use custom domains, configure your DNS:
+
+### A Record
+
+Point your domain to your server's IP address:
+
+```
+Type: A
+Name: @
+Value: 192.168.1.100
+TTL: 3600
+```
+
+### CNAME Record
+
+For subdomains:
+
+```
+Type: CNAME
+Name: app
+Value: example.com
+TTL: 3600
+```
+
+### Wildcard DNS
+
+For preview deployments or dynamic subdomains:
+
+```
+Type: A
+Name: *.preview
+Value: 192.168.1.100
+TTL: 3600
+```
+
+<Warning>
+  DNS changes can take up to 48 hours to propagate globally, though they usually take effect within a few hours.
+</Warning>
+
+## SSL/TLS Configuration
+
+### Let's Encrypt Limits
+
+Let's Encrypt has rate limits:
+- 50 certificates per registered domain per week
+- 5 duplicate certificates per week
+- 300 new orders per account per 3 hours
+
+<Tip>
+  Use staging certificates during development to avoid hitting rate limits. Configure this in Dokploy's Traefik settings.
+</Tip>
+
+### Certificate Storage
+
+Certificates are stored in:
+```
+/etc/dokploy/traefik/acme.json
+```
+
+This file is automatically backed up and persisted across restarts.
+
+## Database Schema
+
+Domains are stored with the following structure:
+
+```typescript
+interface Domain {
+  domainId: string;
+  host: string;
+  port: number;
+  path: string;
+  https: boolean;
+  certificateType: "none" | "letsencrypt" | "custom";
+  customCertResolver?: string;
+  domainType: "application" | "compose" | "preview";
+  
+  // Associations
+  applicationId?: string;
+  composeId?: string;
+  previewDeploymentId?: string;
+  serviceName?: string;        // For compose services
+  
+  // Advanced routing
+  internalPath: string;
+  stripPath: boolean;
+  
+  // Internal
+  uniqueConfigKey: number;     // For Traefik configuration
+  createdAt: string;
+}
+```
+
+
+
+## Traefik Integration
+
+Dokploy uses Traefik for reverse proxy functionality. When you create or update a domain:
+
+1. Dokploy generates Traefik configuration
+2. Configuration is written to `/etc/dokploy/traefik/applications/{appName}.yml`
+3. Traefik automatically reloads the configuration
+4. If HTTPS is enabled, Traefik requests a certificate from Let's Encrypt
+5. Traffic starts routing to your application
+
+### Traefik Configuration Example
+
+```yaml
+http:
+  routers:
+    myapp-router:
+      rule: "Host(`myapp.example.com`)"
+      service: myapp-service
+      tls:
+        certResolver: letsencrypt
+  
+  services:
+    myapp-service:
+      loadBalancer:
+        servers:
+          - url: "http://myapp-abc123:3000"
+```
+
+## Troubleshooting
+
+### Domain Not Working
+
+1. **Check DNS**: Verify the domain resolves to your server's IP
+   ```bash
+   nslookup myapp.example.com
+   ```
+
+2. **Check Port Access**: Ensure ports 80 and 443 are open
+   ```bash
+   netstat -tulpn | grep -E ':(80|443)'
+   ```
+
+3. **Check Traefik Logs**:
+   ```bash
+   docker logs dokploy-traefik
+   ```
+
+4. **Verify Application is Running**:
+   ```bash
+   docker ps | grep myapp
+   ```
+
+### SSL Certificate Issues
+
+1. **Check Let's Encrypt Logs** in Traefik container
+2. **Verify DNS** is correctly configured
+3. **Check Rate Limits** - you may have hit Let's Encrypt limits
+4. **Try Staging Certificates** first for testing
+
+### Path Routing Issues
+
+1. **Verify path order** - more specific paths should be configured first
+2. **Check stripPath setting** - ensure it matches your application's expectations
+3. **Review application logs** - see what paths are being received
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use HTTPS for Production">
+    Always enable HTTPS for production applications. Let's Encrypt provides free certificates with automatic renewal.
+  </Accordion>
+  
+  <Accordion title="Configure www Redirects">
+    Decide whether to use www or non-www and configure redirects accordingly to avoid duplicate content.
+  </Accordion>
+  
+  <Accordion title="Test with Traefik.me First">
+    Use traefik.me domains for initial testing before configuring real domains.
+  </Accordion>
+  
+  <Accordion title="Monitor Certificate Expiry">
+    While renewal is automatic, monitor certificate expiry dates to catch any renewal failures.
+  </Accordion>
+  
+  <Accordion title="Use Wildcard DNS for Previews">
+    Configure wildcard DNS (*.preview.example.com) for preview deployment domains.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Applications" icon="rocket" href="/core-concepts/applications">
+    Learn more about deploying applications
+  </Card>
+  <Card title="Docker Compose" icon="layer-group" href="/core-concepts/docker-compose">
+    Configure domains for compose services
+  </Card>
+</CardGroup>

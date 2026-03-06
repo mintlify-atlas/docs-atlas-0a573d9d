@@ -1,0 +1,372 @@
+---
+title: Redis
+description: Manage Redis databases through the Dokploy API
+---
+
+## Create Redis Database
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/redis.create" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production Redis",
+    "appName": "prod-redis",
+    "databasePassword": "SecurePass123!",
+    "dockerImage": "redis:8",
+    "environmentId": "env_123456",
+    "description": "Main production Redis cache"
+  }'
+```
+</RequestExample>
+
+<ParamField path="name" type="string" required>
+  Display name for the Redis database
+</ParamField>
+
+<ParamField path="appName" type="string" required>
+  Unique application name used for Docker container identification
+</ParamField>
+
+<ParamField path="databasePassword" type="string" required>
+  Password for Redis access (requirepass)
+</ParamField>
+
+<ParamField path="environmentId" type="string" required>
+  ID of the environment where this database will be deployed
+</ParamField>
+
+<ParamField path="dockerImage" type="string" default="redis:8">
+  Docker image to use for Redis
+</ParamField>
+
+<ParamField path="description" type="string">
+  Optional description of the database instance
+</ParamField>
+
+<ParamField path="serverId" type="string">
+  Optional server ID for deployment on specific server
+</ParamField>
+
+<ResponseField name="redisId" type="string">
+  Unique identifier for the created Redis instance
+</ResponseField>
+
+<ResponseField name="appName" type="string">
+  Application name of the database
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name of the database
+</ResponseField>
+
+## Get Redis Database
+
+<RequestExample>
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/redis.one?redisId=redis_123456" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+</RequestExample>
+
+<ParamField query="redisId" type="string" required>
+  ID of the Redis database to retrieve
+</ParamField>
+
+<ResponseField name="redisId" type="string">
+  Database identifier
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name
+</ResponseField>
+
+<ResponseField name="appName" type="string">
+  Application name
+</ResponseField>
+
+<ResponseField name="dockerImage" type="string">
+  Redis Docker image
+</ResponseField>
+
+<ResponseField name="applicationStatus" type="string">
+  Current status: `idle`, `running`, `done`, or `error`
+</ResponseField>
+
+<ResponseField name="externalPort" type="number">
+  External port for database access (if configured)
+</ResponseField>
+
+## Deploy Redis
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/redis.deploy" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redisId": "redis_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="redisId" type="string" required>
+  ID of the Redis database to deploy
+</ParamField>
+
+## Start Redis
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/redis.start" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redisId": "redis_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="redisId" type="string" required>
+  ID of the Redis database to start
+</ParamField>
+
+## Stop Redis
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/redis.stop" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redisId": "redis_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="redisId" type="string" required>
+  ID of the Redis database to stop
+</ParamField>
+
+## Update Redis
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/redis.update" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redisId": "redis_123456",
+    "name": "Updated Redis Cache",
+    "description": "Updated description",
+    "memoryLimit": "1g",
+    "memoryReservation": "512m",
+    "cpuLimit": "0.5",
+    "cpuReservation": "0.25"
+  }'
+```
+</RequestExample>
+
+<ParamField body="redisId" type="string" required>
+  ID of the Redis database to update
+</ParamField>
+
+<ParamField body="name" type="string">
+  New display name
+</ParamField>
+
+<ParamField body="appName" type="string">
+  New application name
+</ParamField>
+
+<ParamField body="description" type="string">
+  New description
+</ParamField>
+
+<ParamField body="databasePassword" type="string">
+  New password
+</ParamField>
+
+<ParamField body="memoryLimit" type="string">
+  Maximum memory (e.g., "1g", "512m")
+</ParamField>
+
+<ParamField body="memoryReservation" type="string">
+  Guaranteed memory allocation
+</ParamField>
+
+<ParamField body="cpuLimit" type="string">
+  Maximum CPU cores
+</ParamField>
+
+<ParamField body="cpuReservation" type="string">
+  Guaranteed CPU allocation
+</ParamField>
+
+<ParamField body="command" type="string">
+  Custom command override
+</ParamField>
+
+<ParamField body="args" type="array">
+  Command arguments
+</ParamField>
+
+## Save External Port
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/redis.saveExternalPort" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redisId": "redis_123456",
+    "externalPort": 6379
+  }'
+```
+</RequestExample>
+
+<ParamField body="redisId" type="string" required>
+  ID of the Redis database
+</ParamField>
+
+<ParamField body="externalPort" type="number">
+  Port number for external access. Set to `null` to remove external port.
+</ParamField>
+
+## Save Environment Variables
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/redis.saveEnvironment" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redisId": "redis_123456",
+    "env": "REDIS_MAXMEMORY=256mb\nREDIS_MAXMEMORY_POLICY=allkeys-lru"
+  }'
+```
+</RequestExample>
+
+<ParamField body="redisId" type="string" required>
+  ID of the Redis database
+</ParamField>
+
+<ParamField body="env" type="string">
+  Environment variables in KEY=VALUE format, separated by newlines
+</ParamField>
+
+## Reload Redis
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/redis.reload" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redisId": "redis_123456",
+    "appName": "prod-redis"
+  }'
+```
+</RequestExample>
+
+<ParamField body="redisId" type="string" required>
+  ID of the Redis database
+</ParamField>
+
+<ParamField body="appName" type="string" required>
+  Application name of the database
+</ParamField>
+
+## Rebuild Redis
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/redis.rebuild" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redisId": "redis_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="redisId" type="string" required>
+  ID of the Redis database to rebuild
+</ParamField>
+
+## Remove Redis
+
+<RequestExample>
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/redis.remove" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redisId": "redis_123456"
+  }'
+```
+</RequestExample>
+
+<ParamField body="redisId" type="string" required>
+  ID of the Redis database to remove
+</ParamField>
+
+## Connection String Format
+
+### With Password
+```bash
+redis://:[databasePassword]@[appName]:6379
+```
+
+Example:
+```bash
+redis://:SecurePass123!@prod-redis:6379
+```
+
+### Without Password
+```bash
+redis://[appName]:6379
+```
+
+### External Connection
+```bash
+redis://:SecurePass123!@your-server.com:6379
+```
+
+### With Database Number
+```bash
+redis://:SecurePass123!@prod-redis:6379/0
+```
+
+## Mount Path
+
+Redis data is stored at `/data` inside the container.
+
+## Common Redis Configuration
+
+You can configure Redis behavior through environment variables or command arguments:
+
+### Memory Management
+- `maxmemory` - Maximum memory limit
+- `maxmemory-policy` - Eviction policy (allkeys-lru, volatile-lru, etc.)
+
+### Persistence
+- `save` - RDB snapshot intervals
+- `appendonly` - Enable AOF persistence
+
+### Performance
+- `tcp-backlog` - TCP connection queue size
+- `timeout` - Client idle timeout
+
+Example command arguments:
+```json
+{
+  "command": "redis-server",
+  "args": [
+    "--maxmemory", "256mb",
+    "--maxmemory-policy", "allkeys-lru",
+    "--appendonly", "yes"
+  ]
+}
+```

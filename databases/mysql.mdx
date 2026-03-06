@@ -1,0 +1,358 @@
+---
+title: MySQL
+description: Deploy and manage MySQL databases in Dokploy
+---
+
+MySQL is the world's most popular open-source relational database. Dokploy provides seamless deployment and management of MySQL instances as Docker services.
+
+## Creating a MySQL Database
+
+To create a MySQL database in Dokploy:
+
+1. Navigate to your project
+2. Select the environment
+3. Click "Add Service" and select "MySQL"
+4. Configure the database settings
+
+### Basic Configuration
+
+- **Name** - A friendly name for your database
+- **App Name** - The Docker service name (used for internal DNS)
+- **Description** - Optional description
+- **Docker Image** - Default: `mysql:latest` (recommended: `mysql:8.0` or `mysql:8.3`)
+
+### Database Credentials
+
+- **Database Name** - Name of the database to create
+- **Database User** - Username for database access (can be `root`)
+- **Database Password** - Password for the user
+- **Root Password** - Password for the root user
+
+<Note>
+These credentials are automatically configured via environment variables:
+- `MYSQL_DATABASE`
+- `MYSQL_USER` (if user is not root)
+- `MYSQL_PASSWORD` (if user is not root)
+- `MYSQL_ROOT_PASSWORD`
+</Note>
+
+### Advanced Settings
+
+- **External Port** - Optional port to expose MySQL externally (default internal port: 3306)
+- **Command** - Override the default container command
+- **Args** - Additional arguments to pass to MySQL
+- **Environment Variables** - Additional custom environment variables
+
+## Connection Strings
+
+### Internal Connection (from other services)
+
+When connecting from applications within the same Docker network:
+
+```bash
+mysql://[user]:[password]@[appName]:3306/[database]
+```
+
+**Example:**
+```bash
+mysql://myuser:mypassword@my-mysql:3306/myapp
+```
+
+### External Connection
+
+If you've configured an external port (e.g., 3307):
+
+```bash
+mysql://[user]:[password]@[host]:[externalPort]/[database]
+```
+
+**Example:**
+```bash
+mysql://myuser:mypassword@your-server.com:3307/myapp
+```
+
+### Connection String Formats
+
+<Tabs>
+  <Tab title="Standard URI">
+    ```bash
+    mysql://username:password@hostname:3306/database
+    ```
+  </Tab>
+  <Tab title="mysql Command">
+    ```bash
+    mysql -h hostname -P 3306 -u username -p database
+    ```
+  </Tab>
+  <Tab title="Node.js (mysql2)">
+    ```javascript
+    const mysql = require('mysql2');
+    
+    const connection = mysql.createConnection({
+      host: 'my-mysql',
+      port: 3306,
+      user: 'myuser',
+      password: 'mypassword',
+      database: 'myapp'
+    });
+    ```
+  </Tab>
+  <Tab title="Python (mysql-connector)">
+    ```python
+    import mysql.connector
+    
+    conn = mysql.connector.connect(
+        host="my-mysql",
+        port=3306,
+        user="myuser",
+        password="mypassword",
+        database="myapp"
+    )
+    ```
+  </Tab>
+  <Tab title="PHP (mysqli)">
+    ```php
+    <?php
+    $conn = new mysqli(
+        "my-mysql",
+        "myuser",
+        "mypassword",
+        "myapp",
+        3306
+    );
+    ?>
+    ```
+  </Tab>
+</Tabs>
+
+## Environment Variables
+
+MySQL containers support these environment variables:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `MYSQL_ROOT_PASSWORD` | Root user password | Yes |
+| `MYSQL_DATABASE` | Database to create on startup | Yes |
+| `MYSQL_USER` | User to create (if not root) | No |
+| `MYSQL_PASSWORD` | Password for MYSQL_USER | No |
+| `MYSQL_ALLOW_EMPTY_PASSWORD` | Allow root with empty password | No |
+| `MYSQL_RANDOM_ROOT_PASSWORD` | Generate random root password | No |
+
+Dokploy automatically sets the required variables based on your configuration.
+
+## Data Persistence
+
+MySQL data is stored in a Docker volume mounted at:
+
+- **Mount Path**: `/var/lib/mysql`
+- **Volume Name**: `{appName}-data`
+
+The volume persists even when the container is stopped or removed.
+
+## Resource Configuration
+
+Configure resource limits for your MySQL instance:
+
+```yaml
+Memory Limit: 2GB        # Maximum memory
+Memory Reservation: 1GB   # Guaranteed memory
+CPU Limit: 2.0           # Maximum CPU cores
+CPU Reservation: 0.5     # Guaranteed CPU cores
+```
+
+<Tip>
+For production workloads, allocate at least 2GB of memory and 1 CPU core. MySQL can be memory-intensive with large datasets.
+</Tip>
+
+## Operations
+
+### Starting the Database
+
+Click the "Start" button in the Dokploy UI or use the API:
+
+```bash
+POST /api/mysql/start
+{
+  "mysqlId": "your-mysql-id"
+}
+```
+
+### Stopping the Database
+
+Click the "Stop" button or use the API:
+
+```bash
+POST /api/mysql/stop
+{
+  "mysqlId": "your-mysql-id"
+}
+```
+
+### Reloading the Database
+
+Reload applies configuration changes by stopping and starting the service:
+
+```bash
+POST /api/mysql/reload
+{
+  "mysqlId": "your-mysql-id"
+}
+```
+
+### Rebuilding the Database
+
+<Warning>
+Rebuilding will delete all data. Make sure to backup first!
+</Warning>
+
+```bash
+POST /api/mysql/rebuild
+{
+  "mysqlId": "your-mysql-id"
+}
+```
+
+## Accessing MySQL CLI
+
+To access the MySQL CLI in the running container:
+
+```bash
+docker exec -it $(docker ps -qf "name=my-mysql") mysql -u myuser -p myapp
+```
+
+Or use the Dokploy terminal feature in the UI.
+
+## Common MySQL Commands
+
+```sql
+-- List all databases
+SHOW DATABASES;
+
+-- Select database
+USE database_name;
+
+-- List all tables
+SHOW TABLES;
+
+-- Describe table structure
+DESCRIBE table_name;
+
+-- Show table creation statement
+SHOW CREATE TABLE table_name;
+
+-- Show current user
+SELECT USER();
+
+-- Show current database
+SELECT DATABASE();
+
+-- Create database
+CREATE DATABASE new_database;
+
+-- Create user
+CREATE USER 'new_user'@'%' IDENTIFIED BY 'password';
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON myapp.* TO 'myuser'@'%';
+FLUSH PRIVILEGES;
+```
+
+## Backups
+
+Dokploy provides automated backup functionality for MySQL. Backups are performed using `mysqldump`:
+
+```bash
+mysqldump -u username -p database > backup.sql
+```
+
+See the [Backups](/databases/backups) page for detailed backup configuration.
+
+## Troubleshooting
+
+### Connection Refused
+
+- Verify the service is running in Dokploy UI
+- Check the service name matches your `appName`
+- Ensure your application is in the same Docker network
+
+### Authentication Failed
+
+- Verify credentials in the database settings
+- Check if using root requires `root` as username
+- For external connections, ensure user has `%` host or specific IP
+
+### Character Encoding Issues
+
+Set UTF-8 encoding in environment variables:
+
+```bash
+MYSQL_CHARSET=utf8mb4
+MYSQL_COLLATION=utf8mb4_unicode_ci
+```
+
+Or use command args:
+```bash
+--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+```
+
+### Performance Issues
+
+- Check slow query log
+- Increase memory limits
+- Optimize queries and add indexes
+- Consider connection pooling
+
+## Best Practices
+
+1. **Use Specific Versions** - Pin to specific MySQL versions (e.g., `mysql:8.0.35`) instead of `latest`
+2. **Strong Passwords** - Use strong, randomly generated passwords for production
+3. **Regular Backups** - Configure automated backups and test restoration
+4. **Monitor Resources** - Watch memory and CPU usage, adjust limits as needed
+5. **Connection Limits** - Set appropriate `max_connections` based on your workload
+6. **Slow Query Log** - Enable and monitor slow query log for optimization
+7. **Security** - Don't expose MySQL externally unless necessary; use VPN or SSH tunnels
+
+## Performance Tuning
+
+Add these environment variables or configuration options:
+
+```bash
+# InnoDB buffer pool (50-70% of memory)
+innodb_buffer_pool_size=1G
+
+# Log file size
+innodb_log_file_size=256M
+
+# Max connections
+max_connections=150
+
+# Query cache (deprecated in MySQL 8.0)
+query_cache_size=0
+
+# Thread cache
+thread_cache_size=8
+```
+
+<Tip>
+For MySQL 8.0+, many traditional optimizations are automatic. Focus on proper indexing and query optimization.
+</Tip>
+
+## MySQL vs MariaDB
+
+Both MySQL and MariaDB are supported in Dokploy. Consider:
+
+- **MySQL** - Official Oracle version, better for compatibility
+- **MariaDB** - Community fork, may have additional features
+
+See the [MariaDB documentation](/databases/mariadb) for MariaDB-specific information.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Backups" icon="clock" href="/databases/backups">
+    Configure automated MySQL backups
+  </Card>
+  <Card title="MariaDB" icon="database" href="/databases/mariadb">
+    Learn about MariaDB as an alternative
+  </Card>
+</CardGroup>

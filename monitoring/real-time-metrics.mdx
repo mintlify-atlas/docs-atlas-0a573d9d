@@ -1,0 +1,349 @@
+---
+title: "Real-Time Metrics"
+description: "Configure and monitor real-time server and container metrics in Dokploy"
+---
+
+Dokploy's real-time metrics system provides detailed insights into your server and container performance. The monitoring service runs as a separate Go application that collects metrics at configurable intervals and stores them for historical analysis.
+
+## Configuration
+
+### Access Monitoring Settings
+
+1. Navigate to **Settings > Monitoring** in the Dokploy dashboard
+2. The monitoring service starts automatically when configured
+3. Access metrics via the **Monitoring** page in the main navigation
+
+### Server Monitoring Configuration
+
+Configure how server metrics are collected and stored:
+
+```json
+{
+  "server": {
+    "type": "Dokploy",
+    "refreshRate": 60,
+    "port": 4500,
+    "token": "your-secure-token",
+    "urlCallback": "http://localhost:3000/api/trpc/notification.receiveNotification",
+    "retentionDays": 7,
+    "cronJob": "0 0 * * *",
+    "thresholds": {
+      "cpu": 80,
+      "memory": 85
+    }
+  }
+}
+```
+
+#### Configuration Options
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `type` | string | Server type: "Dokploy" or "Remote" | "Dokploy" |
+| `refreshRate` | number | Seconds between metric collections | 60 |
+| `port` | number | Port for metrics API | 4500 |
+| `token` | string | Authentication token for API access | "" |
+| `urlCallback` | string | Callback URL for threshold notifications | "" |
+| `retentionDays` | number | Days to keep metrics data | 2 |
+| `cronJob` | string | Cron expression for cleanup job | "0 0 * * *" |
+| `thresholds.cpu` | number | CPU usage alert threshold (0-100, 0=disabled) | 0 |
+| `thresholds.memory` | number | Memory usage alert threshold (0-100, 0=disabled) | 0 |
+
+<Note>
+Setting a threshold to 0 disables notifications for that metric.
+</Note>
+
+### Container Monitoring Configuration
+
+Control which containers are monitored:
+
+```json
+{
+  "containers": {
+    "refreshRate": 60,
+    "services": {
+      "include": ["my-app-container", "postgres-db"],
+      "exclude": ["temp-container"]
+    }
+  }
+}
+```
+
+#### Configuration Options
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `refreshRate` | number | Seconds between metric collections | 60 |
+| `services.include` | array | Container names to monitor (empty = all) | [] |
+| `services.exclude` | array | Container names to exclude from monitoring | [] |
+
+### Applying Configuration
+
+Configure monitoring through the Dokploy API:
+
+```typescript
+// Update monitoring configuration
+await api.admin.setupMonitoring.mutate({
+  metricsConfig: {
+    server: {
+      refreshRate: 30,
+      port: 4500,
+      token: "secure-random-token",
+      urlCallback: "http://localhost:3000/api/trpc/notification.receiveNotification",
+      retentionDays: 7,
+      cronJob: "0 0 * * *",
+      thresholds: {
+        cpu: 80,
+        memory: 85
+      }
+    },
+    containers: {
+      refreshRate: 30,
+      services: {
+        include: ["app-container-name"],
+        exclude: []
+      }
+    }
+  }
+});
+```
+
+## Metrics API
+
+The monitoring service exposes REST endpoints for accessing metrics data.
+
+### Authentication
+
+All endpoints (except `/health`) require authentication via Bearer token:
+
+```bash
+Authorization: Bearer your-configured-token
+```
+
+### Endpoints
+
+#### Health Check
+
+Check if the monitoring service is running:
+
+```bash
+GET /health
+```
+
+Response:
+```json
+{
+  "status": "ok"
+}
+```
+
+#### Server Metrics
+
+Retrieve server metrics with optional limit:
+
+```bash
+GET /metrics?limit=50
+```
+
+Query Parameters:
+- `limit`: Number of records to return (default: 50, use "all" for all records)
+
+Response:
+```json
+[
+  {
+    "timestamp": "2025-01-19T21:44:54.232164Z",
+    "cpu": "24.57",
+    "cpuModel": "Apple M1 Pro",
+    "cpuCores": 8,
+    "cpuPhysicalCores": 1,
+    "cpuSpeed": 3228.0,
+    "os": "darwin",
+    "distro": "darwin",
+    "kernel": "23.4.0",
+    "arch": "arm64",
+    "memUsed": "81.91",
+    "memUsedGB": "13.11",
+    "memTotal": "16.0",
+    "uptime": 752232,
+    "diskUsed": "89.34",
+    "totalDisk": "460.43",
+    "networkIn": "54.78",
+    "networkOut": "31.72"
+  }
+]
+```
+
+#### Container Metrics
+
+Get metrics for a specific container:
+
+```bash
+GET /metrics/containers?appName=my-app&limit=50
+```
+
+Query Parameters:
+- `appName`: Container name (required)
+- `limit`: Number of records to return (default: 50, use "all" for all records)
+
+Response:
+```json
+[
+  {
+    "id": 1,
+    "timestamp": "2025-01-19T22:16:30.796129Z",
+    "container_id": "7428f5a49039",
+    "container_name": "my-app-container",
+    "metrics": {
+      "timestamp": "2025-01-19T22:16:30.796129Z",
+      "CPU": 83.76,
+      "Memory": {
+        "percentage": 0.03,
+        "used": 2.262,
+        "total": 7.654,
+        "usedUnit": "MB",
+        "totalUnit": "GB"
+      },
+      "Network": {
+        "input": 306,
+        "output": 0,
+        "inputUnit": "B",
+        "outputUnit": "B"
+      },
+      "BlockIO": {
+        "read": 28.7,
+        "write": 0,
+        "readUnit": "kB",
+        "writeUnit": "B"
+      },
+      "Container": "7428f5a49039",
+      "ID": "7428f5a49039",
+      "Name": "my-app-container"
+    }
+  }
+]
+```
+
+## Threshold Notifications
+
+When metrics exceed configured thresholds, Dokploy sends notifications via the callback URL.
+
+### Notification Payload
+
+```typescript
+interface Notification {
+  ServerType: "Dokploy" | "Remote";
+  Type: "Memory" | "CPU";
+  Value: number;
+  Threshold: number;
+  Message: string;
+  Timestamp: string;
+  Token: string;
+}
+```
+
+### Example Notification
+
+```json
+{
+  "ServerType": "Dokploy",
+  "Type": "CPU",
+  "Value": 85.5,
+  "Threshold": 80,
+  "Message": "CPU usage (85.50%) exceeded threshold (80.00%)",
+  "Timestamp": "2025-01-19T22:30:00.000Z",
+  "Token": "your-secure-token"
+}
+```
+
+## Viewing Metrics
+
+### Dashboard Access
+
+View metrics in real-time:
+
+1. Navigate to **Monitoring** in the main navigation
+2. Select the server or container you want to monitor
+3. View live graphs showing CPU, memory, disk, and network metrics
+4. Scrub through historical data based on your retention settings
+
+### Free vs Advanced Monitoring
+
+**Free Monitoring** displays:
+- Last 24 hours of Dokploy container metrics
+- Basic CPU and memory usage graphs
+- Real-time updates every 60 seconds
+
+**Advanced Monitoring** displays:
+- Configurable retention period (up to your settings)
+- All monitored containers
+- Customizable refresh rates
+- Historical trends and patterns
+
+## Performance Considerations
+
+### Refresh Rate
+
+Lower refresh rates provide more granular data but increase system overhead:
+- **High-frequency** (10-30 seconds): Real-time monitoring, higher CPU usage
+- **Standard** (60 seconds): Balanced performance and accuracy
+- **Low-frequency** (120+ seconds): Minimal overhead, less granular data
+
+### Data Retention
+
+The monitoring system stores up to 288 data points per metric (24 hours at 5-minute intervals). Configure retention days to balance disk usage with historical data needs:
+
+- **Short-term** (2-3 days): Minimal disk usage, recent troubleshooting
+- **Medium-term** (7-14 days): Balanced storage, weekly trend analysis
+- **Long-term** (30+ days): Higher storage needs, capacity planning
+
+### Service Filtering
+
+Monitor only critical services to reduce overhead:
+
+```json
+{
+  "services": {
+    "include": [
+      "production-api",
+      "production-db",
+      "redis-cache"
+    ]
+  }
+}
+```
+
+## Troubleshooting
+
+### Metrics Not Updating
+
+1. Check monitoring service status: `GET /health`
+2. Verify authentication token is correct
+3. Check Docker is running: `docker ps`
+4. Ensure port is not blocked by firewall
+
+### High Memory Usage
+
+1. Reduce retention days
+2. Increase refresh rate (collect less frequently)
+3. Limit monitored services with include/exclude lists
+
+### Missing Container Metrics
+
+1. Verify container name matches configuration
+2. Check container is running: `docker ps`
+3. Ensure container is not in exclude list
+
+## Best Practices
+
+1. **Set Appropriate Thresholds**: Configure thresholds based on your normal operating ranges (typically 80% for CPU, 85% for memory)
+2. **Use Service Filtering**: Monitor only production-critical services to reduce overhead
+3. **Balance Refresh Rate**: Use 30-60 second intervals for most use cases
+4. **Configure Retention**: Keep 7-14 days of data for trend analysis without excessive storage
+5. **Secure Your Token**: Use strong, unique tokens for monitoring API access
+6. **Monitor the Monitor**: Set up alerts for the monitoring service itself
+
+## Next Steps
+
+- [Set Up Notifications](/monitoring/notifications) for threshold alerts
+- [View Container Logs](/monitoring/logs) for troubleshooting

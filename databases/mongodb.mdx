@@ -1,0 +1,458 @@
+---
+title: MongoDB
+description: Deploy and manage MongoDB databases in Dokploy
+---
+
+MongoDB is a popular document-oriented NoSQL database that stores data in flexible, JSON-like documents. Dokploy makes it easy to deploy and manage MongoDB instances as Docker services.
+
+## Creating a MongoDB Database
+
+To create a MongoDB database in Dokploy:
+
+1. Navigate to your project
+2. Select the environment
+3. Click "Add Service" and select "MongoDB"
+4. Configure the database settings
+
+### Basic Configuration
+
+- **Name** - A friendly name for your database
+- **App Name** - The Docker service name (used for internal DNS)
+- **Description** - Optional description
+- **Docker Image** - Default: `mongo:latest` (recommended: `mongo:7` or `mongo:6`)
+
+### Database Credentials
+
+- **Database User** - Username for database access (typically root-level access)
+- **Database Password** - Password for the user
+
+<Note>
+These credentials are automatically configured via environment variables:
+- `MONGO_INITDB_ROOT_USERNAME`
+- `MONGO_INITDB_ROOT_PASSWORD`
+</Note>
+
+### Advanced Settings
+
+- **External Port** - Optional port to expose MongoDB externally (default internal port: 27017)
+- **Command** - Override the default container command
+- **Args** - Additional arguments to pass to MongoDB
+- **Replica Sets** - Enable replica set configuration for high availability
+- **Environment Variables** - Additional custom environment variables
+
+## Replica Sets
+
+Dokploy supports automatic replica set initialization for MongoDB. When enabled:
+
+- Creates a replica set named `rs0`
+- Initializes with a single member
+- Automatically creates the root user after replica set initialization
+- Required for features like transactions and change streams
+
+<Info>
+Replica sets enable MongoDB transactions and provide high availability. Enable this for production deployments.
+</Info>
+
+## Connection Strings
+
+### Internal Connection (from other services)
+
+#### Without Replica Sets
+
+```bash
+mongodb://[user]:[password]@[appName]:27017
+```
+
+**Example:**
+```bash
+mongodb://myuser:mypassword@my-mongo:27017
+```
+
+#### With Replica Sets
+
+```bash
+mongodb://[user]:[password]@[appName]:27017/?replicaSet=rs0
+```
+
+**Example:**
+```bash
+mongodb://myuser:mypassword@my-mongo:27017/?replicaSet=rs0
+```
+
+### External Connection
+
+If you've configured an external port (e.g., 27018):
+
+```bash
+mongodb://[user]:[password]@[host]:[externalPort]
+```
+
+### Connection String Formats
+
+<Tabs>
+  <Tab title="Standard URI">
+    ```bash
+    mongodb://username:password@hostname:27017/database?authSource=admin
+    ```
+  </Tab>
+  <Tab title="mongosh Command">
+    ```bash
+    mongosh "mongodb://username:password@hostname:27017/?authSource=admin"
+    ```
+  </Tab>
+  <Tab title="Node.js (mongodb)">
+    ```javascript
+    const { MongoClient } = require('mongodb');
+    
+    const client = new MongoClient(
+      'mongodb://myuser:mypassword@my-mongo:27017/?authSource=admin'
+    );
+    
+    await client.connect();
+    const db = client.db('myapp');
+    ```
+  </Tab>
+  <Tab title="Python (pymongo)">
+    ```python
+    from pymongo import MongoClient
+    
+    client = MongoClient(
+        host="my-mongo",
+        port=27017,
+        username="myuser",
+        password="mypassword",
+        authSource="admin"
+    )
+    
+    db = client.myapp
+    ```
+  </Tab>
+  <Tab title="With Replica Set">
+    ```bash
+    mongodb://username:password@hostname:27017/database?authSource=admin&replicaSet=rs0
+    ```
+  </Tab>
+</Tabs>
+
+## Environment Variables
+
+MongoDB containers support these environment variables:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `MONGO_INITDB_ROOT_USERNAME` | Root username | Yes |
+| `MONGO_INITDB_ROOT_PASSWORD` | Root password | Yes |
+| `MONGO_INITDB_DATABASE` | Initial database (set to `admin` with replica sets) | No |
+
+Dokploy automatically sets the required variables based on your configuration.
+
+## Data Persistence
+
+MongoDB data is stored in a Docker volume mounted at:
+
+- **Mount Path**: `/data/db`
+- **Volume Name**: `{appName}-data`
+
+The volume persists even when the container is stopped or removed.
+
+## Resource Configuration
+
+Configure resource limits for your MongoDB instance:
+
+```yaml
+Memory Limit: 2GB        # Maximum memory
+Memory Reservation: 1GB   # Guaranteed memory
+CPU Limit: 2.0           # Maximum CPU cores
+CPU Reservation: 0.5     # Guaranteed CPU cores
+```
+
+<Tip>
+MongoDB benefits from more memory for caching. For production workloads, allocate at least 2GB of memory and 1 CPU core.
+</Tip>
+
+## Operations
+
+### Starting the Database
+
+Click the "Start" button in the Dokploy UI or use the API:
+
+```bash
+POST /api/mongo/start
+{
+  "mongoId": "your-mongo-id"
+}
+```
+
+### Stopping the Database
+
+Click the "Stop" button or use the API:
+
+```bash
+POST /api/mongo/stop
+{
+  "mongoId": "your-mongo-id"
+}
+```
+
+### Reloading the Database
+
+Reload applies configuration changes by stopping and starting the service:
+
+```bash
+POST /api/mongo/reload
+{
+  "mongoId": "your-mongo-id"
+}
+```
+
+### Rebuilding the Database
+
+<Warning>
+Rebuilding will delete all data. Make sure to backup first!
+</Warning>
+
+```bash
+POST /api/mongo/rebuild
+{
+  "mongoId": "your-mongo-id"
+}
+```
+
+## Accessing MongoDB Shell
+
+To access the MongoDB shell (mongosh) in the running container:
+
+```bash
+docker exec -it $(docker ps -qf "name=my-mongo") mongosh -u myuser -p mypassword --authenticationDatabase admin
+```
+
+Or use the Dokploy terminal feature in the UI.
+
+## Common MongoDB Commands
+
+```javascript
+// Show all databases
+show dbs
+
+// Switch to database (creates if doesn't exist)
+use myapp
+
+// Show collections
+show collections
+
+// Insert document
+db.users.insertOne({ name: "John", email: "john@example.com" })
+
+// Find documents
+db.users.find({})
+db.users.findOne({ name: "John" })
+
+// Update document
+db.users.updateOne(
+  { name: "John" },
+  { $set: { email: "newemail@example.com" } }
+)
+
+// Delete document
+db.users.deleteOne({ name: "John" })
+
+// Create index
+db.users.createIndex({ email: 1 }, { unique: true })
+
+// Show indexes
+db.users.getIndexes()
+
+// Count documents
+db.users.countDocuments()
+
+// Show current user
+db.runCommand({ connectionStatus: 1 })
+
+// Show replica set status (if enabled)
+rs.status()
+```
+
+## Database Administration
+
+### Creating Additional Users
+
+```javascript
+use admin
+db.createUser({
+  user: "appuser",
+  pwd: "password",
+  roles: [
+    { role: "readWrite", db: "myapp" }
+  ]
+})
+```
+
+### User Roles
+
+Common MongoDB roles:
+
+- `read` - Read data from all non-system collections
+- `readWrite` - Read and modify data
+- `dbAdmin` - Database administration tasks
+- `userAdmin` - Create and modify users
+- `root` - Superuser role (all privileges)
+
+### Backup and Restore
+
+#### Manual Backup with mongodump
+
+```bash
+mongodump --uri="mongodb://user:pass@my-mongo:27017/?authSource=admin" --out=/backup
+```
+
+#### Manual Restore with mongorestore
+
+```bash
+mongorestore --uri="mongodb://user:pass@my-mongo:27017/?authSource=admin" /backup
+```
+
+See the [Backups](/databases/backups) page for automated backup configuration.
+
+## Backups
+
+Dokploy provides automated backup functionality for MongoDB using `mongodump`. Backups can be scheduled and stored in various destinations.
+
+See the [Backups](/databases/backups) page for detailed backup configuration.
+
+## Troubleshooting
+
+### Connection Refused
+
+- Verify the service is running in Dokploy UI
+- Check the service name matches your `appName`
+- Ensure your application is in the same Docker network
+
+### Authentication Failed
+
+- Verify credentials in the database settings
+- Ensure `authSource=admin` is in connection string
+- Check if using the correct username and password
+- For replica sets, ensure authentication is configured correctly
+
+### Replica Set Issues
+
+- Check replica set status: `rs.status()`
+- Verify the service name is resolvable in Docker network
+- Ensure MongoDB had time to initialize (check logs)
+
+### Out of Memory
+
+- Increase memory limits in resource configuration
+- Check MongoDB logs for memory-related errors
+- Consider using WiredTiger storage engine settings
+- Optimize queries and indexes
+
+## Best Practices
+
+1. **Use Specific Versions** - Pin to specific MongoDB versions (e.g., `mongo:7.0.5`) instead of `latest`
+2. **Enable Replica Sets** - Use replica sets for production to enable transactions
+3. **Strong Passwords** - Use strong, randomly generated passwords
+4. **Regular Backups** - Configure automated backups and test restoration
+5. **Indexes** - Create indexes for frequently queried fields
+6. **Connection Pooling** - Use connection pooling in your applications
+7. **Monitor Resources** - Watch memory and CPU usage, especially disk I/O
+8. **Security** - Don't expose MongoDB externally; use VPN or SSH tunnels
+
+## Performance Tuning
+
+### WiredTiger Cache
+
+Set WiredTiger cache size (50% of RAM minus 1GB):
+
+```bash
+--wiredTigerCacheSizeGB=1
+```
+
+### Connection Pool Settings
+
+In your application:
+
+```javascript
+const client = new MongoClient(uri, {
+  maxPoolSize: 50,
+  minPoolSize: 10,
+  maxIdleTimeMS: 30000
+});
+```
+
+### Indexes
+
+Create indexes for frequent queries:
+
+```javascript
+// Single field index
+db.users.createIndex({ email: 1 })
+
+// Compound index
+db.users.createIndex({ lastName: 1, firstName: 1 })
+
+// Text index for search
+db.articles.createIndex({ content: "text" })
+```
+
+### Query Optimization
+
+Use `explain()` to analyze queries:
+
+```javascript
+db.users.find({ email: "test@example.com" }).explain("executionStats")
+```
+
+## Transactions (Replica Sets Required)
+
+With replica sets enabled, you can use multi-document transactions:
+
+```javascript
+const session = client.startSession();
+
+try {
+  session.startTransaction();
+  
+  await db.collection('accounts').updateOne(
+    { _id: 'account1' },
+    { $inc: { balance: -100 } },
+    { session }
+  );
+  
+  await db.collection('accounts').updateOne(
+    { _id: 'account2' },
+    { $inc: { balance: 100 } },
+    { session }
+  );
+  
+  await session.commitTransaction();
+} catch (error) {
+  await session.abortTransaction();
+  throw error;
+} finally {
+  await session.endSession();
+}
+```
+
+## Change Streams (Replica Sets Required)
+
+Watch for changes in real-time:
+
+```javascript
+const changeStream = db.collection('users').watch();
+
+changeStream.on('change', (change) => {
+  console.log('Change detected:', change);
+});
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Backups" icon="clock" href="/databases/backups">
+    Configure automated MongoDB backups
+  </Card>
+  <Card title="Environment Variables" icon="gear" href="/core-concepts/environments">
+    Learn about environment variable management
+  </Card>
+</CardGroup>

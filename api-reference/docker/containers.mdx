@@ -1,0 +1,137 @@
+---
+title: 'Docker Containers'
+description: 'Manage Docker containers in Dokploy'
+---
+
+## Overview
+
+The Docker Containers API allows you to manage and monitor Docker containers across your Dokploy servers. You can list containers, restart them, inspect configurations, and filter by application labels.
+
+## Get Containers
+
+<ParamField query="serverId" type="string" optional>
+  The ID of the server to get containers from. If not provided, returns containers from the default server.
+</ParamField>
+
+### Response
+
+Returns an array of container objects with details about each running container.
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/docker.getContainers?serverId=server-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Restart Container
+
+Restart a specific Docker container by its ID.
+
+<ParamField body="containerId" type="string" required>
+  The ID of the container to restart. Must match the pattern `^[a-zA-Z0-9.\-_]+$`.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/docker.restartContainer" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "containerId": "my-container-123"
+  }'
+```
+
+## Get Container Configuration
+
+Retrieve detailed configuration information for a specific container.
+
+<ParamField query="containerId" type="string" required>
+  The ID of the container to inspect.
+</ParamField>
+
+<ParamField query="serverId" type="string" optional>
+  The server ID where the container is running.
+</ParamField>
+
+### Response
+
+Returns the full Docker container configuration including environment variables, volumes, networks, and resource limits.
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/docker.getConfig?containerId=my-container" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Get Containers by Application Name
+
+Find containers that match a specific application name pattern.
+
+<ParamField query="appName" type="string" required>
+  The application name to search for. Must match pattern `^[a-zA-Z0-9.\-_]+$`.
+</ParamField>
+
+<ParamField query="appType" type="string" optional>
+  The type of application. Can be either `stack` or `docker-compose`.
+</ParamField>
+
+<ParamField query="serverId" type="string" optional>
+  The server ID to search within.
+</ParamField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/docker.getContainersByAppNameMatch?appName=my-app&appType=stack" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Get Containers by Label
+
+Retrieve containers filtered by application label.
+
+<ParamField query="appName" type="string" required>
+  The application name label to filter by.
+</ParamField>
+
+<ParamField query="type" type="string" required>
+  The deployment type: `standalone` or `swarm`.
+</ParamField>
+
+<ParamField query="serverId" type="string" optional>
+  The server ID to query.
+</ParamField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/docker.getContainersByAppLabel?appName=my-app&type=standalone" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Get Stack Containers
+
+Get all containers for a Docker Stack application.
+
+<ParamField query="appName" type="string" required>
+  The stack application name.
+</ParamField>
+
+<ParamField query="serverId" type="string" optional>
+  The server ID hosting the stack.
+</ParamField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/docker.getStackContainersByAppName?appName=my-stack" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Get Service Containers
+
+Retrieve containers for a Docker Swarm service.
+
+<ParamField query="appName" type="string" required>
+  The service application name.
+</ParamField>
+
+<ParamField query="serverId" type="string" optional>
+  The server ID running the service.
+</ParamField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/docker.getServiceContainersByAppName?appName=my-service" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```

@@ -1,0 +1,543 @@
+---
+title: Container Registry
+description: Configure Docker container registries for pulling and pushing images
+---
+
+## Overview
+
+Dokploy supports connecting to Docker container registries to pull base images and push built application images. Configure multiple registries for different purposes.
+
+## Registry Types
+
+Dokploy supports two types of container registries:
+
+<ParamField path="registryType" type="enum" default="cloud">
+  Registry type
+  
+  - `cloud` - Cloud-hosted registry (Docker Hub, GitHub Container Registry, etc.)
+  - `selfHosted` - Self-hosted registry
+</ParamField>
+
+## Configuration
+
+### Basic Settings
+
+<ParamField path="registryName" type="string" required>
+  Display name for the registry
+  
+  ```bash
+  Docker Hub Production
+  ```
+</ParamField>
+
+<ParamField path="registryUrl" type="string" required>
+  Registry URL
+  
+  ```bash
+  # Docker Hub
+  https://index.docker.io/v1/
+  
+  # GitHub Container Registry
+  ghcr.io
+  
+  # Google Container Registry
+  gcr.io
+  
+  # Self-hosted
+  registry.example.com:5000
+  ```
+</ParamField>
+
+<ParamField path="username" type="string" required>
+  Registry username or access key
+  
+  ```bash
+  # Docker Hub
+  dockerhubuser
+  
+  # GitHub Container Registry
+  github-username
+  
+  # AWS ECR
+  AWS
+  ```
+</ParamField>
+
+<ParamField path="password" type="string" required>
+  Registry password, access token, or secret
+  
+  <Warning>
+    Store passwords securely. Never commit them to version control.
+  </Warning>
+</ParamField>
+
+<ParamField path="imagePrefix" type="string" optional>
+  Prefix for image names (useful for namespacing)
+  
+  ```bash
+  # Docker Hub namespace
+  mycompany/
+  
+  # GitHub Container Registry
+  ghcr.io/myorg/
+  
+  # AWS ECR
+  123456789.dkr.ecr.us-east-1.amazonaws.com/
+  ```
+</ParamField>
+
+## Popular Registries
+
+### Docker Hub
+
+The default public container registry.
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/registry.create \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "registryName": "Docker Hub",
+    "registryUrl": "https://index.docker.io/v1/",
+    "username": "dockerhubuser",
+    "password": "dockerhub-token",
+    "registryType": "cloud",
+    "imagePrefix": "mycompany/"
+  }'
+```
+
+#### Creating Docker Hub Token
+
+1. Log in to [Docker Hub](https://hub.docker.com)
+2. Go to Account Settings > Security
+3. Click "New Access Token"
+4. Give it a description and set permissions
+5. Copy the token (shown only once)
+
+### GitHub Container Registry (GHCR)
+
+Store container images alongside your GitHub repositories.
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/registry.create \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "registryName": "GitHub Container Registry",
+    "registryUrl": "ghcr.io",
+    "username": "github-username",
+    "password": "ghp_xxxxxxxxxxxxxxxxxxxx",
+    "registryType": "cloud",
+    "imagePrefix": "ghcr.io/myorg/"
+  }'
+```
+
+#### Creating GitHub Token
+
+1. Go to GitHub Settings > Developer settings > Personal access tokens
+2. Generate new token (classic)
+3. Select scopes:
+   - `write:packages` - Upload packages
+   - `read:packages` - Download packages
+   - `delete:packages` - Delete packages (optional)
+4. Copy the token
+
+### AWS Elastic Container Registry (ECR)
+
+Amazon's container registry service.
+
+```bash
+# First, get authentication token
+aws ecr get-login-password --region us-east-1
+
+# Then create registry
+curl -X POST https://your-domain.com/api/trpc/registry.create \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "registryName": "AWS ECR",
+    "registryUrl": "123456789.dkr.ecr.us-east-1.amazonaws.com",
+    "username": "AWS",
+    "password": "<ecr-token>",
+    "registryType": "cloud",
+    "imagePrefix": "123456789.dkr.ecr.us-east-1.amazonaws.com/"
+  }'
+```
+
+<Info>
+  AWS ECR tokens expire after 12 hours. Consider using an IAM role or automated token refresh.
+</Info>
+
+### Google Container Registry (GCR)
+
+Google Cloud's container registry.
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/registry.create \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "registryName": "Google Container Registry",
+    "registryUrl": "gcr.io",
+    "username": "_json_key",
+    "password": "<service-account-json>",
+    "registryType": "cloud",
+    "imagePrefix": "gcr.io/my-project/"
+  }'
+```
+
+### Azure Container Registry (ACR)
+
+Microsoft Azure's container registry.
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/registry.create \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "registryName": "Azure Container Registry",
+    "registryUrl": "myregistry.azurecr.io",
+    "username": "myregistry",
+    "password": "<acr-password>",
+    "registryType": "cloud"
+  }'
+```
+
+### Self-Hosted Registry
+
+Connect to your own Docker registry.
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/registry.create \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "registryName": "Self-Hosted Registry",
+    "registryUrl": "registry.example.com:5000",
+    "username": "admin",
+    "password": "registry-password",
+    "registryType": "selfHosted"
+  }'
+```
+
+## Testing Registry Connection
+
+Before using a registry, test the connection:
+
+### Test Before Creating
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/registry.testRegistry \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "registryUrl": "ghcr.io",
+    "username": "github-user",
+    "password": "ghp_xxxxxxxxxxxx",
+    "registryType": "cloud"
+  }'
+```
+
+### Test Existing Registry
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/registry.testRegistryById \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "registryId": "registry-123"
+  }'
+```
+
+Successful test response:
+```json
+{
+  "success": true
+}
+```
+
+## Managing Registries
+
+### List All Registries
+
+```bash
+curl https://your-domain.com/api/trpc/registry.all \
+  -H "x-api-key: your-api-key"
+```
+
+Response:
+```json
+[
+  {
+    "registryId": "registry-123",
+    "registryName": "Docker Hub",
+    "registryUrl": "https://index.docker.io/v1/",
+    "username": "dockerhubuser",
+    "imagePrefix": "mycompany/",
+    "registryType": "cloud",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "organizationId": "org-123"
+  }
+]
+```
+
+<Info>
+  Passwords are not returned in list responses for security.
+</Info>
+
+### Get Single Registry
+
+```bash
+curl https://your-domain.com/api/trpc/registry.one \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"registryId": "registry-123"}'
+```
+
+### Update Registry
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/registry.update \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "registryId": "registry-123",
+    "registryName": "Docker Hub Production",
+    "username": "newusername",
+    "password": "newpassword"
+  }'
+```
+
+### Delete Registry
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/registry.remove \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"registryId": "registry-123"}'
+```
+
+<Warning>
+  Deleting a registry may affect applications that use it for pulling base images or pushing built images.
+</Warning>
+
+## Using Registries
+
+### For Pulling Images
+
+When deploying applications, Dokploy can pull base images from configured registries:
+
+```yaml
+# docker-compose.yml
+services:
+  app:
+    image: mycompany/myapp:latest  # Pulled from Docker Hub registry
+```
+
+### For Pushing Built Images
+
+After building an application, Dokploy can push the image to a registry:
+
+```typescript
+{
+  "applicationId": "app-123",
+  "buildRegistryId": "registry-123",  // Registry to push to
+  "registryId": "registry-456"        // Registry to pull from
+}
+```
+
+### Rollback Registry
+
+Store previous image versions for rollbacks:
+
+```typescript
+{
+  "applicationId": "app-123",
+  "rollbackRegistryId": "registry-789"  // Registry for rollback images
+}
+```
+
+## Server-Specific Registries
+
+For multi-server deployments, specify which server to test against:
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/registry.testRegistry \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "registryUrl": "registry.example.com",
+    "username": "admin",
+    "password": "password",
+    "serverId": "server-123"
+  }'
+```
+
+## Authentication Methods
+
+### Username/Password
+
+Basic authentication with username and password:
+
+```bash
+docker login registry.example.com -u username -p password
+```
+
+### Access Tokens
+
+Many registries use personal access tokens:
+
+```bash
+# Docker Hub
+docker login -u username -p dckr_pat_xxxxxxxxxxxx
+
+# GitHub
+docker login ghcr.io -u username -p ghp_xxxxxxxxxxxx
+```
+
+### Service Accounts
+
+Cloud providers often use JSON key files:
+
+```bash
+# GCR with service account
+cat keyfile.json | docker login -u _json_key --password-stdin gcr.io
+```
+
+## Security Best Practices
+
+### Credential Management
+
+1. **Rotate Regularly**: Change registry passwords every 90 days
+2. **Least Privilege**: Grant only necessary permissions
+3. **Separate Credentials**: Use different credentials for dev/prod
+4. **Token Expiration**: Use short-lived tokens when possible
+
+### Registry Security
+
+1. **Private Registries**: Use private registries for proprietary images
+2. **Image Scanning**: Enable vulnerability scanning
+3. **Image Signing**: Sign images for authenticity
+4. **Access Logs**: Monitor registry access logs
+
+### Network Security
+
+1. **HTTPS Only**: Always use HTTPS for registry URLs
+2. **VPC/Private Network**: Use private networks when possible
+3. **Firewall Rules**: Restrict registry access by IP
+4. **Rate Limiting**: Implement rate limits to prevent abuse
+
+## Troubleshooting
+
+### Connection Issues
+
+<AccordionGroup>
+  <Accordion title="Login Failed">
+    - Verify username and password are correct
+    - Check if credentials have expired
+    - Ensure registry URL is correct
+    - Confirm registry is accessible from server
+  </Accordion>
+
+  <Accordion title="Image Push Failed">
+    - Verify write permissions
+    - Check disk space on server
+    - Ensure image name matches registry prefix
+    - Confirm network connectivity
+  </Accordion>
+
+  <Accordion title="Image Pull Failed">
+    - Verify read permissions
+    - Check if image exists in registry
+    - Ensure correct image name and tag
+    - Confirm credentials are valid
+  </Accordion>
+</AccordionGroup>
+
+### Common Errors
+
+```bash
+# Error: unauthorized
+# Solution: Check credentials are correct and have proper permissions
+
+# Error: dial tcp: lookup registry.example.com: no such host
+# Solution: Verify registry URL is correct and DNS is working
+
+# Error: x509: certificate signed by unknown authority
+# Solution: Add registry's CA certificate to trusted certificates
+```
+
+## Database Schema
+
+Registry configuration is stored in the `registry` table:
+
+```typescript
+{
+  registryId: string;        // Unique identifier
+  registryName: string;      // Display name
+  imagePrefix: string;       // Optional prefix for images
+  username: string;          // Registry username
+  password: string;          // Registry password (encrypted)
+  registryUrl: string;       // Registry URL
+  createdAt: string;        // Creation timestamp
+  registryType: "cloud" | "selfHosted";
+  organizationId: string;   // Owner organization
+}
+```
+
+## API Reference
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/trpc/registry.create` | POST | Create new registry |
+| `/api/trpc/registry.all` | GET | List all registries |
+| `/api/trpc/registry.one` | GET | Get single registry |
+| `/api/trpc/registry.update` | POST | Update registry |
+| `/api/trpc/registry.remove` | POST | Delete registry |
+| `/api/trpc/registry.testRegistry` | POST | Test connection |
+| `/api/trpc/registry.testRegistryById` | POST | Test existing registry |
+
+## Example: Complete Workflow
+
+```typescript
+// 1. Create registry
+const registry = await fetch('https://dokploy.example.com/api/trpc/registry.create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.API_KEY
+  },
+  body: JSON.stringify({
+    registryName: 'Docker Hub Production',
+    registryUrl: 'https://index.docker.io/v1/',
+    username: 'mycompany',
+    password: process.env.DOCKER_HUB_TOKEN,
+    registryType: 'cloud',
+    imagePrefix: 'mycompany/'
+  })
+});
+
+// 2. Test registry
+await fetch('https://dokploy.example.com/api/trpc/registry.testRegistryById', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.API_KEY
+  },
+  body: JSON.stringify({
+    registryId: registry.registryId
+  })
+});
+
+// 3. Use in application
+await createApplication({
+  name: 'My App',
+  registryId: registry.registryId,  // Pull from this registry
+  buildRegistryId: registry.registryId,  // Push to this registry
+  // ... other config
+});
+
+// 4. Build and push
+await deployApplication('app-123');
+// Image is built and pushed to mycompany/my-app:latest
+```

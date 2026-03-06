@@ -1,0 +1,609 @@
+---
+title: "Volumes & Storage"
+description: "Manage persistent storage, volumes, and data lifecycle in Dokploy"
+---
+
+## Overview
+
+Persistent storage is critical for stateful applications and databases. Dokploy uses Docker volumes to provide reliable, performant storage that persists across container restarts and redeployments.
+
+<CardGroup cols={3}>
+  <Card title="Data Persistence" icon="database">
+    Data survives container restarts and updates
+  </Card>
+  <Card title="Performance" icon="gauge-high">
+    Native filesystem performance
+  </Card>
+  <Card title="Portability" icon="truck">
+    Easy backup, restore, and migration
+  </Card>
+</CardGroup>
+
+## Volume Types
+
+<Tabs>
+  <Tab title="Named Volumes (Recommended)">
+    Docker-managed volumes:
+    
+    ```yaml
+    volumes:
+      app_data:
+        driver: local
+    
+    services:
+      app:
+        volumes:
+          - app_data:/app/data
+    ```
+    
+    **Benefits**:
+    - Managed by Docker
+    - Automatic creation
+    - Easy to backup
+    - Independent lifecycle
+  </Tab>
+  
+  <Tab title="Bind Mounts">
+    Direct host filesystem mounts:
+    
+    ```yaml
+    services:
+      app:
+        volumes:
+          - ./data:/app/data
+          - /host/path:/container/path
+    ```
+    
+    **Use cases**:
+    - Development (live code reload)
+    - Existing host data
+    - Configuration files
+  </Tab>
+  
+  <Tab title="tmpfs Mounts">
+    In-memory storage:
+    
+    ```yaml
+    services:
+      app:
+        tmpfs:
+          - /app/cache
+    ```
+    
+    **Use cases**:
+    - Temporary cache
+    - Sensitive data (not persisted)
+    - High I/O workloads
+  </Tab>
+  
+  <Tab title="NFS Volumes">
+    Network storage:
+    
+    ```yaml
+    volumes:
+      nfs_data:
+        driver: local
+        driver_opts:
+          type: nfs
+          o: addr=nfs-server.example.com,rw
+          device: ":/path/to/share"
+    ```
+    
+    **Use cases**:
+    - Shared storage across nodes
+    - Centralized backups
+    - Legacy infrastructure
+  </Tab>
+</Tabs>
+
+## Creating and Managing Volumes
+
+### Via Docker Compose
+
+```yaml docker-compose.yml
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+  
+  app:
+    image: myapp:latest
+    volumes:
+      - app_uploads:/app/uploads
+      - app_cache:/app/cache
+
+volumes:
+  postgres_data:
+    driver: local
+  app_uploads:
+    driver: local
+  app_cache:
+    driver: local
+```
+
+### Via Docker CLI
+
+```bash
+# Create volume
+docker volume create my_volume
+
+# List volumes
+docker volume ls
+
+# Inspect volume
+docker volume inspect my_volume
+
+# Remove volume
+docker volume rm my_volume
+
+# Remove unused volumes
+docker volume prune
+```
+
+### Via Dokploy API
+
+```bash Create Mount
+curl -X POST https://your-dokploy-instance.com/api/mounts.create \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-id",
+    "type": "volume",
+    "volumeName": "app_data",
+    "mountPath": "/app/data"
+  }'
+```
+
+## Volume Configuration Options
+
+### Volume Labels
+
+Organize volumes with labels:
+
+```yaml
+volumes:
+  app_data:
+    driver: local
+    labels:
+      com.dokploy.project: myproject
+      com.dokploy.environment: production
+      com.dokploy.backup: enabled
+```
+
+### Volume Driver Options
+
+Customize volume behavior:
+
+```yaml
+volumes:
+  app_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/data/app
+```
+
+### Read-Only Volumes
+
+Mount volumes as read-only:
+
+```yaml
+services:
+  app:
+    volumes:
+      - app_config:/app/config:ro
+```
+
+## Database Storage
+
+Each database type has specific volume requirements:
+
+### PostgreSQL
+
+```yaml
+services:
+  postgres:
+    image: postgres:16
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+
+volumes:
+  postgres_data:
+    driver: local
+```
+
+### MySQL/MariaDB
+
+```yaml
+services:
+  mysql:
+    image: mysql:8
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+
+volumes:
+  mysql_data:
+    driver: local
+```
+
+### MongoDB
+
+```yaml
+services:
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+    environment:
+      - MONGO_INITDB_ROOT_PASSWORD=${DB_PASSWORD}
+
+volumes:
+  mongo_data:
+    driver: local
+  mongo_config:
+    driver: local
+```
+
+### Redis
+
+```yaml
+services:
+  redis:
+    image: redis:7
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  redis_data:
+    driver: local
+```
+
+## Volume Backup and Restore
+
+### Backup a Volume
+
+```bash Manual Backup
+# Backup to tar archive
+docker run --rm \
+  -v volume_name:/source:ro \
+  -v $(pwd):/backup \
+  alpine tar czf /backup/volume_backup.tar.gz -C /source .
+```
+
+### Restore a Volume
+
+```bash Manual Restore
+# Restore from tar archive
+docker run --rm \
+  -v volume_name:/target \
+  -v $(pwd):/backup \
+  alpine sh -c "cd /target && tar xzf /backup/volume_backup.tar.gz"
+```
+
+### Automated Backups via Dokploy
+
+Configure automated volume backups:
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/volumeBackups.create \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "volumeName": "app_data",
+    "schedule": "0 2 * * *",
+    "destinationId": "s3-destination-id",
+    "retentionDays": 30
+  }'
+```
+
+## Volume Migration
+
+### Between Servers
+
+<Steps>
+  <Step title="Backup on Source Server">
+    ```bash
+    docker run --rm \
+      -v postgres_data:/source:ro \
+      -v $(pwd):/backup \
+      alpine tar czf /backup/postgres_backup.tar.gz -C /source .
+    ```
+  </Step>
+  
+  <Step title="Transfer to Target Server">
+    ```bash
+    scp postgres_backup.tar.gz user@target-server:/tmp/
+    ```
+  </Step>
+  
+  <Step title="Create Volume on Target">
+    ```bash
+    docker volume create postgres_data
+    ```
+  </Step>
+  
+  <Step title="Restore on Target Server">
+    ```bash
+    docker run --rm \
+      -v postgres_data:/target \
+      -v /tmp:/backup \
+      alpine sh -c "cd /target && tar xzf /backup/postgres_backup.tar.gz"
+    ```
+  </Step>
+</Steps>
+
+### Between Volume Drivers
+
+Migrate from local to NFS:
+
+```bash
+# Create new NFS volume
+docker volume create --driver local \
+  --opt type=nfs \
+  --opt o=addr=nfs-server,rw \
+  --opt device=:/path/to/share \
+  nfs_volume
+
+# Copy data
+docker run --rm \
+  -v old_volume:/source:ro \
+  -v nfs_volume:/target \
+  alpine cp -a /source/. /target/
+```
+
+## Storage Drivers
+
+Docker supports multiple storage drivers:
+
+<Tabs>
+  <Tab title="overlay2 (Default)">
+    Modern, performant storage driver:
+    
+    - Best performance
+    - Production-ready
+    - Supports Linux 4.0+
+    - Copy-on-write
+    
+    Recommended for most use cases.
+  </Tab>
+  
+  <Tab title="btrfs">
+    B-tree filesystem:
+    
+    - Native copy-on-write
+    - Snapshots
+    - Compression
+    - Requires btrfs filesystem
+  </Tab>
+  
+  <Tab title="zfs">
+    ZFS filesystem:
+    
+    - Data integrity
+    - Compression
+    - Snapshots
+    - Requires ZFS kernel module
+  </Tab>
+  
+  <Tab title="devicemapper">
+    Legacy driver:
+    
+    - Block-level storage
+    - Not recommended for new deployments
+    - Use overlay2 instead
+  </Tab>
+</Tabs>
+
+### Check Current Driver
+
+```bash
+docker info | grep "Storage Driver"
+```
+
+## Performance Optimization
+
+<AccordionGroup>
+  <Accordion title="Use Named Volumes Instead of Bind Mounts">
+    Named volumes are faster and more portable:
+    
+    ```yaml
+    # Fast
+    volumes:
+      - app_data:/app/data
+    
+    # Slower (on macOS/Windows)
+    volumes:
+      - ./data:/app/data
+    ```
+  </Accordion>
+  
+  <Accordion title="Enable Volume Caching (macOS/Windows)">
+    Improve bind mount performance:
+    
+    ```yaml
+    volumes:
+      - ./code:/app:cached      # Host authoritative
+      - ./logs:/logs:delegated  # Container authoritative
+    ```
+  </Accordion>
+  
+  <Accordion title="Use tmpfs for Temporary Data">
+    Store temporary data in memory:
+    
+    ```yaml
+    services:
+      app:
+        tmpfs:
+          - /app/cache:size=1G,mode=1777
+    ```
+  </Accordion>
+  
+  <Accordion title="Optimize Database Volume Configuration">
+    PostgreSQL example:
+    
+    ```yaml
+    services:
+      postgres:
+        volumes:
+          - postgres_data:/var/lib/postgresql/data
+        environment:
+          - PGDATA=/var/lib/postgresql/data/pgdata
+        # Use specific subdirectory for better performance
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Storage Monitoring
+
+### Check Volume Sizes
+
+```bash
+# List volume sizes
+docker system df -v
+
+# Inspect specific volume
+docker volume inspect volume_name
+```
+
+### Monitor Disk Usage
+
+```bash
+# Container disk usage
+docker ps -s
+
+# Volume usage
+df -h /var/lib/docker/volumes/
+```
+
+### Cleanup Unused Volumes
+
+```bash
+# Remove unused volumes
+docker volume prune
+
+# Remove all unused data
+docker system prune -a --volumes
+```
+
+<Warning>
+`docker system prune` removes ALL unused data including volumes. Use with caution!
+</Warning>
+
+## Multi-Node Storage
+
+For multi-node deployments, use shared storage:
+
+### NFS Configuration
+
+```yaml
+volumes:
+  shared_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=nfs-server.example.com,rw,nfsvers=4
+      device: ":/exports/shared"
+
+services:
+  app:
+    volumes:
+      - shared_data:/app/data
+    deploy:
+      replicas: 3  # All replicas share same data
+```
+
+### Volume Placement
+
+Pin volumes to specific nodes:
+
+```yaml
+services:
+  postgres:
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    deploy:
+      placement:
+        constraints:
+          - node.labels.storage == postgres
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Named Volumes" icon="tag">
+    Prefer named volumes over bind mounts for portability
+  </Card>
+  <Card title="Backup Regularly" icon="clock">
+    Automate volume backups to external storage
+  </Card>
+  <Card title="Monitor Disk Space" icon="chart-line">
+    Set up alerts for disk usage thresholds
+  </Card>
+  <Card title="Document Mount Points" icon="book">
+    Maintain documentation of all volume mounts
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Volume permission errors">
+    Fix ownership issues:
+    ```bash
+    docker run --rm \
+      -v volume_name:/data \
+      alpine chown -R 1000:1000 /data
+    ```
+  </Accordion>
+  
+  <Accordion title="Volume full / out of space">
+    - Check disk usage: `df -h`
+    - Remove unused volumes: `docker volume prune`
+    - Increase disk space
+    - Configure volume size limits
+  </Accordion>
+  
+  <Accordion title="Volume data not persisting">
+    - Verify volume is defined in compose file
+    - Check mount path is correct
+    - Ensure volume isn't being recreated on each deploy
+    - Inspect volume: `docker volume inspect volume_name`
+  </Accordion>
+  
+  <Accordion title="NFS mount issues">
+    - Verify NFS server is accessible
+    - Check firewall rules
+    - Test mount manually: `mount -t nfs server:/path /mnt`
+    - Review NFS server exports: `/etc/exports`
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Backups" icon="clock" href="/advanced/backups">
+    Configure automated volume backups
+  </Card>
+  <Card title="Databases" icon="database" href="/databases/overview">
+    Database-specific storage configuration
+  </Card>
+  <Card title="Multi-Node" icon="server" href="/advanced/multi-node">
+    Shared storage in multi-node deployments
+  </Card>
+  <Card title="Monitoring" icon="chart-line" href="/monitoring/overview">
+    Monitor storage usage and health
+  </Card>
+</CardGroup>

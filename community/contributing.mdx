@@ -1,0 +1,341 @@
+---
+title: "Contributing"
+description: "Guidelines for contributing to Dokploy - join our open-source community"
+icon: "heart"
+---
+
+## Welcome Contributors!
+
+Thank you for your interest in contributing to Dokploy! We appreciate your help and the time you take to contribute. Every contribution helps make Dokploy better for everyone.
+
+<Note>
+  Before you start, please discuss the feature or bug fix you want to add with the owners and community via [GitHub issues](https://github.com/dokploy/dokploy/issues).
+</Note>
+
+## Quick Start
+
+<Steps>
+  <Step title="Fork and Clone">
+    Fork the repository and clone it based on the `canary` branch
+  </Step>
+  <Step title="Set Up Environment">
+    Install dependencies and configure your development environment
+  </Step>
+  <Step title="Make Changes">
+    Create a new branch and implement your changes
+  </Step>
+  <Step title="Test">
+    Test your changes thoroughly in a local environment
+  </Step>
+  <Step title="Submit PR">
+    Create a pull request with a clear description of your changes
+  </Step>
+</Steps>
+
+## Development Setup
+
+### Prerequisites
+
+- **Node.js**: v24.4.0 (recommended)
+- **pnpm**: >=9.12.0
+- **Docker**: [Installation guide](/GUIDES.md#docker)
+
+If you have [nvm](https://github.com/nvm-sh/nvm) installed:
+
+```bash
+nvm install 24.4.0 && nvm use
+```
+
+### Initial Setup
+
+<CodeGroup>
+```bash Clone Repository
+git clone https://github.com/dokploy/dokploy.git
+cd dokploy
+```
+
+```bash Install Dependencies
+pnpm install
+```
+
+```bash Configure Environment
+cp apps/dokploy/.env.example apps/dokploy/.env
+```
+
+```bash Setup Services
+pnpm run dokploy:setup
+```
+</CodeGroup>
+
+### Run Development Server
+
+```bash
+# Run server script first
+pnpm run server:script
+
+# Start development server
+pnpm run dokploy:dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000) to see the development server.
+
+<Tip>
+  This project uses [Biome](https://biomejs.dev/) for formatting and linting. If your editor uses Prettier, consider switching to Biome or disabling auto-formatting.
+</Tip>
+
+## Commit Convention
+
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for all commit messages.
+
+### Commit Message Format
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Commit Types
+
+| Type | Description |
+|------|-------------|
+| **feat** | A new feature |
+| **fix** | A bug fix |
+| **docs** | Documentation only changes |
+| **style** | Code style changes (formatting, missing semi-colons, etc.) |
+| **refactor** | Code change that neither fixes a bug nor adds a feature |
+| **perf** | Performance improvement |
+| **test** | Adding or correcting tests |
+| **build** | Changes to build system or dependencies |
+| **ci** | Changes to CI configuration |
+| **chore** | Other changes that don't modify src or test files |
+| **revert** | Reverts a previous commit |
+
+### Examples
+
+```bash
+feat: add multi-node deployment support
+fix: resolve database connection timeout issue
+docs: update API authentication guide
+refactor: simplify deployment configuration logic
+```
+
+## Build Commands
+
+<CodeGroup>
+```bash Build Production
+pnpm run dokploy:build
+```
+
+```bash Build Docker Image
+pnpm run docker:build
+```
+
+```bash Push Docker Image
+pnpm run docker:push
+```
+</CodeGroup>
+
+## Development Tools
+
+### Code Quality
+
+```bash
+# Check code formatting and linting
+pnpm run format-and-lint
+
+# Auto-fix issues
+pnpm run format-and-lint:fix
+
+# Type checking
+pnpm run typecheck
+```
+
+### Testing
+
+```bash
+pnpm run test
+```
+
+### Reset Password
+
+If you lose your development environment password:
+
+```bash
+pnpm run reset-password
+```
+
+### Webhook Testing
+
+Test webhooks locally using [localtunnel](https://localtunnel.app/):
+
+```bash
+pnpm dlx localtunnel --port 3000
+```
+
+## Buildpack Installation
+
+For testing application deployments with Nixpacks or Buildpacks:
+
+<CodeGroup>
+```bash Nixpacks
+curl -sSL https://nixpacks.com/install.sh -o install.sh && \
+  chmod +x install.sh && \
+  ./install.sh
+```
+
+```bash Railpack
+curl -sSL https://railpack.com/install.sh | sh
+```
+
+```bash Buildpacks
+curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.39.1/pack-v0.39.1-linux.tgz" | \
+  tar -C /usr/local/bin/ --no-same-owner -xzv pack
+```
+</CodeGroup>
+
+## Docker Permissions
+
+If you encounter Docker permission issues:
+
+<CodeGroup>
+```bash Option 1: Change Ownership
+sudo chown -R $(whoami) ~/.docker
+```
+
+```bash Option 2: Add to Docker Group
+sudo usermod -aG docker $USER
+newgrp docker
+```
+</CodeGroup>
+
+## Pull Request Guidelines
+
+### Before Submitting
+
+<AccordionGroup>
+  <Accordion title="Branch Strategy">
+    - Base your work on the `canary` branch (not `main`)
+    - Create a new branch for each feature or bug fix
+    - Use descriptive branch names (e.g., `feat/multi-node-support`, `fix/database-timeout`)
+  </Accordion>
+  
+  <Accordion title="Testing Requirements" icon="flask">
+    **Testing is Mandatory**: All PRs must be tested by the author before submission.
+    
+    - Test your changes in a local development environment
+    - Verify the feature works as expected
+    - Check for any unintended side effects
+    - Test edge cases and error scenarios
+    
+    **Untested PRs will be rejected.** This keeps the PR history clean and values contributors who submit verified, working code.
+  </Accordion>
+  
+  <Accordion title="Documentation">
+    - Update documentation for any user-facing changes
+    - Add code comments for complex logic
+    - Update the [docs.dokploy.com](https://docs.dokploy.com) website if needed
+  </Accordion>
+  
+  <Accordion title="Code Quality">
+    - Run linting and formatting: `pnpm run format-and-lint:fix`
+    - Ensure type checking passes: `pnpm run typecheck`
+    - Add tests for new features when applicable
+  </Accordion>
+</AccordionGroup>
+
+### PR Description
+
+Provide a clear and concise description:
+
+- **Summary**: What does this PR do?
+- **Motivation**: Why is this change needed?
+- **Testing**: How was it tested?
+- **Screenshots/Videos**: Include visuals for UI changes (highly appreciated!)
+- **Related Issues**: Reference any related issues (e.g., `Fixes #123`, `Closes #456`)
+
+### Important Considerations
+
+<Warning>
+  **Focus and Scope**: Each PR should address a single, well-defined problem or introduce one feature. This makes review easier and reduces the chance of introducing bugs.
+</Warning>
+
+<Note>
+  **Large Features**: PRs introducing very large or broad features will not be accepted unless the idea is first outlined and discussed in a GitHub issue. This ensures the project stays coherent and aligned.
+</Note>
+
+**Avoid Unfocused Changes**:
+- Don't submit PRs with only minor changes (whitespace, formatting, unused variables)
+- These should be part of a larger refactor or a dedicated cleanup task
+- Exception: PRs addressing a specific "good first issue" or maintenance task
+
+**Issue Association**:
+- For significant changes, open an issue first to discuss the solution
+- Link your PR to the issue (e.g., `Fixes #123`)
+- This prevents duplicated effort and ensures alignment
+
+## Contributing to Templates
+
+To add a new template, visit the [Dokploy/templates](https://github.com/Dokploy/templates) repository and read the README.
+
+### Template Recommendations
+
+- Use the same folder name as the template ID
+- Place logos in the `public` folder
+- Add `_HOST` suffix to variables that should show domains in the UI
+- Test templates on a VPS or server before submitting
+
+## Contributing to Documentation
+
+To contribute to the Dokploy documentation or website, visit the [Dokploy/website](https://github.com/Dokploy/website) repository.
+
+## Community
+
+<CardGroup cols={2}>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/2tBnJ3jDJc">
+    Join discussions, get help, and connect with other contributors
+  </Card>
+  
+  <Card title="GitHub Issues" icon="github" href="https://github.com/dokploy/dokploy/issues">
+    Report bugs, request features, and track development
+  </Card>
+  
+  <Card title="GitHub Sponsors" icon="heart" href="https://github.com/sponsors/Siumauricio">
+    Support the project and its maintainers
+  </Card>
+  
+  <Card title="Dokploy Cloud" icon="cloud" href="https://app.dokploy.com">
+    Try the managed version of Dokploy
+  </Card>
+</CardGroup>
+
+## Recognition
+
+Once your pull request is merged:
+- You'll be automatically added as a contributor to the project
+- Your contribution will be visible on the [contributors page](https://github.com/dokploy/dokploy/graphs/contributors)
+- You're helping build a better PaaS for everyone!
+
+## Code of Conduct
+
+By contributing to Dokploy, you agree to:
+
+- Be respectful and inclusive
+- Provide constructive feedback
+- Focus on what's best for the community
+- Show empathy towards other contributors
+
+## Questions?
+
+If you have questions about contributing:
+
+1. Check the [documentation](https://docs.dokploy.com)
+2. Search [existing issues](https://github.com/dokploy/dokploy/issues)
+3. Ask in our [Discord community](https://discord.gg/2tBnJ3jDJc)
+4. Create a new issue if needed
+
+<Note>
+  Thank you for contributing to Dokploy! Every contribution, no matter how small, makes a difference.
+</Note>

@@ -1,0 +1,542 @@
+---
+title: Git Providers
+description: Connect GitHub, GitLab, Bitbucket, and Gitea to deploy applications from your repositories
+---
+
+## Overview
+
+Dokploy supports multiple Git providers to deploy applications directly from your source code repositories. Connect your Git provider once and deploy unlimited applications.
+
+## Supported Providers
+
+Dokploy integrates with:
+- **GitHub** - GitHub Cloud and GitHub Apps
+- **GitLab** - GitLab Cloud and self-hosted GitLab instances
+- **Bitbucket** - Bitbucket Cloud
+- **Gitea** - Self-hosted Gitea instances
+
+## GitHub
+
+Connect GitHub using GitHub Apps for secure, fine-grained access control.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this Git provider connection
+  
+  ```bash
+  My GitHub App
+  ```
+</ParamField>
+
+<ParamField path="githubAppName" type="string">
+  Name of your GitHub App
+</ParamField>
+
+<ParamField path="githubAppId" type="number">
+  GitHub App ID from your app settings
+  
+  ```bash
+  # Found in Settings > Developer settings > GitHub Apps
+  123456
+  ```
+</ParamField>
+
+<ParamField path="githubClientId" type="string">
+  OAuth Client ID for the GitHub App
+</ParamField>
+
+<ParamField path="githubClientSecret" type="string">
+  OAuth Client Secret for the GitHub App
+  
+  <Warning>
+    Keep your client secret secure. Never commit it to version control.
+  </Warning>
+</ParamField>
+
+<ParamField path="githubInstallationId" type="string">
+  Installation ID after installing the app to your account/organization
+</ParamField>
+
+<ParamField path="githubPrivateKey" type="string">
+  Private key for authenticating as the GitHub App
+  
+  ```text
+  -----BEGIN RSA PRIVATE KEY-----
+  MIIEpAIBAAKCAQEA...
+  -----END RSA PRIVATE KEY-----
+  ```
+</ParamField>
+
+<ParamField path="githubWebhookSecret" type="string" optional>
+  Webhook secret for securing webhook payloads
+</ParamField>
+
+### Creating a GitHub App
+
+1. Go to GitHub Settings > Developer settings > GitHub Apps
+2. Click "New GitHub App"
+3. Configure the app:
+   - **Homepage URL**: `https://your-dokploy-domain.com`
+   - **Webhook URL**: `https://your-dokploy-domain.com/api/github/webhook`
+   - **Webhook secret**: Generate a secure random string
+4. Set permissions:
+   - Repository contents: Read
+   - Repository metadata: Read
+   - Deployments: Read & write
+   - Pull requests: Read & write (for preview deployments)
+5. Generate a private key and download it
+6. Install the app to your account/organization
+
+### Example Configuration
+
+```typescript
+const github = await fetch('https://your-domain.com/api/trpc/github.create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.API_KEY
+  },
+  body: JSON.stringify({
+    name: 'Production GitHub',
+    githubAppName: 'dokploy-prod',
+    githubAppId: 123456,
+    githubClientId: 'Iv1.abc123def456',
+    githubClientSecret: 'ghp_abc123def456...',
+    githubInstallationId: '789012',
+    githubPrivateKey: '-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----',
+    githubWebhookSecret: 'webhook_secret_123'
+  })
+});
+```
+
+### Fetching Branches
+
+```bash
+curl https://your-domain.com/api/trpc/github.branches \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "owner": "octocat",
+    "repo": "Hello-World",
+    "githubId": "github-123"
+  }'
+```
+
+## GitLab
+
+Connect GitLab Cloud or self-hosted GitLab instances using OAuth.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this Git provider connection
+</ParamField>
+
+<ParamField path="gitlabUrl" type="string" required default="https://gitlab.com">
+  GitLab instance URL
+  
+  ```bash
+  # GitLab Cloud
+  https://gitlab.com
+  
+  # Self-hosted
+  https://gitlab.example.com
+  ```
+</ParamField>
+
+<ParamField path="gitlabInternalUrl" type="string" optional>
+  Internal URL for GitLab if different from external URL (useful for Docker networking)
+  
+  ```bash
+  http://gitlab.internal:8080
+  ```
+</ParamField>
+
+<ParamField path="applicationId" type="string">
+  OAuth Application ID from GitLab
+</ParamField>
+
+<ParamField path="secret" type="string">
+  OAuth Application Secret from GitLab
+</ParamField>
+
+<ParamField path="redirectUri" type="string">
+  OAuth redirect URI
+  
+  ```bash
+  https://your-dokploy-domain.com/api/gitlab/callback
+  ```
+</ParamField>
+
+<ParamField path="groupName" type="string" optional>
+  GitLab group name to restrict repository access
+</ParamField>
+
+<ParamField path="accessToken" type="string">
+  OAuth access token (obtained after authentication)
+</ParamField>
+
+<ParamField path="refreshToken" type="string">
+  OAuth refresh token for renewing access
+</ParamField>
+
+<ParamField path="expiresAt" type="number">
+  Access token expiration timestamp (Unix epoch)
+</ParamField>
+
+### Creating a GitLab OAuth Application
+
+1. Go to GitLab Settings > Applications
+2. Create a new application:
+   - **Name**: Dokploy
+   - **Redirect URI**: `https://your-dokploy-domain.com/api/gitlab/callback`
+   - **Scopes**: `api`, `read_user`, `read_repository`
+3. Save the Application ID and Secret
+
+### Example Configuration
+
+```typescript
+const gitlab = await fetch('https://your-domain.com/api/trpc/gitlab.create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.API_KEY
+  },
+  body: JSON.stringify({
+    name: 'GitLab Production',
+    gitlabUrl: 'https://gitlab.com',
+    gitlabInternalUrl: null,
+    applicationId: 'abc123...',
+    secret: 'secret_xyz...',
+    redirectUri: 'https://dokploy.example.com/api/gitlab/callback',
+    groupName: 'my-organization',
+    authId: 'auth-123'
+  })
+});
+```
+
+### Testing Connection
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/gitlab.testConnection \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "gitlabId": "gitlab-123",
+    "groupName": "my-organization"
+  }'
+```
+
+## Bitbucket
+
+Connect Bitbucket Cloud using App Passwords or API tokens.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this Git provider connection
+</ParamField>
+
+<ParamField path="bitbucketUsername" type="string">
+  Bitbucket username
+</ParamField>
+
+<ParamField path="bitbucketEmail" type="string">
+  Bitbucket account email
+  
+  ```bash
+  user@example.com
+  ```
+</ParamField>
+
+<ParamField path="appPassword" type="string">
+  Bitbucket App Password
+  
+  Create at: Bitbucket Settings > App passwords
+</ParamField>
+
+<ParamField path="apiToken" type="string">
+  Bitbucket API token (alternative to App Password)
+</ParamField>
+
+<ParamField path="bitbucketWorkspaceName" type="string">
+  Bitbucket workspace name
+  
+  ```bash
+  my-workspace
+  ```
+</ParamField>
+
+### Creating a Bitbucket App Password
+
+1. Go to Bitbucket Settings > App passwords
+2. Create new app password with permissions:
+   - **Repositories**: Read, Write
+   - **Webhooks**: Read and write
+   - **Pull requests**: Read
+3. Copy the generated password (shown only once)
+
+### Example Configuration
+
+```typescript
+const bitbucket = await fetch('https://your-domain.com/api/trpc/bitbucket.create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.API_KEY
+  },
+  body: JSON.stringify({
+    name: 'Bitbucket Main',
+    bitbucketUsername: 'johndoe',
+    bitbucketEmail: 'john@example.com',
+    appPassword: 'ATBBxxxxxxxx',
+    bitbucketWorkspaceName: 'my-workspace',
+    authId: 'auth-123'
+  })
+});
+```
+
+### Testing Connection
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/bitbucket.testConnection \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bitbucketId": "bitbucket-123",
+    "bitbucketUsername": "johndoe",
+    "bitbucketEmail": "john@example.com",
+    "workspaceName": "my-workspace",
+    "appPassword": "ATBBxxxxxxxx"
+  }'
+```
+
+## Gitea
+
+Connect self-hosted Gitea instances using OAuth.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this Git provider connection
+</ParamField>
+
+<ParamField path="giteaUrl" type="string" required>
+  Gitea instance URL
+  
+  ```bash
+  https://gitea.example.com
+  ```
+</ParamField>
+
+<ParamField path="giteaInternalUrl" type="string" optional>
+  Internal URL for Gitea if different from external URL
+  
+  ```bash
+  http://gitea.internal:3000
+  ```
+</ParamField>
+
+<ParamField path="clientId" type="string">
+  OAuth Client ID from Gitea
+</ParamField>
+
+<ParamField path="clientSecret" type="string">
+  OAuth Client Secret from Gitea
+</ParamField>
+
+<ParamField path="redirectUri" type="string">
+  OAuth redirect URI
+  
+  ```bash
+  https://your-dokploy-domain.com/api/gitea/callback
+  ```
+</ParamField>
+
+<ParamField path="accessToken" type="string">
+  OAuth access token (obtained after authentication)
+</ParamField>
+
+<ParamField path="refreshToken" type="string">
+  OAuth refresh token for renewing access
+</ParamField>
+
+<ParamField path="expiresAt" type="number">
+  Access token expiration timestamp (Unix epoch)
+</ParamField>
+
+<ParamField path="scopes" type="string" default="repo,repo:status,read:user,read:org">
+  OAuth scopes
+</ParamField>
+
+### Creating a Gitea OAuth Application
+
+1. Go to Gitea Settings > Applications > OAuth2 Applications
+2. Create new OAuth2 application:
+   - **Application Name**: Dokploy
+   - **Redirect URI**: `https://your-dokploy-domain.com/api/gitea/callback`
+3. Save the Client ID and Client Secret
+
+### Example Configuration
+
+```typescript
+const gitea = await fetch('https://your-domain.com/api/trpc/gitea.create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.API_KEY
+  },
+  body: JSON.stringify({
+    name: 'Gitea Production',
+    giteaUrl: 'https://gitea.example.com',
+    giteaInternalUrl: 'http://gitea.internal:3000',
+    clientId: 'client-id-123',
+    clientSecret: 'client-secret-xyz',
+    redirectUri: 'https://dokploy.example.com/api/gitea/callback',
+    scopes: 'repo,repo:status,read:user,read:org'
+  })
+});
+```
+
+## Managing Git Providers
+
+### List All Providers
+
+```bash
+curl https://your-domain.com/api/trpc/gitProvider.getAll \
+  -H "x-api-key: your-api-key"
+```
+
+Response:
+```json
+[
+  {
+    "gitProviderId": "provider-123",
+    "name": "GitHub Production",
+    "providerType": "github",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "github": { /* GitHub-specific config */ },
+    "gitlab": null,
+    "bitbucket": null,
+    "gitea": null
+  }
+]
+```
+
+### Remove Provider
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/gitProvider.remove \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"gitProviderId": "provider-123"}'
+```
+
+<Warning>
+  Removing a Git provider will affect all applications using it for deployment.
+</Warning>
+
+## Provider Types
+
+The `providerType` field indicates which Git service is configured:
+
+```typescript
+type GitProviderType = 'github' | 'gitlab' | 'bitbucket' | 'gitea';
+```
+
+## Database Schema
+
+```typescript
+// Main git_provider table
+{
+  gitProviderId: string;        // Unique identifier
+  name: string;                 // Display name
+  providerType: GitProviderType; // Provider type
+  createdAt: string;            // Creation timestamp
+  organizationId: string;       // Owner organization
+  userId: string;               // Creator user
+}
+
+// Provider-specific tables
+github: { /* GitHub configuration */ }
+gitlab: { /* GitLab configuration */ }
+bitbucket: { /* Bitbucket configuration */ }
+gitea: { /* Gitea configuration */ }
+```
+
+## Authorization
+
+- Git providers are scoped to organizations
+- Users can only access providers in their active organization
+- Deleting an organization cascades to its Git providers
+
+## Best Practices
+
+### Security
+
+1. **Rotate Tokens**: Regularly rotate OAuth tokens and App Passwords
+2. **Minimal Permissions**: Grant only necessary permissions
+3. **Separate Apps**: Use different apps for development and production
+4. **Audit Access**: Review provider access regularly
+
+### Performance
+
+1. **Internal URLs**: Use internal URLs for faster Docker network communication
+2. **Token Refresh**: Implement automatic token refresh for OAuth providers
+3. **Cache**: Cache repository and branch lists when possible
+
+### Organization
+
+1. **Naming**: Use descriptive names (e.g., "GitHub Production", "GitLab Dev")
+2. **Documentation**: Document which apps use which providers
+3. **Backup**: Keep credentials backed up securely
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Authentication Failed">
+    - Verify OAuth credentials are correct
+    - Check token hasn't expired
+    - Ensure redirect URI matches exactly
+    - Confirm required scopes are granted
+  </Accordion>
+
+  <Accordion title="Cannot Access Repositories">
+    - Verify Git provider has access to repositories
+    - Check group/workspace name is correct
+    - Ensure proper permissions are granted
+    - Confirm organization/workspace exists
+  </Accordion>
+
+  <Accordion title="Webhooks Not Working">
+    - Verify webhook URL is accessible from Git provider
+    - Check webhook secret matches configuration
+    - Ensure webhook events are configured
+    - Review webhook delivery logs on Git provider
+  </Accordion>
+</AccordionGroup>
+
+## Example: Complete Setup
+
+```typescript
+// 1. Create GitHub provider
+const github = await createGitHubProvider({
+  name: 'GitHub Production',
+  githubAppId: 123456,
+  // ... other config
+});
+
+// 2. Create application using the provider
+const app = await createApplication({
+  name: 'My App',
+  gitProviderId: github.gitProviderId,
+  repository: 'owner/repo',
+  branch: 'main'
+});
+
+// 3. Deploy
+await deployApplication(app.applicationId);
+```

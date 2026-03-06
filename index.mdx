@@ -1,97 +1,155 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Welcome to Dokploy"
+description: "Open-source, self-hostable Platform as a Service for deploying applications and managing databases"
 ---
 
-## Setting up
+## What is Dokploy?
 
-Get your documentation site up and running in minutes.
+Dokploy is a free, self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases. Deploy any type of application and manage your infrastructure with a modern, intuitive interface.
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
+    title="Quick Installation"
+    icon="rocket"
+    href="/getting-started/installation"
   >
-    Edit your docs locally and preview them in real time.
+    Get Dokploy running on your VPS in under 5 minutes
   </Card>
   <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
+    title="First Deployment"
+    icon="upload"
+    href="/getting-started/first-deployment"
   >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+    Deploy your first application to Dokploy
   </Card>
   <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
+    title="API Reference"
     icon="code"
-    href="/essentials/code"
+    href="/api-reference/overview"
   >
-    Add sample code to demonstrate how to use your product.
+    Automate with the complete REST API
   </Card>
   <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
+    title="Community Support"
+    icon="discord"
+    href="https://discord.gg/2tBnJ3jDJc"
   >
-    Display images and other media.
+    Join our Discord community for help and discussions
+  </Card>
+</CardGroup>
+
+## Key Features
+
+Dokploy provides everything you need to deploy and manage your applications in production.
+
+<CardGroup cols={3}>
+  <Card
+    title="Application Deployment"
+    icon="server"
+    href="/core-concepts/applications"
+  >
+    Deploy Node.js, PHP, Python, Go, Ruby, and more
   </Card>
   <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
+    title="Database Management"
+    icon="database"
+    href="/databases/overview"
   >
-    Write once and reuse across your docs.
+    PostgreSQL, MySQL, MongoDB, MariaDB, and Redis
   </Card>
-</Columns>
+  <Card
+    title="Docker Compose"
+    icon="docker"
+    href="/core-concepts/docker-compose"
+  >
+    Native support for complex multi-container applications
+  </Card>
+  <Card
+    title="Real-time Monitoring"
+    icon="chart-line"
+    href="/monitoring/overview"
+  >
+    Track CPU, memory, storage, and network metrics
+  </Card>
+  <Card
+    title="Automated Backups"
+    icon="clock"
+    href="/databases/backups"
+  >
+    Schedule automatic backups to external storage
+  </Card>
+  <Card
+    title="Multi-node Scaling"
+    icon="network-wired"
+    href="/advanced/multi-node"
+  >
+    Scale across multiple servers with Docker Swarm
+  </Card>
+</CardGroup>
 
-## Need inspiration?
+## Popular Use Cases
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Accordion title="Self-hosted Alternative to Vercel/Netlify">
+  Deploy web applications with automatic SSL, custom domains, and CI/CD integration from GitHub, GitLab, or Bitbucket.
+</Accordion>
+
+<Accordion title="Database Hosting Platform">
+  Provision and manage production databases with automated backups, monitoring, and easy scaling.
+</Accordion>
+
+<Accordion title="Docker Infrastructure Manager">
+  Manage your Docker containers, compose stacks, and swarm clusters through a unified interface.
+</Accordion>
+
+<Accordion title="Development & Staging Environments">
+  Create isolated environments for development, staging, and testing with easy teardown and recreation.
+</Accordion>
+
+## Getting Started
+
+<Steps>
+  <Step title="Install Dokploy">
+    Run the installation script on your VPS to set up Dokploy in minutes.
+    
+    ```bash
+    curl -sSL https://dokploy.com/install.sh | sh
+    ```
+  </Step>
+  
+  <Step title="Create Your First Project">
+    Log in to the dashboard and create a project to organize your applications and databases.
+  </Step>
+  
+  <Step title="Deploy an Application">
+    Connect your Git repository or Docker registry and deploy your first application with a few clicks.
+  </Step>
+</Steps>
+
+## Why Choose Dokploy?
+
+<CardGroup cols={2}>
+  <Card
+    title="100% Open Source"
+    icon="code-branch"
+  >
+    Fully open-source with Apache 2.0 license. No vendor lock-in.
+  </Card>
+  <Card
+    title="Self-Hosted"
+    icon="house"
+  >
+    Complete control over your data and infrastructure. Deploy anywhere.
+  </Card>
+  <Card
+    title="Easy to Use"
+    icon="hand-sparkles"
+  >
+    Modern UI and intuitive workflows. No DevOps expertise required.
+  </Card>
+  <Card
+    title="Production Ready"
+    icon="shield-check"
+  >
+    Built-in SSL, monitoring, backups, and zero-downtime deployments.
+  </Card>
+</CardGroup>

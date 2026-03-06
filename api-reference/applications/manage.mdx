@@ -1,0 +1,547 @@
+---
+title: 'Manage Applications'
+description: 'Control application lifecycle and manage configuration'
+---
+
+## Start Application
+
+Start a stopped application.
+
+### Endpoint
+
+```
+POST /application.start
+```
+
+### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application to start
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.start \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "applicationId": "app_def456",
+  "name": "My Web App",
+  "appName": "my-web-app",
+  "applicationStatus": "done"
+}
+```
+
+## Stop Application
+
+Stop a running application.
+
+### Endpoint
+
+```
+POST /application.stop
+```
+
+### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application to stop
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.stop \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "applicationId": "app_def456",
+  "name": "My Web App",
+  "appName": "my-web-app",
+  "applicationStatus": "idle"
+}
+```
+
+## Reload Application
+
+Reload the application container configuration without rebuilding.
+
+### Endpoint
+
+```
+POST /application.reload
+```
+
+### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application to reload
+</ParamField>
+
+<ParamField path="appName" type="string" required>
+  Internal application name
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.reload \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456",
+    "appName": "my-web-app"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true
+}
+```
+
+## Delete Application
+
+Permanently delete an application and all its resources.
+
+### Endpoint
+
+```
+POST /application.delete
+```
+
+### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application to delete
+</ParamField>
+
+<Warning>
+  This action is irreversible. All application data, deployments, and configurations will be permanently deleted.
+</Warning>
+
+### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.delete \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "applicationId": "app_def456",
+  "name": "My Web App",
+  "appName": "my-web-app"
+}
+```
+
+## Mark Application as Running
+
+Manually mark an application's status as running.
+
+### Endpoint
+
+```
+POST /application.markRunning
+```
+
+### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.markRunning \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456"
+  }'
+```
+
+## Move Application
+
+Move an application to a different environment.
+
+### Endpoint
+
+```
+POST /application.move
+```
+
+### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application to move
+</ParamField>
+
+<ParamField path="targetEnvironmentId" type="string" required>
+  ID of the destination environment
+</ParamField>
+
+### Response
+
+Returns the updated application object with the new environment ID.
+
+### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.move \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456",
+    "targetEnvironmentId": "env_xyz789"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "applicationId": "app_def456",
+  "name": "My Web App",
+  "environmentId": "env_xyz789",
+  "createdAt": "2024-03-06T10:30:00.000Z"
+}
+```
+
+## Refresh Token
+
+Generate a new refresh token for the application.
+
+### Endpoint
+
+```
+POST /application.refreshToken
+```
+
+### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.refreshToken \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true
+}
+```
+
+## Traefik Configuration
+
+### Read Traefik Config
+
+Retrieve the Traefik configuration for an application.
+
+#### Endpoint
+
+```
+GET /application.readTraefikConfig
+```
+
+#### Query Parameters
+
+<ParamField query="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+#### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/application.readTraefikConfig?applicationId=app_def456" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+#### Example Response
+
+```yaml
+http:
+  routers:
+    my-web-app:
+      rule: "Host(`app.example.com`)"
+      service: my-web-app
+      entryPoints:
+        - web
+        - websecure
+      tls:
+        certResolver: letsencrypt
+  services:
+    my-web-app:
+      loadBalancer:
+        servers:
+          - url: "http://my-web-app:3000"
+```
+
+### Update Traefik Config
+
+Update the Traefik configuration for an application.
+
+#### Endpoint
+
+```
+POST /application.updateTraefikConfig
+```
+
+#### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+<ParamField path="traefikConfig" type="string" required>
+  New Traefik configuration in YAML format
+</ParamField>
+
+#### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.updateTraefikConfig \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456",
+    "traefikConfig": "http:\n  routers:\n    my-web-app:\n      rule: \"Host(`app.example.com`)\"\n      service: my-web-app"
+  }'
+```
+
+#### Example Response
+
+```json
+{
+  "success": true
+}
+```
+
+## Monitoring
+
+### Read Application Monitoring
+
+Retrieve monitoring statistics and metrics for an application.
+
+#### Endpoint
+
+```
+GET /application.readAppMonitoring
+```
+
+#### Query Parameters
+
+<ParamField query="appName" type="string" required>
+  Internal name of the application
+</ParamField>
+
+<Note>
+  This endpoint is only available in self-hosted deployments, not in the cloud version.
+</Note>
+
+#### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/application.readAppMonitoring?appName=my-web-app" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+#### Example Response
+
+```json
+{
+  "cpu": {
+    "usage": 45.2,
+    "limit": 100
+  },
+  "memory": {
+    "usage": 512000000,
+    "limit": 1073741824,
+    "percentage": 47.7
+  },
+  "network": {
+    "rx": 1024000,
+    "tx": 2048000
+  },
+  "containers": [
+    {
+      "id": "abc123",
+      "name": "my-web-app",
+      "status": "running",
+      "uptime": 3600
+    }
+  ]
+}
+```
+
+## Build Management
+
+### Kill Build
+
+Terminate an ongoing build process.
+
+#### Endpoint
+
+```
+POST /application.killBuild
+```
+
+#### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+#### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.killBuild \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456"
+  }'
+```
+
+### Clean Queues
+
+Clear the deployment queue for an application.
+
+#### Endpoint
+
+```
+POST /application.cleanQueues
+```
+
+#### Request Body
+
+<ParamField path="applicationId" type="string" required>
+  ID of the application
+</ParamField>
+
+#### Example Request
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.cleanQueues \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app_def456"
+  }'
+```
+
+#### Example Response
+
+```json
+{
+  "success": true
+}
+```
+
+## Best Practices
+
+### Resource Management
+
+1. **Set Resource Limits**: Always configure memory and CPU limits to prevent resource exhaustion:
+   ```json
+   {
+     "memoryLimit": "1g",
+     "memoryReservation": "512m",
+     "cpuLimit": "1",
+     "cpuReservation": "0.5"
+   }
+   ```
+
+2. **Use Health Checks**: Configure health checks to ensure proper application monitoring and automatic recovery.
+
+3. **Clean Old Deployments**: Regularly use `clearDeployments` to free up disk space.
+
+### Deployment Strategy
+
+1. **Use Descriptive Titles**: Provide meaningful titles and descriptions for deployments to maintain clear audit trails.
+
+2. **Test Before Production**: Use preview deployments or separate environments before deploying to production.
+
+3. **Enable Auto Deploy Carefully**: Only enable `autoDeploy` after thorough testing of your CI/CD pipeline.
+
+### Security
+
+1. **Protect Secrets**: Use `buildSecrets` for sensitive build-time data instead of `buildArgs`.
+
+2. **Use Private Registries**: For proprietary applications, always use private Docker registries with authentication.
+
+3. **Rotate Tokens**: Regularly use the `refreshToken` endpoint to rotate application tokens.
+
+### Monitoring
+
+1. **Check Status Regularly**: Monitor `applicationStatus` to detect issues early.
+
+2. **Use Monitoring Endpoint**: Leverage `readAppMonitoring` to track resource usage and performance.
+
+3. **Configure Alerts**: Set up alerts based on memory and CPU thresholds.
+
+## Troubleshooting
+
+### Deployment Stuck
+
+If a deployment is stuck in `running` status:
+
+1. Check the deployment logs
+2. Use `killBuild` to terminate the build
+3. Use `cleanQueues` to clear the queue
+4. Retry with `redeploy`
+
+### Application Won't Start
+
+If an application fails to start:
+
+1. Check Traefik configuration with `readTraefikConfig`
+2. Verify resource limits are not too restrictive
+3. Check environment variables are properly configured
+4. Review container logs for errors
+
+### Git Provider Issues
+
+If you have Git provider access issues:
+
+1. Check `hasGitProviderAccess` in the application response
+2. Reconnect the Git provider if needed
+3. Verify webhook configuration in your Git repository
+4. Ensure the Git provider token hasn't expired

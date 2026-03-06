@@ -1,0 +1,829 @@
+---
+title: "First Deployment"
+description: "Step-by-step guide to deploying your first application to Dokploy from a Git repository"
+---
+
+## Overview
+
+This guide walks through deploying a complete application to Dokploy, from connecting a Git repository to configuring domains and SSL. We'll deploy a Node.js application, but the process is similar for other languages.
+
+<Info>
+  This tutorial assumes you've completed the [Installation](/getting-started/installation) and reviewed the [Quickstart](/getting-started/quickstart) guide.
+</Info>
+
+## What We'll Deploy
+
+In this tutorial, we'll deploy a full-stack application with:
+
+- **Frontend:** React/Next.js application
+- **Database:** PostgreSQL database
+- **Domain:** Custom domain with automatic SSL
+- **Monitoring:** Real-time logs and metrics
+
+By the end, you'll have a production-ready deployment accessible via HTTPS.
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+<Steps>
+  <Step title="A Git repository">
+    Your application code hosted on:
+    - GitHub
+    - GitLab
+    - Bitbucket
+    - Any Git-compatible service
+    
+    <Note>
+      Don't have an app ready? Fork our [example repository](https://github.com/Dokploy/examples) to follow along.
+    </Note>
+  </Step>
+  
+  <Step title="Dokploy installed and running">
+    Access your Dokploy dashboard at `http://your-server-ip:3000`
+  </Step>
+  
+  <Step title="Domain name (optional)">
+    A domain pointed to your server's IP address.
+    
+    If you don't have a domain, you can still deploy and access via IP:PORT.
+  </Step>
+</Steps>
+
+## Step 1: Create a Project
+
+Projects help organize related applications and databases.
+
+<Steps>
+  <Step title="Navigate to dashboard">
+    Log in to your Dokploy dashboard.
+  </Step>
+  
+  <Step title="Create project">
+    1. Click **Create Project**
+    2. Enter project details:
+       ```yaml
+       Name: my-web-app
+       Description: Production deployment of my web application
+       ```
+    3. Click **Create**
+  </Step>
+</Steps>
+
+## Step 2: Set Up the Database
+
+Most applications need a database. Let's create a PostgreSQL database first.
+
+<Steps>
+  <Step title="Create database">
+    From your project dashboard:
+    
+    1. Click the **Databases** tab
+    2. Click **Create Database**
+    3. Select **PostgreSQL**
+  </Step>
+  
+  <Step title="Configure database">
+    Enter the database configuration:
+    
+    ```yaml
+    Name: myapp-db
+    Version: 16-alpine
+    Database Name: myapp_production
+    Username: myapp_user
+    Password: [Generate secure password]
+    ```
+    
+    <Tip>
+      Click the **Generate** button to create a secure random password.
+    </Tip>
+  </Step>
+  
+  <Step title="Set resource limits">
+    Configure resource constraints:
+    
+    ```yaml
+    Memory Limit: 512MB
+    CPU Limit: 0.5
+    ```
+    
+    <Info>
+      Start with conservative limits. You can adjust based on actual usage later.
+    </Info>
+  </Step>
+  
+  <Step title="Create and start">
+    1. Click **Create Database**
+    2. Wait for the database to start (10-20 seconds)
+    3. Copy the connection string:
+       ```bash
+       postgresql://myapp_user:[password]@myapp-db:5432/myapp_production
+       ```
+    
+    <Warning>
+      Save the connection string securely. You'll need it for the application configuration.
+    </Warning>
+  </Step>
+</Steps>
+
+## Step 3: Connect Your Git Repository
+
+Now let's connect your application repository.
+
+<Tabs>
+  <Tab title="Public Repository">
+    For public repositories:
+    
+    <Steps>
+      <Step title="Get repository URL">
+        Copy your repository URL:
+        ```bash
+        https://github.com/username/repository.git
+        ```
+      </Step>
+      
+      <Step title="Create application">
+        1. Click the **Applications** tab
+        2. Click **Create Application**
+        3. Enter:
+           ```yaml
+           Name: my-web-app
+           Source Type: Git
+           Repository URL: https://github.com/username/repository.git
+           Branch: main
+           ```
+      </Step>
+    </Steps>
+  </Tab>
+  
+  <Tab title="Private Repository">
+    For private repositories, you need authentication:
+    
+    <Steps>
+      <Step title="Set up Git provider">
+        First, connect your Git provider:
+        
+        1. Navigate to **Settings** > **Git Providers**
+        2. Click **Add Provider**
+        3. Select your provider (GitHub, GitLab, or Bitbucket)
+        4. Click **Authenticate**
+        5. Grant necessary permissions
+      </Step>
+      
+      <Step title="Create application with authentication">
+        1. Click the **Applications** tab
+        2. Click **Create Application**
+        3. Enter:
+           ```yaml
+           Name: my-web-app
+           Source Type: Git
+           Git Provider: [Your authenticated provider]
+           Repository: username/repository
+           Branch: main
+           ```
+      </Step>
+    </Steps>
+  </Tab>
+  
+  <Tab title="SSH Key">
+    Use SSH keys for authentication:
+    
+    <Steps>
+      <Step title="Generate SSH key pair">
+        On your local machine:
+        ```bash
+        ssh-keygen -t ed25519 -C "dokploy@myserver" -f ~/.ssh/dokploy
+        ```
+      </Step>
+      
+      <Step title="Add public key to Git provider">
+        **GitHub:**
+        1. Go to Settings > SSH and GPG keys
+        2. Click **New SSH key**
+        3. Paste contents of `~/.ssh/dokploy.pub`
+        
+        **GitLab:**
+        1. Go to Preferences > SSH Keys
+        2. Paste public key
+        
+        **Bitbucket:**
+        1. Go to Personal settings > SSH keys
+        2. Add key
+      </Step>
+      
+      <Step title="Add private key to Dokploy">
+        1. Click **Create Application**
+        2. Select **Git** source
+        3. Click **SSH Authentication**
+        4. Paste contents of `~/.ssh/dokploy` (private key)
+        5. Enter repository URL:
+           ```bash
+           git@github.com:username/repository.git
+           ```
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Step 4: Configure Build Settings
+
+Configure how Dokploy should build your application.
+
+<Steps>
+  <Step title="Select build method">
+    Choose the appropriate build method:
+    
+    <Tabs>
+      <Tab title="Nixpacks (Auto-detect)">
+        Recommended for most applications. Nixpacks automatically detects:
+        
+        - Node.js (package.json)
+        - Python (requirements.txt, Pipfile)
+        - Go (go.mod)
+        - Ruby (Gemfile)
+        - PHP (composer.json)
+        - Rust (Cargo.toml)
+        
+        **Configuration:**
+        ```yaml
+        Build Method: Nixpacks
+        Build Command: [Auto-detected]
+        Start Command: [Auto-detected]
+        ```
+        
+        <Tip>
+          Nixpacks will detect your build and start commands from package.json scripts or standard conventions.
+        </Tip>
+      </Tab>
+      
+      <Tab title="Dockerfile">
+        For custom builds using your own Dockerfile:
+        
+        **Configuration:**
+        ```yaml
+        Build Method: Dockerfile
+        Dockerfile Path: ./Dockerfile
+        Build Context: .
+        Build Args: (optional)
+          NODE_ENV: production
+        ```
+        
+        Example Dockerfile for Node.js:
+        ```dockerfile
+        FROM node:20-alpine
+        WORKDIR /app
+        COPY package*.json ./
+        RUN npm ci --only=production
+        COPY . .
+        RUN npm run build
+        EXPOSE 3000
+        CMD ["npm", "start"]
+        ```
+      </Tab>
+      
+      <Tab title="Buildpacks">
+        Cloud Native Buildpacks for standardized builds:
+        
+        **Configuration:**
+        ```yaml
+        Build Method: Buildpacks
+        Builder: heroku/buildpacks:20
+        ```
+        
+        <Info>
+          Buildpacks work well for applications following Heroku-style conventions.
+        </Info>
+      </Tab>
+    </Tabs>
+  </Step>
+  
+  <Step title="Configure build settings">
+    Set optional build configurations:
+    
+    ```yaml
+    Build Path: . (root directory)
+    Install Command: npm install (or auto-detected)
+    Build Command: npm run build (or auto-detected)
+    Start Command: npm start (or auto-detected)
+    ```
+  </Step>
+  
+  <Step title="Set application port">
+    Specify the port your application listens on:
+    
+    ```yaml
+    Port: 3000
+    ```
+    
+    <Warning>
+      Ensure this matches the port your application actually uses. Common ports: 3000 (Node.js), 8080 (Go), 5000 (Python).
+    </Warning>
+  </Step>
+</Steps>
+
+## Step 5: Configure Environment Variables
+
+Add environment variables needed by your application.
+
+<Steps>
+  <Step title="Add database connection">
+    In the **Environment Variables** section:
+    
+    ```bash
+    DATABASE_URL=postgresql://myapp_user:[password]@myapp-db:5432/myapp_production
+    ```
+    
+    <Tip>
+      Use the internal Docker network hostname (e.g., `myapp-db`) instead of `localhost` or the server IP.
+    </Tip>
+  </Step>
+  
+  <Step title="Add application-specific variables">
+    Add any other required environment variables:
+    
+    <CodeGroup>
+    ```bash Node.js/Next.js
+    NODE_ENV=production
+    PORT=3000
+    API_URL=https://api.example.com
+    SECRET_KEY=[your-secret-key]
+    ```
+    
+    ```bash Python/Django
+    DJANGO_SETTINGS_MODULE=myapp.settings.production
+    DEBUG=False
+    SECRET_KEY=[your-secret-key]
+    ALLOWED_HOSTS=app.example.com
+    ```
+    
+    ```bash Go
+    APP_ENV=production
+    DB_HOST=myapp-db
+    DB_PORT=5432
+    ```
+    
+    ```bash Ruby/Rails
+    RAILS_ENV=production
+    SECRET_KEY_BASE=[your-secret-key]
+    DATABASE_URL=postgresql://...
+    ```
+    </CodeGroup>
+  </Step>
+  
+  <Step title="Use secret management (optional)">
+    For sensitive values, consider using Dokploy's built-in secrets:
+    
+    1. Mark variables as **Secret** by clicking the lock icon
+    2. Secret values are encrypted and hidden in the UI
+    3. They're only available to the running application
+  </Step>
+</Steps>
+
+## Step 6: Configure Domain and SSL
+
+Set up a custom domain with automatic HTTPS.
+
+<Steps>
+  <Step title="Point domain to server">
+    First, configure your DNS:
+    
+    **Add an A record:**
+    ```
+    Type: A
+    Name: @ (or subdomain like "app")
+    Value: [your-server-ip]
+    TTL: 3600
+    ```
+    
+    Wait for DNS propagation (5-30 minutes).
+    
+    <Tip>
+      Verify DNS propagation: `dig app.example.com` or use [dnschecker.org](https://dnschecker.org)
+    </Tip>
+  </Step>
+  
+  <Step title="Add domain in Dokploy">
+    In your application settings:
+    
+    1. Scroll to **Domains**
+    2. Click **Add Domain**
+    3. Enter your domain:
+       ```
+       app.example.com
+       ```
+    4. Enable **Generate SSL Certificate**
+    5. Click **Add**
+  </Step>
+  
+  <Step title="Configure SSL/TLS">
+    Dokploy uses Traefik with Let's Encrypt for automatic SSL:
+    
+    1. Navigate to **Settings** > **Server**
+    2. Enter your email for Let's Encrypt notifications:
+       ```
+       admin@example.com
+       ```
+    3. Select certificate resolver: **Let's Encrypt**
+    4. Save changes
+    
+    <Info>
+      SSL certificates are automatically issued, renewed, and managed. No manual intervention required.
+    </Info>
+  </Step>
+  
+  <Step title="Verify HTTPS">
+    After deployment:
+    
+    1. Wait 1-2 minutes for certificate issuance
+    2. Visit `https://app.example.com`
+    3. Verify the padlock icon in the browser
+    
+    <Note>
+      If you see a certificate error, wait a few more minutes. Initial certificate issuance can take 2-5 minutes.
+    </Note>
+  </Step>
+</Steps>
+
+## Step 7: Deploy the Application
+
+Now we're ready to deploy!
+
+<Steps>
+  <Step title="Review configuration">
+    Double-check all settings:
+    
+    - ✅ Repository URL and branch
+    - ✅ Build method selected
+    - ✅ Environment variables configured
+    - ✅ Port specified
+    - ✅ Domain added (if using)
+  </Step>
+  
+  <Step title="Start deployment">
+    1. Click **Create & Deploy** (or **Deploy** if editing existing app)
+    2. The deployment process begins
+  </Step>
+  
+  <Step title="Monitor build progress">
+    Watch the real-time build logs:
+    
+    ```bash
+    [01] Cloning repository...
+    [02] ✓ Repository cloned successfully
+    [03] Detecting application type...
+    [04] ✓ Detected Node.js application
+    [05] Installing dependencies...
+    [06] ✓ Dependencies installed
+    [07] Running build command...
+    [08] ✓ Build completed successfully
+    [09] Creating Docker image...
+    [10] ✓ Image created: myapp:latest
+    [11] Starting container...
+    [12] ✓ Container started successfully
+    [13] Health check passed
+    [14] ✓ Deployment complete!
+    ```
+    
+    <Tip>
+      Build times vary based on application size and complexity. Typical builds take 2-5 minutes.
+    </Tip>
+  </Step>
+  
+  <Step title="Verify deployment">
+    Once complete, verify the application:
+    
+    1. Check status shows **Running** with green indicator
+    2. Visit your domain: `https://app.example.com`
+    3. Or via IP: `http://your-server-ip:3000`
+    
+    <Success>
+      Congratulations! Your application is now live in production.
+    </Success>
+  </Step>
+</Steps>
+
+## Step 8: Set Up Automated Deployments
+
+Enable automatic deployments on Git push.
+
+<Steps>
+  <Step title="Enable auto-deploy">
+    In your application settings:
+    
+    1. Go to **Settings** > **General**
+    2. Enable **Auto Deploy**
+    3. Select trigger:
+       - **On Push** - Deploy on every push to the branch
+       - **On Tag** - Deploy only on new Git tags
+       - **Manual** - Require manual deployment trigger
+    4. Save changes
+  </Step>
+  
+  <Step title="Configure webhook (GitHub/GitLab)">
+    Set up a webhook for instant deployments:
+    
+    **GitHub:**
+    1. Go to your repository settings
+    2. Click **Webhooks** > **Add webhook**
+    3. Payload URL: `https://your-dokploy-domain/api/webhooks/[app-id]`
+    4. Content type: `application/json`
+    5. Select: **Just the push event**
+    6. Click **Add webhook**
+    
+    **GitLab:**
+    1. Go to Settings > Webhooks
+    2. URL: `https://your-dokploy-domain/api/webhooks/[app-id]`
+    3. Trigger: **Push events**
+    4. Add webhook
+    
+    <Info>
+      Find your webhook URL in Dokploy under **Settings** > **Webhooks**.
+    </Info>
+  </Step>
+  
+  <Step title="Test automatic deployment">
+    Make a code change and push:
+    
+    ```bash
+    git add .
+    git commit -m "Test auto-deploy"
+    git push origin main
+    ```
+    
+    Watch the deployment automatically trigger in Dokploy.
+  </Step>
+</Steps>
+
+## Step 9: Configure Monitoring and Alerts
+
+Set up monitoring and notifications.
+
+<Steps>
+  <Step title="View application metrics">
+    Monitor your application:
+    
+    1. Open your application in Dokploy
+    2. Click **Monitoring** tab
+    3. View real-time metrics:
+       - CPU usage
+       - Memory consumption
+       - Network I/O
+       - Request rates (if applicable)
+  </Step>
+  
+  <Step title="Configure notifications">
+    Get alerted about deployment events:
+    
+    1. Navigate to **Settings** > **Notifications**
+    2. Click **Add Integration**
+    3. Choose notification method:
+    
+    <Tabs>
+      <Tab title="Slack">
+        ```yaml
+        Type: Slack
+        Webhook URL: https://hooks.slack.com/services/...
+        Channel: #deployments
+        Events:
+          - Deployment Success
+          - Deployment Failure
+          - Application Down
+        ```
+      </Tab>
+      
+      <Tab title="Discord">
+        ```yaml
+        Type: Discord
+        Webhook URL: https://discord.com/api/webhooks/...
+        Events:
+          - Deployment Success
+          - Deployment Failure
+        ```
+      </Tab>
+      
+      <Tab title="Email">
+        ```yaml
+        Type: Email
+        To: team@example.com
+        SMTP Settings: [Configure SMTP]
+        Events:
+          - Deployment Failure
+          - Application Down
+        ```
+      </Tab>
+      
+      <Tab title="Telegram">
+        ```yaml
+        Type: Telegram
+        Bot Token: [Your bot token]
+        Chat ID: [Your chat ID]
+        Events:
+          - Deployment Success
+          - Deployment Failure
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  
+  <Step title="Test notifications">
+    Send a test notification:
+    
+    1. Click **Test** next to your notification integration
+    2. Verify you receive the test message
+    3. Adjust settings as needed
+  </Step>
+</Steps>
+
+## Common Deployment Issues
+
+<AccordionGroup>
+  <Accordion title="Build fails - Dependencies not found">
+    **Symptoms:** Build fails with "Module not found" or "Package not found"
+    
+    **Solutions:**
+    1. Ensure your lock file is committed (package-lock.json, yarn.lock, etc.)
+    2. Check Node.js version compatibility
+    3. Clear cache and rebuild:
+       - Go to **Settings** > **Advanced**
+       - Click **Clear Build Cache**
+       - Redeploy
+  </Accordion>
+  
+  <Accordion title="Application won't start - Port issues">
+    **Symptoms:** Container starts but immediately stops, or health check fails
+    
+    **Solutions:**
+    1. Verify the port in settings matches your application:
+       ```javascript
+       // Your app should use PORT from environment
+       const PORT = process.env.PORT || 3000;
+       app.listen(PORT);
+       ```
+    2. Check application logs for startup errors
+    3. Ensure your start command is correct
+  </Accordion>
+  
+  <Accordion title="Database connection fails">
+    **Symptoms:** Application logs show "Connection refused" or "Cannot connect to database"
+    
+    **Solutions:**
+    1. Use internal Docker hostname, not `localhost`:
+       ```bash
+       # Wrong
+       DATABASE_URL=postgresql://user:pass@localhost:5432/db
+       
+       # Correct
+       DATABASE_URL=postgresql://user:pass@myapp-db:5432/db
+       ```
+    2. Verify database is running:
+       - Go to Databases tab
+       - Check database status is **Running**
+    3. Check credentials match database configuration
+  </Accordion>
+  
+  <Accordion title="SSL certificate not issued">
+    **Symptoms:** HTTPS doesn't work, or shows "Invalid certificate"
+    
+    **Solutions:**
+    1. Verify DNS is correctly configured:
+       ```bash
+       dig app.example.com
+       ```
+    2. Ensure ports 80 and 443 are open:
+       ```bash
+       sudo ufw allow 80
+       sudo ufw allow 443
+       ```
+    3. Check Let's Encrypt rate limits (5 certificates per domain per week)
+    4. Wait 5-10 minutes after adding domain for initial certificate issuance
+  </Accordion>
+  
+  <Accordion title="Out of memory errors">
+    **Symptoms:** Application crashes with "JavaScript heap out of memory" or similar
+    
+    **Solutions:**
+    1. Increase memory limit:
+       - Go to **Settings** > **Resources**
+       - Increase Memory to 1GB or higher
+    2. Optimize your build:
+       - Use production builds: `NODE_ENV=production`
+       - Minimize dependencies in production
+    3. Consider upgrading your server resources
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Environment Variables" icon="key">
+    Never hardcode configuration:
+    - Database URLs
+    - API keys
+    - Secret tokens
+    
+    Always use environment variables.
+  </Card>
+  
+  <Card title="Enable Health Checks" icon="heart-pulse">
+    Add a health check endpoint:
+    ```javascript
+    app.get('/health', (req, res) => {
+      res.status(200).send('OK');
+    });
+    ```
+  </Card>
+  
+  <Card title="Configure Resource Limits" icon="gauge">
+    Set appropriate limits:
+    - Memory: Based on actual usage + 20% buffer
+    - CPU: Start with 0.5, adjust as needed
+  </Card>
+  
+  <Card title="Set Up Backups" icon="clock">
+    Enable automatic database backups:
+    - Daily backups minimum
+    - Keep 7-30 days of backups
+    - Test restoration regularly
+  </Card>
+  
+  <Card title="Monitor Logs" icon="file-lines">
+    Regularly check application logs:
+    - Review error logs weekly
+    - Set up alerts for critical errors
+    - Use structured logging
+  </Card>
+  
+  <Card title="Use Staging Environment" icon="flask">
+    Create separate projects:
+    - **Production** - Live application
+    - **Staging** - Testing before production
+    - **Development** - Active development
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+Your application is deployed! Now explore advanced features:
+
+<CardGroup cols={3}>
+  <Card
+    title="Custom Domains"
+    icon="globe"
+    href="/core-concepts/domains-routing"
+  >
+    Add multiple domains and configure advanced routing
+  </Card>
+  <Card
+    title="Database Backups"
+    icon="database"
+    href="/databases/backups"
+  >
+    Set up automated backups to S3 or other storage
+  </Card>
+  <Card
+    title="Docker Compose"
+    icon="docker"
+    href="/core-concepts/docker-compose"
+  >
+    Deploy multi-container applications
+  </Card>
+  <Card
+    title="Multi-Node Setup"
+    icon="network-wired"
+    href="/advanced/multi-node"
+  >
+    Scale across multiple servers
+  </Card>
+  <Card
+    title="CI/CD Integration"
+    icon="rotate"
+    href="/deployments/git-integration"
+  >
+    Advanced Git integration and workflows
+  </Card>
+  <Card
+    title="Monitoring"
+    icon="chart-line"
+    href="/monitoring/real-time-metrics"
+  >
+    Deep dive into monitoring and observability
+  </Card>
+</CardGroup>
+
+## Summary
+
+You've successfully:
+
+- ✅ Created a project and database
+- ✅ Connected a Git repository
+- ✅ Configured build settings
+- ✅ Set up environment variables
+- ✅ Deployed with custom domain and SSL
+- ✅ Enabled automated deployments
+- ✅ Configured monitoring and alerts
+
+Your application is now running in production on Dokploy!
+
+<Note>
+  **Need help?** Join our [Discord community](https://discord.gg/2tBnJ3jDJc) or check the [troubleshooting guide](/community/troubleshooting).
+</Note>

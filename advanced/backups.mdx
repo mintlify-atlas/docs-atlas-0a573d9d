@@ -1,0 +1,576 @@
+---
+title: "Backup Strategies"
+description: "Configure automated backups and disaster recovery for your applications and databases"
+---
+
+## Overview
+
+Dokploy provides comprehensive backup capabilities for databases, volumes, and complete application stacks. Automate backups to external storage destinations and ensure business continuity with proven disaster recovery strategies.
+
+<CardGroup cols={3}>
+  <Card title="Automated Backups" icon="clock">
+    Schedule automatic backups with cron expressions
+  </Card>
+  <Card title="Multiple Destinations" icon="cloud">
+    S3-compatible storage, local, and remote servers
+  </Card>
+  <Card title="Easy Restore" icon="rotate-left">
+    Quick restoration from any backup point
+  </Card>
+</CardGroup>
+
+## Backup Types
+
+Dokploy supports different backup strategies:
+
+<Tabs>
+  <Tab title="Database Backups">
+    Automated database dumps:
+    - PostgreSQL: `pg_dump`
+    - MySQL/MariaDB: `mysqldump`
+    - MongoDB: `mongodump`
+    - Redis: `BGSAVE` and RDB snapshots
+    
+    **Recommended frequency**: Daily or hourly for critical data
+  </Tab>
+  
+  <Tab title="Volume Backups">
+    Backup Docker volumes:
+    - Application data
+    - User uploads
+    - Configuration files
+    - Any persistent data
+    
+    **Recommended frequency**: Daily
+  </Tab>
+  
+  <Tab title="Full Stack Backups">
+    Complete application state:
+    - Docker Compose configurations
+    - Environment variables
+    - Volume data
+    - Database dumps
+    
+    **Recommended frequency**: Weekly or before major changes
+  </Tab>
+</Tabs>
+
+## Configuring Database Backups
+
+### Via Dashboard
+
+<Steps>
+  <Step title="Navigate to Database">
+    Go to your database (PostgreSQL, MySQL, MongoDB, MariaDB, or Redis)
+  </Step>
+  
+  <Step title="Open Backup Settings">
+    Click on the **Backups** tab
+  </Step>
+  
+  <Step title="Configure Schedule">
+    <ParamField path="enabled" type="boolean" required>
+      Enable automated backups
+    </ParamField>
+    
+    <ParamField path="schedule" type="string" required>
+      Cron expression for backup frequency
+      
+      Examples:
+      - `0 2 * * *` - Daily at 2 AM
+      - `0 */6 * * *` - Every 6 hours
+      - `0 0 * * 0` - Weekly on Sunday
+    </ParamField>
+    
+    <ParamField path="destinationId" type="string" required>
+      Select backup destination (S3, local, etc.)
+    </ParamField>
+    
+    <ParamField path="retentionDays" type="number" default="30">
+      Number of days to keep backups
+    </ParamField>
+  </Step>
+  
+  <Step title="Test Backup">
+    Click **Run Backup Now** to test the configuration
+  </Step>
+</Steps>
+
+### Via API
+
+```bash Create Backup Configuration
+curl -X POST https://your-dokploy-instance.com/api/backup.create \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "databaseType": "postgres",
+    "databaseId": "postgres-id",
+    "schedule": "0 2 * * *",
+    "destinationId": "s3-destination-id",
+    "retentionDays": 30
+  }'
+```
+
+```bash Trigger Manual Backup
+curl -X POST https://your-dokploy-instance.com/api/backup.run \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "backupId": "backup-id"
+  }'
+```
+
+## Backup Destinations
+
+### S3-Compatible Storage
+
+Supports AWS S3, MinIO, DigitalOcean Spaces, Backblaze B2, and more:
+
+<Steps>
+  <Step title="Add Destination">
+    Navigate to **Settings** → **Backup Destinations** → **Add Destination**
+  </Step>
+  
+  <Step title="Configure S3">
+    <ParamField path="name" type="string" required>
+      Friendly name for the destination
+    </ParamField>
+    
+    <ParamField path="type" type="string" required>
+      Select "S3"
+    </ParamField>
+    
+    <ParamField path="endpoint" type="string" required>
+      S3 endpoint URL (e.g., `s3.amazonaws.com`)
+    </ParamField>
+    
+    <ParamField path="region" type="string" required>
+      AWS region (e.g., `us-east-1`)
+    </ParamField>
+    
+    <ParamField path="bucket" type="string" required>
+      Bucket name
+    </ParamField>
+    
+    <ParamField path="accessKeyId" type="string" required>
+      AWS Access Key ID
+    </ParamField>
+    
+    <ParamField path="secretAccessKey" type="string" required>
+      AWS Secret Access Key
+    </ParamField>
+  </Step>
+  
+  <Step title="Test Connection">
+    Click **Test Connection** to verify credentials
+  </Step>
+</Steps>
+
+#### Provider Examples
+
+<Accordion title="AWS S3">
+  ```json
+  {
+    "endpoint": "https://s3.amazonaws.com",
+    "region": "us-east-1",
+    "bucket": "dokploy-backups",
+    "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
+    "secretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  }
+  ```
+</Accordion>
+
+<Accordion title="DigitalOcean Spaces">
+  ```json
+  {
+    "endpoint": "https://nyc3.digitaloceanspaces.com",
+    "region": "nyc3",
+    "bucket": "my-backups",
+    "accessKeyId": "DO00...",
+    "secretAccessKey": "..."
+  }
+  ```
+</Accordion>
+
+<Accordion title="MinIO (Self-Hosted)">
+  ```json
+  {
+    "endpoint": "https://minio.example.com",
+    "region": "us-east-1",
+    "bucket": "backups",
+    "accessKeyId": "minioadmin",
+    "secretAccessKey": "minioadmin"
+  }
+  ```
+</Accordion>
+
+### Local Storage
+
+Store backups on the Dokploy server:
+
+```yaml
+type: local
+path: /var/dokploy/backups
+```
+
+<Warning>
+Local backups don't protect against server failure. Always use remote storage for production.
+</Warning>
+
+### Remote Server (SFTP)
+
+Backup to a remote server via SFTP:
+
+```json
+{
+  "type": "sftp",
+  "host": "backup-server.example.com",
+  "port": 22,
+  "username": "backup-user",
+  "privateKey": "...",
+  "path": "/backups/dokploy"
+}
+```
+
+## Database-Specific Backup Methods
+
+### PostgreSQL
+
+```bash Manual Backup
+# Full database dump
+docker exec postgres pg_dump -U postgres database_name > backup.sql
+
+# Compressed backup
+docker exec postgres pg_dump -U postgres -Fc database_name > backup.dump
+
+# All databases
+docker exec postgres pg_dumpall -U postgres > all_databases.sql
+```
+
+<Accordion title="Restore PostgreSQL">
+  ```bash
+  # From SQL dump
+  docker exec -i postgres psql -U postgres database_name < backup.sql
+  
+  # From compressed dump
+  docker exec -i postgres pg_restore -U postgres -d database_name backup.dump
+  ```
+</Accordion>
+
+### MySQL/MariaDB
+
+```bash Manual Backup
+# Single database
+docker exec mysql mysqldump -u root -p database_name > backup.sql
+
+# All databases
+docker exec mysql mysqldump -u root -p --all-databases > all_databases.sql
+
+# With compression
+docker exec mysql mysqldump -u root -p database_name | gzip > backup.sql.gz
+```
+
+<Accordion title="Restore MySQL/MariaDB">
+  ```bash
+  # From SQL dump
+  docker exec -i mysql mysql -u root -p database_name < backup.sql
+  
+  # From compressed dump
+  gunzip < backup.sql.gz | docker exec -i mysql mysql -u root -p database_name
+  ```
+</Accordion>
+
+### MongoDB
+
+```bash Manual Backup
+# Dump database
+docker exec mongo mongodump --username root --password pass --authenticationDatabase admin --out /backup
+
+# Compressed archive
+docker exec mongo mongodump --username root --password pass --authenticationDatabase admin --archive=/backup/backup.archive --gzip
+```
+
+<Accordion title="Restore MongoDB">
+  ```bash
+  # Restore from dump
+  docker exec mongo mongorestore --username root --password pass --authenticationDatabase admin /backup
+  
+  # From archive
+  docker exec mongo mongorestore --username root --password pass --authenticationDatabase admin --archive=/backup/backup.archive --gzip
+  ```
+</Accordion>
+
+### Redis
+
+```bash Manual Backup
+# Trigger background save
+docker exec redis redis-cli BGSAVE
+
+# Copy RDB file
+docker cp redis:/data/dump.rdb ./redis_backup.rdb
+```
+
+<Accordion title="Restore Redis">
+  ```bash
+  # Stop Redis
+  docker stop redis
+  
+  # Replace RDB file
+  docker cp redis_backup.rdb redis:/data/dump.rdb
+  
+  # Start Redis
+  docker start redis
+  ```
+</Accordion>
+
+## Volume Backups
+
+### Backup Docker Volumes
+
+```bash Manual Volume Backup
+# Create volume backup
+docker run --rm \
+  -v volume_name:/source:ro \
+  -v $(pwd):/backup \
+  alpine tar czf /backup/volume_backup.tar.gz -C /source .
+```
+
+### Via Dokploy API
+
+```bash Create Volume Backup
+curl -X POST https://your-dokploy-instance.com/api/volumeBackups.create \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "volumeName": "app_data",
+    "destinationId": "s3-destination-id",
+    "schedule": "0 3 * * *"
+  }'
+```
+
+## Backup Retention Policies
+
+Configure how long backups are kept:
+
+<Tabs>
+  <Tab title="Time-Based">
+    Keep backups for a specific duration:
+    ```json
+    {
+      "retentionDays": 30,
+      "retentionWeeks": 12,
+      "retentionMonths": 12
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Count-Based">
+    Keep a specific number of backups:
+    ```json
+    {
+      "keepDaily": 7,
+      "keepWeekly": 4,
+      "keepMonthly": 12
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Grandfather-Father-Son">
+    Common enterprise strategy:
+    - Daily backups: Keep 7 days
+    - Weekly backups: Keep 4 weeks
+    - Monthly backups: Keep 12 months
+  </Tab>
+</Tabs>
+
+## Restoring from Backups
+
+### Database Restore
+
+<Steps>
+  <Step title="Access Backup">
+    Download backup from storage destination
+  </Step>
+  
+  <Step title="Stop Application">
+    Temporarily stop applications using the database
+  </Step>
+  
+  <Step title="Restore Data">
+    Use database-specific restore commands (see above)
+  </Step>
+  
+  <Step title="Verify">
+    Check data integrity and application functionality
+  </Step>
+  
+  <Step title="Resume">
+    Start applications
+  </Step>
+</Steps>
+
+### Via Dokploy Dashboard
+
+1. Navigate to **Database** → **Backups**
+2. Find the backup to restore
+3. Click **Restore**
+4. Confirm the action
+5. Monitor restoration progress
+
+## Disaster Recovery
+
+### Complete System Recovery
+
+<Steps>
+  <Step title="Reinstall Dokploy">
+    Install Dokploy on a new server:
+    ```bash
+    curl -sSL https://dokploy.com/install.sh | sh
+    ```
+  </Step>
+  
+  <Step title="Restore Configuration">
+    Import your projects, applications, and environment variables
+  </Step>
+  
+  <Step title="Restore Databases">
+    Restore database backups from external storage
+  </Step>
+  
+  <Step title="Restore Volumes">
+    Restore volume backups for application data
+  </Step>
+  
+  <Step title="Deploy Applications">
+    Redeploy all applications
+  </Step>
+  
+  <Step title="Update DNS">
+    Point domains to the new server
+  </Step>
+</Steps>
+
+### Recovery Time Objective (RTO)
+
+Plan for acceptable downtime:
+
+- **Critical systems**: < 1 hour
+- **Production systems**: < 4 hours
+- **Development systems**: < 24 hours
+
+### Recovery Point Objective (RPO)
+
+Acceptable data loss:
+
+- **Financial data**: < 1 hour (hourly backups)
+- **User data**: < 24 hours (daily backups)
+- **Logs/metrics**: < 1 week (weekly backups)
+
+## Backup Best Practices
+
+<AccordionGroup>
+  <Accordion title="Follow the 3-2-1 Rule">
+    - **3** copies of your data
+    - **2** different storage types (e.g., local + cloud)
+    - **1** off-site backup
+  </Accordion>
+  
+  <Accordion title="Test Backups Regularly">
+    - Schedule quarterly restore tests
+    - Verify backup integrity
+    - Document restore procedures
+    - Time the restore process
+  </Accordion>
+  
+  <Accordion title="Encrypt Sensitive Backups">
+    ```bash
+    # Encrypt before upload
+    gpg --encrypt --recipient admin@example.com backup.sql
+    
+    # Decrypt for restore
+    gpg --decrypt backup.sql.gpg > backup.sql
+    ```
+  </Accordion>
+  
+  <Accordion title="Monitor Backup Jobs">
+    - Set up alerts for failed backups
+    - Review backup logs weekly
+    - Track backup size growth
+    - Monitor storage costs
+  </Accordion>
+  
+  <Accordion title="Document Everything">
+    Maintain documentation for:
+    - Backup schedules
+    - Storage credentials
+    - Restore procedures
+    - Contact information
+    - RTO/RPO targets
+  </Accordion>
+</AccordionGroup>
+
+## Monitoring Backups
+
+Track backup health:
+
+```bash Get Backup Status
+curl https://your-dokploy-instance.com/api/backup.all \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+Response includes:
+- Last backup time
+- Backup size
+- Success/failure status
+- Next scheduled backup
+- Storage destination
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Backup fails with 'permission denied'">
+    - Verify storage credentials
+    - Check S3 bucket permissions
+    - Ensure IAM policy allows PutObject
+    - Test credentials manually with AWS CLI
+  </Accordion>
+  
+  <Accordion title="Backup takes too long">
+    - Consider incremental backups
+    - Compress before upload
+    - Use faster storage destination
+    - Schedule during low-traffic hours
+    - Check database size and optimize
+  </Accordion>
+  
+  <Accordion title="Out of storage space">
+    - Adjust retention policies
+    - Enable compression
+    - Archive old backups to cheaper storage
+    - Review backup frequency
+  </Accordion>
+  
+  <Accordion title="Restore fails">
+    - Verify backup file integrity
+    - Check database version compatibility
+    - Ensure sufficient disk space
+    - Review restore logs for errors
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Backups" icon="database" href="/databases/backups">
+    Detailed database backup configuration
+  </Card>
+  <Card title="Volumes & Storage" icon="hard-drive" href="/advanced/volumes-storage">
+    Manage persistent volumes
+  </Card>
+  <Card title="Monitoring" icon="chart-line" href="/monitoring/overview">
+    Monitor backup job status
+  </Card>
+  <Card title="Security" icon="shield" href="/configuration/security">
+    Secure your backups
+  </Card>
+</CardGroup>

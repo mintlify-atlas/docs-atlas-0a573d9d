@@ -1,0 +1,338 @@
+---
+title: 'Metrics'
+description: 'Retrieve server and container metrics for monitoring system performance'
+---
+
+## Get Server Metrics
+
+Retrieve system metrics including CPU, memory, disk, and network usage for server monitoring.
+
+<ParamField path="url" type="string" required>
+  The URL endpoint for fetching metrics data
+</ParamField>
+
+<ParamField path="token" type="string" required>
+  Bearer token for authentication
+</ParamField>
+
+<ParamField path="dataPoints" type="string" required>
+  Number of data points to retrieve (limits the result set)
+</ParamField>
+
+### Authentication
+
+This endpoint requires authentication using a Bearer token in the Authorization header:
+
+```bash
+Authorization: Bearer YOUR_TOKEN
+```
+
+### Response
+
+Returns an array of metric objects containing system performance data:
+
+<ResponseField name="cpu" type="string">
+  Current CPU usage percentage
+</ResponseField>
+
+<ResponseField name="cpuModel" type="string">
+  CPU model name
+</ResponseField>
+
+<ResponseField name="cpuCores" type="number">
+  Number of CPU cores
+</ResponseField>
+
+<ResponseField name="cpuPhysicalCores" type="number">
+  Number of physical CPU cores
+</ResponseField>
+
+<ResponseField name="cpuSpeed" type="number">
+  CPU speed in GHz
+</ResponseField>
+
+<ResponseField name="os" type="string">
+  Operating system name
+</ResponseField>
+
+<ResponseField name="distro" type="string">
+  Linux distribution name
+</ResponseField>
+
+<ResponseField name="kernel" type="string">
+  Kernel version
+</ResponseField>
+
+<ResponseField name="arch" type="string">
+  System architecture (e.g., x64, arm64)
+</ResponseField>
+
+<ResponseField name="memUsed" type="string">
+  Memory usage percentage
+</ResponseField>
+
+<ResponseField name="memUsedGB" type="string">
+  Memory used in GB
+</ResponseField>
+
+<ResponseField name="memTotal" type="string">
+  Total memory available
+</ResponseField>
+
+<ResponseField name="uptime" type="number">
+  System uptime in seconds
+</ResponseField>
+
+<ResponseField name="diskUsed" type="string">
+  Disk space used
+</ResponseField>
+
+<ResponseField name="totalDisk" type="string">
+  Total disk space
+</ResponseField>
+
+<ResponseField name="networkIn" type="string">
+  Network incoming traffic
+</ResponseField>
+
+<ResponseField name="networkOut" type="string">
+  Network outgoing traffic
+</ResponseField>
+
+<ResponseField name="timestamp" type="string">
+  Timestamp of the metrics snapshot
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/metrics?limit=50" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+[
+  {
+    "cpu": "15.5",
+    "cpuModel": "Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz",
+    "cpuCores": 12,
+    "cpuPhysicalCores": 6,
+    "cpuSpeed": 2.6,
+    "os": "linux",
+    "distro": "Ubuntu 22.04.3 LTS",
+    "kernel": "5.15.0-91-generic",
+    "arch": "x64",
+    "memUsed": "45.2",
+    "memUsedGB": "7.2",
+    "memTotal": "16 GB",
+    "uptime": 864231,
+    "diskUsed": "120 GB",
+    "totalDisk": "500 GB",
+    "networkIn": "1.2 GB",
+    "networkOut": "850 MB",
+    "timestamp": "2024-03-15T10:30:00.000Z"
+  }
+]
+```
+
+### Error Handling
+
+The endpoint may return the following errors:
+
+- **No monitoring data available**: Monitoring service is not set up or no data has been collected yet
+- **Container not running**: The monitoring container is not active
+- **Service not included**: The service is not included in the monitoring configuration
+
+---
+
+## Get Container Metrics
+
+Retrieve metrics for specific Docker containers by application name.
+
+<ParamField path="url" type="string" required>
+  The base URL endpoint for fetching container metrics
+</ParamField>
+
+<ParamField path="token" type="string" required>
+  Bearer token for authentication
+</ParamField>
+
+<ParamField path="appName" type="string" required>
+  Name of the application/container to monitor
+</ParamField>
+
+<ParamField path="dataPoints" type="string" required>
+  Number of data points to retrieve
+</ParamField>
+
+### Authentication
+
+Requires Bearer token authentication.
+
+### Response
+
+Returns an array of container metric objects:
+
+<ResponseField name="containerId" type="string">
+  Unique container identifier
+</ResponseField>
+
+<ResponseField name="containerName" type="string">
+  Name of the container
+</ResponseField>
+
+<ResponseField name="containerImage" type="string">
+  Docker image used for the container
+</ResponseField>
+
+<ResponseField name="containerLabels" type="string">
+  Labels associated with the container
+</ResponseField>
+
+<ResponseField name="containerCommand" type="string">
+  Command running in the container
+</ResponseField>
+
+<ResponseField name="containerCreated" type="string">
+  Container creation timestamp
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/metrics/containers?appName=my-app&limit=50" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+[
+  {
+    "containerId": "abc123def456",
+    "containerName": "my-app-web-1",
+    "containerImage": "nginx:latest",
+    "containerLabels": "app=my-app,env=production",
+    "containerCommand": "nginx -g 'daemon off;'",
+    "containerCreated": "2024-03-15T08:00:00.000Z"
+  }
+]
+```
+
+---
+
+## Setup Monitoring
+
+Configure monitoring settings for servers with metrics collection and thresholds.
+
+<Note>
+This endpoint is available for admin users only and is disabled on Dokploy Cloud instances.
+</Note>
+
+### POST `/admin.setupMonitoring`
+
+<ParamField body="metricsConfig" type="object" required>
+  Monitoring configuration settings
+
+  <ParamField body="metricsConfig.server" type="object" required>
+    Server-level monitoring configuration
+    
+    <ParamField body="refreshRate" type="number" required>
+      Metrics refresh rate in seconds (minimum: 2)
+    </ParamField>
+    
+    <ParamField body="port" type="number" required>
+      Port for the monitoring service (minimum: 1)
+    </ParamField>
+    
+    <ParamField body="token" type="string" required>
+      Authentication token for the monitoring service
+    </ParamField>
+    
+    <ParamField body="urlCallback" type="string" required>
+      Callback URL for metrics delivery (must be valid URI)
+    </ParamField>
+    
+    <ParamField body="retentionDays" type="number" required>
+      Number of days to retain metrics data (minimum: 1)
+    </ParamField>
+    
+    <ParamField body="cronJob" type="string" required>
+      Cron expression for scheduled metrics collection
+    </ParamField>
+    
+    <ParamField body="thresholds" type="object" required>
+      Alert thresholds for resource usage
+      
+      <ParamField body="cpu" type="number" required>
+        CPU usage threshold percentage (minimum: 0)
+      </ParamField>
+      
+      <ParamField body="memory" type="number" required>
+        Memory usage threshold percentage (minimum: 0)
+      </ParamField>
+    </ParamField>
+  </ParamField>
+  
+  <ParamField body="metricsConfig.containers" type="object" required>
+    Container-level monitoring configuration
+    
+    <ParamField body="refreshRate" type="number" required>
+      Container metrics refresh rate in seconds (minimum: 2)
+    </ParamField>
+    
+    <ParamField body="services" type="object" required>
+      Service filtering configuration
+      
+      <ParamField body="include" type="array">
+        Array of service names to include in monitoring
+      </ParamField>
+      
+      <ParamField body="exclude" type="array">
+        Array of service names to exclude from monitoring
+      </ParamField>
+    </ParamField>
+  </ParamField>
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/admin.setupMonitoring" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "metricsConfig": {
+      "server": {
+        "refreshRate": 5,
+        "port": 9090,
+        "token": "secure-token-here",
+        "urlCallback": "https://metrics.example.com/callback",
+        "retentionDays": 30,
+        "cronJob": "0 */5 * * * *",
+        "thresholds": {
+          "cpu": 80,
+          "memory": 85
+        }
+      },
+      "containers": {
+        "refreshRate": 10,
+        "services": {
+          "include": ["web", "api", "worker"],
+          "exclude": ["temp-container"]
+        }
+      }
+    }
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "message": "Monitoring configured successfully"
+}
+```

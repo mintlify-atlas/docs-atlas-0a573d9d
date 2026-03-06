@@ -1,0 +1,583 @@
+---
+title: Databases
+description: Deploy and manage databases in Dokploy
+---
+
+Dokploy provides built-in support for popular database systems, making it easy to deploy and manage databases alongside your applications. Each database runs as a containerized service with automated backups, monitoring, and management.
+
+## Supported Databases
+
+Dokploy supports five major database systems:
+
+<CardGroup cols={2}>
+  <Card title="PostgreSQL" icon="elephant">
+    Full-featured relational database with advanced features and excellent performance.
+  </Card>
+  <Card title="MySQL" icon="database">
+    Popular open-source relational database, ideal for web applications.
+  </Card>
+  <Card title="MariaDB" icon="database">
+    MySQL-compatible database with enhanced features and performance improvements.
+  </Card>
+  <Card title="MongoDB" icon="leaf">
+    Document-oriented NoSQL database for flexible, schema-less data storage.
+  </Card>
+  <Card title="Redis" icon="bolt">
+    In-memory data store for caching, session management, and real-time applications.
+  </Card>
+</CardGroup>
+
+## Creating a Database
+
+Databases are created within environments, similar to applications. Each database type requires specific configuration:
+
+### Common Configuration
+
+All databases share these common properties:
+
+<ParamField path="name" type="string" required>
+  Display name for your database (shown in the UI)
+</ParamField>
+
+<ParamField path="appName" type="string" required>
+  Unique internal identifier (auto-generated if not provided)
+</ParamField>
+
+<ParamField path="description" type="string">
+  Optional description to help identify the database's purpose
+</ParamField>
+
+<ParamField path="dockerImage" type="string" required>
+  Docker image to use (e.g., `postgres:16`, `mysql:8`, `mongo:7`, `redis:7`)
+</ParamField>
+
+<ParamField path="environmentId" type="string" required>
+  The environment where this database will be deployed
+</ParamField>
+
+## PostgreSQL
+
+PostgreSQL is a powerful, open-source relational database system.
+
+### Configuration
+
+<ParamField path="databaseName" type="string" required>
+  Name of the database to create
+</ParamField>
+
+<ParamField path="databaseUser" type="string" required>
+  Username for database access
+</ParamField>
+
+<ParamField path="databasePassword" type="string" required>
+  Password for the database user (stored securely)
+</ParamField>
+
+<ParamField path="dockerImage" type="string" default="postgres:16">
+  PostgreSQL version to use
+</ParamField>
+
+### Example Configuration
+
+```typescript
+{
+  name: "Main Database",
+  databaseName: "myapp_production",
+  databaseUser: "myapp_user",
+  databasePassword: "secure_password_here",
+  dockerImage: "postgres:16",
+  environmentId: "env_123"
+}
+```
+
+### Connection String
+
+```bash
+postgresql://myapp_user:secure_password_here@postgres-appname:5432/myapp_production
+```
+
+<Info>
+  The hostname uses the internal Docker network name. From your applications, use the `appName` as the hostname.
+</Info>
+
+### Schema Reference
+
+PostgreSQL databases are stored with this structure:
+
+```typescript
+interface Postgres {
+  postgresId: string;
+  name: string;
+  appName: string;
+  databaseName: string;
+  databaseUser: string;
+  databasePassword: string;
+  description?: string;
+  dockerImage: string;
+  command?: string;
+  env?: string;
+  externalPort?: number;
+  applicationStatus: "idle" | "running" | "done" | "error";
+  environmentId: string;
+  serverId?: string;
+}
+```
+
+
+
+## MySQL
+
+MySQL is one of the most popular open-source relational databases.
+
+### Configuration
+
+<ParamField path="databaseName" type="string" required>
+  Name of the database to create
+</ParamField>
+
+<ParamField path="databaseUser" type="string" required>
+  Username for database access
+</ParamField>
+
+<ParamField path="databasePassword" type="string" required>
+  Password for the database user
+</ParamField>
+
+<ParamField path="databaseRootPassword" type="string" required>
+  Root password for MySQL (administrative access)
+</ParamField>
+
+<ParamField path="dockerImage" type="string" default="mysql:8">
+  MySQL version to use
+</ParamField>
+
+### Connection String
+
+```bash
+mysql://myapp_user:secure_password_here@mysql-appname:3306/myapp_production
+```
+
+## MariaDB
+
+MariaDB is a MySQL-compatible database with enhanced features.
+
+### Configuration
+
+MariaDB uses the same configuration structure as MySQL:
+
+<ParamField path="databaseName" type="string" required>
+  Database name
+</ParamField>
+
+<ParamField path="databaseUser" type="string" required>
+  Database username
+</ParamField>
+
+<ParamField path="databasePassword" type="string" required>
+  User password
+</ParamField>
+
+<ParamField path="databaseRootPassword" type="string" required>
+  Root password
+</ParamField>
+
+<ParamField path="dockerImage" type="string" default="mariadb:11">
+  MariaDB version to use
+</ParamField>
+
+### Connection String
+
+```bash
+mysql://myapp_user:secure_password_here@mariadb-appname:3306/myapp_production
+```
+
+## MongoDB
+
+MongoDB is a document-oriented NoSQL database.
+
+### Configuration
+
+<ParamField path="databaseName" type="string" required>
+  Name of the MongoDB database
+</ParamField>
+
+<ParamField path="databaseUser" type="string" required>
+  Username with access to the database
+</ParamField>
+
+<ParamField path="databasePassword" type="string" required>
+  Password for the database user
+</ParamField>
+
+<ParamField path="dockerImage" type="string" default="mongo:7">
+  MongoDB version to use
+</ParamField>
+
+### Connection String
+
+```bash
+mongodb://myapp_user:secure_password_here@mongo-appname:27017/myapp_production
+```
+
+### Authentication Database
+
+By default, MongoDB uses the database name for authentication. If you need to use a different auth database:
+
+```bash
+mongodb://myapp_user:secure_password_here@mongo-appname:27017/myapp_production?authSource=admin
+```
+
+## Redis
+
+Redis is an in-memory data structure store used as a database, cache, and message broker.
+
+### Configuration
+
+<ParamField path="databasePassword" type="string" required>
+  Password for Redis authentication
+</ParamField>
+
+<ParamField path="dockerImage" type="string" default="redis:7">
+  Redis version to use
+</ParamField>
+
+<Info>
+  Redis doesn't use traditional database names or users. It uses a single password for authentication.
+</Info>
+
+### Connection String
+
+```bash
+redis://:secure_password_here@redis-appname:6379
+```
+
+Or for Redis clients that support separate auth:
+
+```bash
+Host: redis-appname
+Port: 6379
+Password: secure_password_here
+```
+
+## Resource Management
+
+All databases support resource allocation controls:
+
+<ParamField path="memoryReservation" type="string">
+  Minimum memory guaranteed (e.g., "512m", "1g")
+</ParamField>
+
+<ParamField path="memoryLimit" type="string">
+  Maximum memory the database can use (e.g., "2g", "4g")
+</ParamField>
+
+<ParamField path="cpuReservation" type="string">
+  Minimum CPU guaranteed (e.g., "0.5", "1.0")
+</ParamField>
+
+<ParamField path="cpuLimit" type="string">
+  Maximum CPU the database can use (e.g., "2.0", "4.0")
+</ParamField>
+
+<Warning>
+  Always set memory limits for databases to prevent them from consuming all available system memory. Databases like PostgreSQL and MongoDB can be memory-intensive.
+</Warning>
+
+## Persistence & Mounts
+
+Databases typically require persistent storage to preserve data across container restarts:
+
+### Volume Mounts
+
+```typescript
+// Example: PostgreSQL data volume
+{
+  type: "volume",
+  volumeName: "postgres-data",
+  mountPath: "/var/lib/postgresql/data"
+}
+```
+
+### Common Mount Paths
+
+- **PostgreSQL**: `/var/lib/postgresql/data`
+- **MySQL**: `/var/lib/mysql`
+- **MariaDB**: `/var/lib/mysql`
+- **MongoDB**: `/data/db`
+- **Redis**: `/data`
+
+<Tip>
+  Dokploy automatically creates and manages volumes for your databases. You can also configure additional mounts for custom configuration files.
+</Tip>
+
+## Backups
+
+Dokploy provides automated backup functionality for all databases:
+
+### Configuring Backups
+
+<ParamField path="schedule" type="string" required>
+  Cron expression for backup schedule (e.g., `0 2 * * *` for daily at 2 AM)
+</ParamField>
+
+<ParamField path="enabled" type="boolean" default={true}>
+  Enable or disable the backup schedule
+</ParamField>
+
+<ParamField path="destinationId" type="string" required>
+  Storage destination for backups (S3, local storage, etc.)
+</ParamField>
+
+### Backup Destinations
+
+Backups can be stored in:
+- Local filesystem
+- AWS S3
+- S3-compatible storage (MinIO, DigitalOcean Spaces, etc.)
+- Remote servers via SFTP
+
+### Example Backup Configuration
+
+```typescript
+{
+  postgresId: "db_123",
+  schedule: "0 2 * * *",     // Daily at 2 AM
+  enabled: true,
+  prefix: "prod-backup",
+  databaseType: "postgres",
+  destinationId: "dest_456"
+}
+```
+
+### Manual Backups
+
+You can also trigger backups manually through the UI or API:
+
+```bash
+POST /api/backup.create
+{
+  "postgresId": "db_123",
+  "destinationId": "dest_456"
+}
+```
+
+## External Access
+
+By default, databases are only accessible within the internal Docker network. To expose a database externally:
+
+<ParamField path="externalPort" type="number">
+  Port to expose on the host machine (e.g., 5432, 3306, 27017, 6379)
+</ParamField>
+
+<Warning>
+  Exposing databases to the internet is a security risk. Only expose databases when absolutely necessary and ensure you:
+  - Use strong passwords
+  - Configure firewall rules
+  - Enable SSL/TLS when possible
+  - Limit access by IP address
+</Warning>
+
+## Environment Variables
+
+Custom environment variables can be added to databases:
+
+```bash
+# PostgreSQL example
+PGDATA=/var/lib/postgresql/data/pgdata
+POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=en_US.utf8
+
+# MySQL example
+MYSQL_CHARSET=utf8mb4
+MYSQL_COLLATION=utf8mb4_unicode_ci
+
+# MongoDB example
+MONGO_INITDB_DATABASE=myapp
+
+# Redis example
+REDIS_MAXMEMORY=256mb
+REDIS_MAXMEMORY_POLICY=allkeys-lru
+```
+
+## Advanced Configuration
+
+### Custom Commands
+
+Override the default container command:
+
+```typescript
+// PostgreSQL with custom config
+command: "postgres -c max_connections=200 -c shared_buffers=256MB"
+
+// MySQL with custom settings
+command: "mysqld --max_connections=200 --innodb_buffer_pool_size=256M"
+
+// Redis with custom config
+command: "redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru"
+```
+
+### Configuration Files
+
+Mount custom configuration files:
+
+```typescript
+// PostgreSQL postgresql.conf
+{
+  type: "file",
+  filePath: "/etc/postgresql/postgresql.conf",
+  content: `
+    max_connections = 200
+    shared_buffers = 256MB
+    work_mem = 4MB
+  `
+}
+
+// MySQL my.cnf
+{
+  type: "file",
+  filePath: "/etc/mysql/my.cnf",
+  content: `
+    [mysqld]
+    max_connections = 200
+    innodb_buffer_pool_size = 256M
+  `
+}
+```
+
+## Swarm Configuration
+
+For Docker Swarm deployments, databases support additional configuration:
+
+### Replicas
+
+<ParamField path="replicas" type="number" default={1}>
+  Number of database replicas (use with caution - most databases require special configuration for replication)
+</ParamField>
+
+<Warning>
+  Setting replicas > 1 for databases requires proper replication setup. Don't increase replicas without configuring database replication first.
+</Warning>
+
+### Health Checks
+
+```typescript
+healthCheckSwarm: {
+  test: ["CMD-SHELL", "pg_isready -U myapp_user"],
+  interval: "30s",
+  timeout: "10s",
+  retries: 3,
+  startPeriod: "60s"
+}
+```
+
+### Placement Constraints
+
+```typescript
+placementSwarm: {
+  constraints: [
+    "node.role==worker",
+    "node.labels.database==true"
+  ]
+}
+```
+
+
+
+## Monitoring & Logs
+
+### Container Logs
+
+Access database logs through:
+- Real-time log streaming in the UI
+- Historical log viewing
+- Export logs for analysis
+
+### Performance Metrics
+
+Monitor database performance:
+- CPU usage
+- Memory consumption
+- Disk I/O
+- Network traffic
+
+### Health Status
+
+Dokploy tracks database health:
+- Container running status
+- Connection availability
+- Resource usage alerts
+
+## Connecting Applications
+
+To connect your applications to databases:
+
+### Internal Network (Recommended)
+
+Use the database's internal hostname:
+
+```bash
+# Format: {appName}:{default-port}
+DATABASE_URL=postgresql://user:pass@postgres-abc123:5432/mydb
+```
+
+### Service Discovery
+
+Dokploy automatically handles service discovery within the Docker network. Applications in the same environment can connect using the `appName` as the hostname.
+
+### Example Connection Strings
+
+<CodeGroup>
+```bash PostgreSQL
+DATABASE_URL=postgresql://myapp_user:password@postgres-main:5432/myapp_production
+```
+
+```bash MySQL
+DATABASE_URL=mysql://myapp_user:password@mysql-main:3306/myapp_production
+```
+
+```bash MongoDB
+DATABASE_URL=mongodb://myapp_user:password@mongo-main:27017/myapp_production
+```
+
+```bash Redis
+REDIS_URL=redis://:password@redis-cache:6379
+```
+</CodeGroup>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Strong Passwords">
+    Always use strong, unique passwords for database access. Consider using a password manager to generate and store them securely.
+  </Accordion>
+  
+  <Accordion title="Regular Backups">
+    Configure automated backups and test restoration periodically. Store backups in a different location than your database.
+  </Accordion>
+  
+  <Accordion title="Resource Limits">
+    Always set appropriate memory and CPU limits based on your database's workload and available system resources.
+  </Accordion>
+  
+  <Accordion title="Monitor Performance">
+    Regularly check database performance metrics and logs to identify issues before they become critical.
+  </Accordion>
+  
+  <Accordion title="Keep Images Updated">
+    Regularly update database images to get security patches and performance improvements.
+  </Accordion>
+  
+  <Accordion title="Separate Environments">
+    Use different database instances for production, staging, and development environments.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Applications" icon="rocket" href="/core-concepts/applications">
+    Connect your applications to databases
+  </Card>
+  <Card title="Backups" icon="clock-rotate-left" href="/features/backups">
+    Learn more about backup strategies
+  </Card>
+</CardGroup>

@@ -1,0 +1,419 @@
+---
+title: 'Servers'
+description: 'Manage remote servers, setup monitoring, and configure server infrastructure'
+---
+
+## Create Server
+
+Add a new server to your Dokploy infrastructure.
+
+### POST `/server.create`
+
+<ParamField body="name" type="string" required>
+  Name of the server
+</ParamField>
+
+<ParamField body="ipAddress" type="string" required>
+  Server IP address
+</ParamField>
+
+<ParamField body="port" type="number">
+  SSH port (default: 22)
+</ParamField>
+
+<ParamField body="username" type="string" required>
+  SSH username for server access
+</ParamField>
+
+<ParamField body="sshKeyId" type="string">
+  ID of the SSH key to use for authentication
+</ParamField>
+
+<ParamField body="serverType" type="string">
+  Type of server: `deploy` or `build`
+</ParamField>
+
+### Authentication
+
+Requires user authentication.
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/server.create" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "name": "Production Server",
+    "ipAddress": "192.168.1.100",
+    "port": 22,
+    "username": "deploy",
+    "sshKeyId": "key_123",
+    "serverType": "deploy"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "serverId": "server_abc123",
+  "name": "Production Server",
+  "ipAddress": "192.168.1.100",
+  "port": 22,
+  "serverStatus": "inactive",
+  "serverType": "deploy",
+  "createdAt": "2024-03-15T10:00:00.000Z"
+}
+```
+
+---
+
+## Get Server
+
+### GET `/server.one`
+
+Retrieve details of a specific server.
+
+<ParamField query="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/server.one?serverId=server_abc123" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## List All Servers
+
+### GET `/server.all`
+
+Retrieve all servers in the organization with service counts.
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/server.all" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+[
+  {
+    "serverId": "server_abc123",
+    "name": "Production Server",
+    "ipAddress": "192.168.1.100",
+    "serverStatus": "active",
+    "serverType": "deploy",
+    "totalSum": 15,
+    "createdAt": "2024-03-15T10:00:00.000Z"
+  }
+]
+```
+
+---
+
+## Setup Server
+
+### POST `/server.setup`
+
+Initialize a server with required dependencies (Docker, Traefik, etc.).
+
+<ParamField body="serverId" type="string" required>
+  The unique identifier of the server to setup
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/server.setup" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "serverId": "server_abc123"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "serverId": "server_abc123",
+  "serverStatus": "active",
+  "message": "Server setup completed successfully"
+}
+```
+
+---
+
+## Validate Server
+
+### GET `/server.validate`
+
+Check if all required services are installed and configured correctly.
+
+<ParamField query="serverId" type="string" required>
+  The unique identifier of the server to validate
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/server.validate?serverId=server_abc123" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+{
+  "docker": {
+    "enabled": true,
+    "version": "24.0.7"
+  },
+  "rclone": {
+    "enabled": true,
+    "version": "1.64.0"
+  },
+  "nixpacks": {
+    "enabled": true,
+    "version": "1.18.0"
+  },
+  "buildpacks": {
+    "enabled": true,
+    "version": "0.32.1"
+  },
+  "railpack": {
+    "enabled": false,
+    "version": null
+  },
+  "isDokployNetworkInstalled": true,
+  "isSwarmInstalled": true,
+  "isMainDirectoryInstalled": true
+}
+```
+
+---
+
+## Server Security Audit
+
+### GET `/server.security`
+
+Perform a security audit on the server configuration.
+
+<ParamField query="serverId" type="string" required>
+  The unique identifier of the server to audit
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/server.security?serverId=server_abc123" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+{
+  "ufw": {
+    "installed": true,
+    "active": true,
+    "defaultIncoming": "deny"
+  },
+  "ssh": {
+    "enabled": true,
+    "keyAuth": true,
+    "permitRootLogin": "no",
+    "passwordAuth": "no",
+    "usePam": "yes"
+  },
+  "nonRootUser": {
+    "hasValidSudoUser": true
+  },
+  "unattendedUpgrades": {
+    "installed": true,
+    "active": true,
+    "updateEnabled": 1,
+    "upgradeEnabled": 1
+  },
+  "fail2ban": {
+    "installed": true,
+    "enabled": true,
+    "active": true,
+    "sshEnabled": "true",
+    "sshMode": "aggressive"
+  }
+}
+```
+
+---
+
+## Setup Server Monitoring
+
+### POST `/server.setupMonitoring`
+
+Configure monitoring for a remote server.
+
+<ParamField body="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField body="metricsConfig" type="object" required>
+  Monitoring configuration (same structure as admin.setupMonitoring)
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/server.setupMonitoring" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "serverId": "server_abc123",
+    "metricsConfig": {
+      "server": {
+        "refreshRate": 5,
+        "port": 9090,
+        "token": "secure-token",
+        "urlCallback": "https://metrics.example.com/callback",
+        "retentionDays": 30,
+        "cronJob": "0 */5 * * * *",
+        "thresholds": {
+          "cpu": 80,
+          "memory": 85
+        }
+      },
+      "containers": {
+        "refreshRate": 10,
+        "services": {
+          "include": [],
+          "exclude": []
+        }
+      }
+    }
+  }'
+```
+
+---
+
+## Update Server
+
+### POST `/server.update`
+
+Update server configuration and settings.
+
+<ParamField body="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+<ParamField body="name" type="string">
+  Updated server name
+</ParamField>
+
+<ParamField body="ipAddress" type="string">
+  Updated IP address
+</ParamField>
+
+<ParamField body="port" type="number">
+  Updated SSH port
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/server.update" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "serverId": "server_abc123",
+    "name": "Updated Server Name"
+  }'
+```
+
+---
+
+## Remove Server
+
+### POST `/server.remove`
+
+Delete a server from the infrastructure.
+
+<Warning>
+Server must not have any active services before deletion.
+</Warning>
+
+<ParamField body="serverId" type="string" required>
+  The unique identifier of the server to remove
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/server.remove" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "serverId": "server_abc123"
+  }'
+```
+
+---
+
+## Get Server Metrics
+
+### GET `/server.getServerMetrics`
+
+Fetch metrics data from a server's monitoring endpoint.
+
+<ParamField query="url" type="string" required>
+  The metrics endpoint URL
+</ParamField>
+
+<ParamField query="token" type="string" required>
+  Authentication token for the metrics service
+</ParamField>
+
+<ParamField query="dataPoints" type="string" required>
+  Number of data points to retrieve
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/server.getServerMetrics?url=https://metrics.example.com&token=YOUR_TOKEN&dataPoints=50" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Get Public IP
+
+### GET `/server.publicIp`
+
+Get the public IP address of the Dokploy server.
+
+<Note>
+This endpoint returns an empty string on Dokploy Cloud instances.
+</Note>
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/server.publicIp" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+{
+  "publicIp": "203.0.113.42"
+}
+```

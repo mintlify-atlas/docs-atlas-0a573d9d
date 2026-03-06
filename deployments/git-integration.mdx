@@ -1,0 +1,713 @@
+---
+title: Git Integration
+description: Connect GitHub, GitLab, Bitbucket, and Gitea repositories for automated deployments
+---
+
+## Overview
+
+Dokploy integrates with major Git providers to enable automated deployments from your repositories. Connect once, deploy unlimited applications, and set up webhooks for continuous deployment.
+
+## Supported Git Providers
+
+Dokploy supports deployments from:
+
+<CardGroup cols={2}>
+  <Card title="GitHub" icon="github">
+    GitHub Cloud and GitHub Apps with fine-grained permissions
+  </Card>
+  <Card title="GitLab" icon="gitlab">
+    GitLab Cloud and self-hosted GitLab instances
+  </Card>
+  <Card title="Bitbucket" icon="bitbucket">
+    Bitbucket Cloud with App Passwords
+  </Card>
+  <Card title="Gitea" icon="git-alt">
+    Self-hosted Gitea instances
+  </Card>
+</CardGroup>
+
+<Info>
+  For detailed Git provider configuration, see [Git Providers](/configuration/git-providers).
+</Info>
+
+## Application Configuration
+
+### GitHub
+
+Deploy from GitHub repositories using an authenticated Git provider.
+
+<Steps>
+  <Step title="Connect Git Provider">
+    First, set up your GitHub provider:
+    
+    1. Navigate to **Settings** > **Git Providers**
+    2. Click **Add Provider** > **GitHub**
+    3. Complete OAuth authentication
+  </Step>
+  
+  <Step title="Configure Application">
+    ```typescript
+    {
+      "name": "My Application",
+      "sourceType": "github",
+      "githubId": "github-provider-123",
+      "repository": "myapp",
+      "owner": "myorganization",
+      "branch": "main",
+      "buildPath": "/",
+      "triggerType": "push",
+      "autoDeploy": true,
+      "watchPaths": ["app/**", "package.json"],
+      "enableSubmodules": false
+    }
+    ```
+  </Step>
+  
+  <Step title="Set Trigger Type">
+    Choose when to deploy:
+    
+    - **Push** - Deploy on every push to the branch
+    - **Tag** - Deploy only when tags are created
+    
+    ```typescript
+    {
+      "triggerType": "push"  // or "tag"
+    }
+    ```
+  </Step>
+</Steps>
+
+#### Watch Paths
+
+Deploy only when specific files or directories change:
+
+```typescript
+{
+  "watchPaths": [
+    "src/**",           // Any file in src/
+    "package.json",      // Package file changes
+    "Dockerfile",        // Docker config changes
+    "!**/*.md"          // Exclude markdown files
+  ]
+}
+```
+
+<Tip>
+  Watch paths use glob patterns. Prefix with `!` to exclude paths.
+</Tip>
+
+#### Git Submodules
+
+Enable submodule cloning for repositories with submodules:
+
+```typescript
+{
+  "enableSubmodules": true
+}
+```
+
+This runs `git submodule update --init --recursive` during deployment.
+
+### GitLab
+
+Deploy from GitLab repositories with OAuth integration.
+
+```typescript
+{
+  "name": "My Application",
+  "sourceType": "gitlab",
+  "gitlabId": "gitlab-provider-123",
+  "gitlabRepository": "myapp",
+  "gitlabOwner": "mygroup",
+  "gitlabBranch": "main",
+  "gitlabBuildPath": "/",
+  "gitlabProjectId": 12345678,
+  "gitlabPathNamespace": "mygroup/subgroup",
+  "watchPaths": ["app/**"],
+  "enableSubmodules": false
+}
+```
+
+<ParamField path="gitlabProjectId" type="number" required>
+  GitLab project ID (found in project settings)
+</ParamField>
+
+<ParamField path="gitlabPathNamespace" type="string" required>
+  Full namespace path including groups
+  
+  ```bash
+  # Single group
+  mygroup
+  
+  # Nested groups
+  mygroup/subgroup
+  ```
+</ParamField>
+
+### Bitbucket
+
+Deploy from Bitbucket Cloud repositories.
+
+```typescript
+{
+  "name": "My Application",
+  "sourceType": "bitbucket",
+  "bitbucketId": "bitbucket-provider-123",
+  "bitbucketRepository": "My App",
+  "bitbucketRepositorySlug": "my-app",
+  "bitbucketOwner": "myworkspace",
+  "bitbucketBranch": "main",
+  "bitbucketBuildPath": "/",
+  "watchPaths": null,
+  "enableSubmodules": false
+}
+```
+
+<ParamField path="bitbucketRepositorySlug" type="string" required>
+  URL-safe repository identifier
+  
+  ```bash
+  # Repository: "My App"
+  # Slug: "my-app"
+  ```
+</ParamField>
+
+### Gitea
+
+Deploy from self-hosted Gitea instances.
+
+```typescript
+{
+  "name": "My Application",
+  "sourceType": "gitea",
+  "giteaId": "gitea-provider-123",
+  "giteaRepository": "myapp",
+  "giteaOwner": "myuser",
+  "giteaBranch": "main",
+  "giteaBuildPath": "/",
+  "watchPaths": null,
+  "enableSubmodules": false
+}
+```
+
+### Custom Git
+
+Deploy from any Git-compatible repository using SSH.
+
+```typescript
+{
+  "name": "My Application",
+  "sourceType": "git",
+  "customGitUrl": "git@gitlab.example.com:group/repo.git",
+  "customGitBranch": "production",
+  "customGitBuildPath": "/",
+  "customGitSSHKeyId": "ssh-key-123",
+  "watchPaths": null,
+  "enableSubmodules": false
+}
+```
+
+<Steps>
+  <Step title="Generate SSH Key">
+    ```bash
+    ssh-keygen -t ed25519 -C "dokploy@server" -f ~/.ssh/dokploy_deploy
+    ```
+  </Step>
+  
+  <Step title="Add Public Key to Git Provider">
+    Copy the public key to your Git provider:
+    
+    ```bash
+    cat ~/.ssh/dokploy_deploy.pub
+    ```
+    
+    **GitHub:** Settings > SSH and GPG keys > New SSH key
+    
+    **GitLab:** Settings > SSH Keys > Add new key
+    
+    **Gitea:** Settings > SSH Keys > Add Key
+  </Step>
+  
+  <Step title="Add Private Key to Dokploy">
+    1. Navigate to **Settings** > **SSH Keys**
+    2. Click **Add SSH Key**
+    3. Paste the private key:
+       ```bash
+       cat ~/.ssh/dokploy_deploy
+       ```
+    4. Save the SSH key ID
+  </Step>
+  
+  <Step title="Configure Application">
+    Use the SSH key ID in your application configuration:
+    
+    ```typescript
+    {
+      "customGitSSHKeyId": "ssh-key-123"
+    }
+    ```
+  </Step>
+</Steps>
+
+## Webhook Configuration
+
+Set up webhooks for automatic deployments when code is pushed.
+
+### GitHub Webhooks
+
+<Steps>
+  <Step title="Get Webhook URL">
+    In your Dokploy application:
+    
+    1. Go to **Settings** > **Git**
+    2. Copy the webhook URL:
+       ```bash
+       https://dokploy.example.com/api/deploy/github/app-123?refreshToken=abc123
+       ```
+  </Step>
+  
+  <Step title="Add Webhook to GitHub">
+    1. Go to your GitHub repository
+    2. Navigate to **Settings** > **Webhooks**
+    3. Click **Add webhook**
+    4. Configure:
+       ```yaml
+       Payload URL: https://dokploy.example.com/api/deploy/github/app-123?refreshToken=abc123
+       Content type: application/json
+       Which events: Just the push event
+       Active: ✓
+       ```
+    5. Click **Add webhook**
+  </Step>
+  
+  <Step title="Verify Webhook">
+    1. Make a test push to your repository
+    2. Check **Recent Deliveries** in GitHub webhook settings
+    3. Verify deployment started in Dokploy
+  </Step>
+</Steps>
+
+### GitLab Webhooks
+
+<Steps>
+  <Step title="Get Webhook URL">
+    ```bash
+    https://dokploy.example.com/api/deploy/gitlab/app-123?refreshToken=abc123
+    ```
+  </Step>
+  
+  <Step title="Add Webhook to GitLab">
+    1. Go to your GitLab project
+    2. Navigate to **Settings** > **Webhooks**
+    3. Configure:
+       ```yaml
+       URL: https://dokploy.example.com/api/deploy/gitlab/app-123?refreshToken=abc123
+       Trigger: Push events
+       Branch filter: main (or your deployment branch)
+       Enable SSL verification: ✓
+       ```
+    4. Click **Add webhook**
+  </Step>
+  
+  <Step title="Test Webhook">
+    1. Click **Test** > **Push events**
+    2. Verify successful response
+    3. Check deployment in Dokploy
+  </Step>
+</Steps>
+
+### Bitbucket Webhooks
+
+<Steps>
+  <Step title="Get Webhook URL">
+    ```bash
+    https://dokploy.example.com/api/deploy/bitbucket/app-123?refreshToken=abc123
+    ```
+  </Step>
+  
+  <Step title="Add Webhook to Bitbucket">
+    1. Go to your Bitbucket repository
+    2. Navigate to **Repository settings** > **Webhooks**
+    3. Click **Add webhook**
+    4. Configure:
+       ```yaml
+       Title: Dokploy Deploy
+       URL: https://dokploy.example.com/api/deploy/bitbucket/app-123?refreshToken=abc123
+       Status: Active
+       Triggers: Repository push
+       ```
+    5. Click **Save**
+  </Step>
+</Steps>
+
+### Gitea Webhooks
+
+<Steps>
+  <Step title="Get Webhook URL">
+    ```bash
+    https://dokploy.example.com/api/deploy/gitea/app-123?refreshToken=abc123
+    ```
+  </Step>
+  
+  <Step title="Add Webhook to Gitea">
+    1. Go to your Gitea repository
+    2. Navigate to **Settings** > **Webhooks**
+    3. Click **Add Webhook** > **Gitea**
+    4. Configure:
+       ```yaml
+       Target URL: https://dokploy.example.com/api/deploy/gitea/app-123?refreshToken=abc123
+       HTTP Method: POST
+       POST Content Type: application/json
+       Trigger On: Push events
+       Branch filter: main
+       Active: ✓
+       ```
+    5. Click **Add Webhook**
+  </Step>
+</Steps>
+
+## Build Path Configuration
+
+Specify the directory containing your application code.
+
+```typescript
+{
+  "buildPath": "/",           // Root directory
+  "buildPath": "/backend",    // Backend subdirectory
+  "buildPath": "/services/api" // Nested directory
+}
+```
+
+**Use cases:**
+- Monorepo with multiple applications
+- Separate frontend/backend directories
+- Microservices architecture
+
+## Preview Deployments
+
+Create temporary deployments for pull requests and branches.
+
+### Enable Preview Deployments
+
+```typescript
+{
+  "isPreviewDeploymentsActive": true,
+  "previewLimit": 3,                    // Max concurrent previews
+  "previewWildcard": "pr-*.example.com", // Domain pattern
+  "previewPort": 3000,
+  "previewHttps": true,
+  "previewPath": "/",
+  "previewEnv": "PREVIEW=true\nENV=staging",
+  "previewBuildArgs": "BUILD_ENV=preview",
+  "previewLabels": ["preview", "ephemeral"],
+  "previewRequireCollaboratorPermissions": true
+}
+```
+
+### How It Works
+
+<Steps>
+  <Step title="Open Pull Request">
+    When a PR is opened, Dokploy creates a preview deployment:
+    
+    ```bash
+    # PR #42 creates deployment at:
+    pr-42.example.com
+    ```
+  </Step>
+  
+  <Step title="Automatic Updates">
+    Preview updates automatically on new commits to the PR.
+  </Step>
+  
+  <Step title="Comment Link">
+    Dokploy comments on the PR with the preview URL:
+    
+    ```markdown
+    🚀 Preview deployment ready!
+    
+    **URL:** https://pr-42.example.com
+    **Commit:** abc123
+    **Status:** ✅ Deployed
+    ```
+  </Step>
+  
+  <Step title="Automatic Cleanup">
+    Preview deployments are deleted when:
+    - PR is merged
+    - PR is closed
+    - Preview limit is reached (oldest deleted first)
+  </Step>
+</Steps>
+
+<Warning>
+  Preview deployments consume server resources. Set `previewLimit` based on available capacity.
+</Warning>
+
+## Advanced Configuration
+
+### Patching Source Code
+
+Apply patches to source code before building:
+
+```typescript
+// Create patch
+{
+  "name": "Security fix",
+  "content": "diff --git a/package.json b/package.json\nindex 1234567..89abcdef 100644\n--- a/package.json\n+++ b/package.json\n@@ -10,7 +10,7 @@\n-    \"express\": \"^4.17.1\"\n+    \"express\": \"^4.18.2\""
+}
+```
+
+Patches are applied automatically during deployment after cloning the repository.
+
+### Disconnecting Git Provider
+
+Remove Git integration from an application:
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/application.disconnectGitProvider \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"applicationId": "app-123"}'
+```
+
+This resets all Git-related fields to their defaults.
+
+## Deployment Source Priority
+
+When multiple source types are configured, Dokploy uses this priority:
+
+1. **Drop** - Direct ZIP upload (highest priority)
+2. **Docker** - Pre-built Docker image
+3. **GitHub** - GitHub repository
+4. **GitLab** - GitLab repository
+5. **Gitea** - Gitea repository
+6. **Bitbucket** - Bitbucket repository
+7. **Git** - Custom Git repository (lowest priority)
+
+## Best Practices
+
+### Repository Structure
+
+<AccordionGroup>
+  <Accordion title="Use Consistent Branch Names">
+    ```bash
+    # Production
+    main or master
+    
+    # Staging
+    staging or develop
+    
+    # Feature branches
+    feature/feature-name
+    ```
+    
+    Consistent naming simplifies webhook and deployment configuration.
+  </Accordion>
+  
+  <Accordion title="Monorepo Structure">
+    ```bash
+    repo/
+    ├── apps/
+    │   ├── frontend/     # buildPath: /apps/frontend
+    │   ├── backend/      # buildPath: /apps/backend
+    │   └── admin/        # buildPath: /apps/admin
+    ├── packages/
+    │   └── shared/
+    └── package.json
+    ```
+    
+    Use `buildPath` to deploy different applications from the same repository.
+  </Accordion>
+  
+  <Accordion title="Environment-Specific Branches">
+    ```bash
+    # Production application
+    branch: main
+    autoDeploy: true
+    
+    # Staging application
+    branch: staging
+    autoDeploy: true
+    
+    # Development application
+    branch: develop
+    autoDeploy: false  # Manual deploys only
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Security
+
+1. **Protect Sensitive Branches** - Enable branch protection on production branches
+2. **Review Permissions** - Grant minimal permissions to Git providers
+3. **Rotate Tokens** - Refresh access tokens regularly
+4. **Secure Webhooks** - Use HTTPS and verify webhook signatures
+5. **Limit Preview Access** - Enable `previewRequireCollaboratorPermissions`
+
+### Performance
+
+1. **Use Shallow Clones** - Dokploy clones with `--depth 1` by default
+2. **Cache Dependencies** - Enable build caching for faster deployments
+3. **Watch Specific Paths** - Avoid unnecessary deployments with `watchPaths`
+4. **Optimize Repository Size** - Use `.gitattributes` to exclude large files
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Webhook Not Triggering Deployments">
+    **Check webhook status:**
+    1. Go to repository webhook settings
+    2. Check recent deliveries
+    3. Look for error messages
+    
+    **Common issues:**
+    - Incorrect webhook URL
+    - Firewall blocking requests
+    - Invalid refresh token
+    - Webhook disabled in repository
+    
+    **Solution:**
+    ```bash
+    # Test webhook manually
+    curl -X POST 'https://dokploy.example.com/api/deploy/github/app-123?refreshToken=abc123' \
+      -H 'Content-Type: application/json' \
+      -d '{"ref": "refs/heads/main"}'
+    ```
+  </Accordion>
+  
+  <Accordion title="Repository Clone Failed">
+    **Symptoms:** `fatal: could not read from remote repository`
+    
+    **Solutions:**
+    1. Verify Git provider credentials:
+       ```bash
+       curl -X POST https://your-domain.com/api/trpc/github.testConnection \
+         -H "x-api-key: your-api-key" \
+         -d '{"githubId": "github-123"}'
+       ```
+    2. Check SSH key permissions (for custom Git):
+       ```bash
+       chmod 600 ~/.ssh/dokploy_deploy
+       ```
+    3. Verify repository exists and is accessible
+    4. Ensure Git provider has repo access
+  </Accordion>
+  
+  <Accordion title="Submodule Clone Failed">
+    **Symptoms:** Submodule directories are empty after clone
+    
+    **Solutions:**
+    1. Enable submodule support:
+       ```typescript
+       {"enableSubmodules": true}
+       ```
+    2. Verify submodule URLs are accessible
+    3. Check Git provider has access to submodule repositories
+    4. Test manual clone:
+       ```bash
+       git clone --recurse-submodules <repo-url>
+       ```
+  </Accordion>
+  
+  <Accordion title="Wrong Branch Deployed">
+    **Symptoms:** Deployment uses different branch than configured
+    
+    **Solutions:**
+    1. Verify branch configuration:
+       ```typescript
+       // GitHub
+       {"branch": "main"}
+       
+       // GitLab
+       {"gitlabBranch": "main"}
+       
+       // Bitbucket
+       {"bitbucketBranch": "main"}
+       ```
+    2. Check webhook branch filter
+    3. Ensure branch exists in repository
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+### Deploy from Git
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/application.deploy \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "title": "Deploy from main",
+    "description": "Deploying latest changes"
+  }'
+```
+
+### Save Git Provider
+
+```bash
+# GitHub
+curl -X POST https://your-domain.com/api/trpc/application.saveGithubProvider \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "githubId": "github-123",
+    "repository": "myapp",
+    "owner": "myorg",
+    "branch": "main",
+    "buildPath": "/",
+    "watchPaths": ["src/**"],
+    "triggerType": "push",
+    "enableSubmodules": false
+  }'
+```
+
+### Get Repository Branches
+
+```bash
+# GitHub
+curl https://your-domain.com/api/trpc/github.getGithubBranches \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "githubId": "github-123",
+    "owner": "myorg",
+    "repo": "myapp"
+  }'
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Build Configuration"
+    icon="hammer"
+    href="/deployments/build-configuration"
+  >
+    Configure build methods and optimize builds
+  </Card>
+  <Card
+    title="Environment Variables"
+    icon="key"
+    href="/deployments/environment-variables"
+  >
+    Manage configuration and secrets
+  </Card>
+  <Card
+    title="Git Providers"
+    icon="code-branch"
+    href="/configuration/git-providers"
+  >
+    Detailed Git provider configuration
+  </Card>
+  <Card
+    title="Docker Registry"
+    icon="docker"
+    href="/deployments/docker-registry"
+  >
+    Configure container registries
+  </Card>
+</CardGroup>

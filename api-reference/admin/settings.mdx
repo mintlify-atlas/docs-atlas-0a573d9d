@@ -1,0 +1,470 @@
+---
+title: 'Settings'
+description: 'Configure system-wide settings, Traefik, Docker cleanup, and server preferences'
+---
+
+## Get Web Server Settings
+
+Retrieve current web server configuration and settings.
+
+### GET `/settings.getWebServerSettings`
+
+<Note>
+This endpoint is disabled on Dokploy Cloud instances.
+</Note>
+
+### Authentication
+
+Requires user authentication.
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/settings.getWebServerSettings" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+{
+  "host": "dokploy.example.com",
+  "letsEncryptEmail": "admin@example.com",
+  "certificateType": "letsencrypt",
+  "https": true,
+  "serverIp": "203.0.113.42",
+  "sshPrivateKey": "[REDACTED]",
+  "enableDockerCleanup": true,
+  "metricsConfig": {
+    "server": {
+      "refreshRate": 5,
+      "port": 9090
+    }
+  }
+}
+```
+
+---
+
+## Assign Domain to Server
+
+Configure the main domain and SSL settings for the Dokploy instance.
+
+### POST `/settings.assignDomainServer`
+
+<Note>
+Admin privileges required. Disabled on Dokploy Cloud.
+</Note>
+
+<ParamField body="host" type="string" required>
+  Domain name for the Dokploy instance
+</ParamField>
+
+<ParamField body="letsEncryptEmail" type="string">
+  Email address for Let's Encrypt SSL certificates
+</ParamField>
+
+<ParamField body="certificateType" type="string" required>
+  Type of SSL certificate
+  
+  **Allowed values:**
+  - `letsencrypt`
+  - `custom`
+  - `none`
+</ParamField>
+
+<ParamField body="https" type="boolean" required>
+  Enable HTTPS for the server
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.assignDomainServer" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "host": "dokploy.example.com",
+    "letsEncryptEmail": "admin@example.com",
+    "certificateType": "letsencrypt",
+    "https": true
+  }'
+```
+
+---
+
+## Traefik Management
+
+### Reload Traefik
+
+#### POST `/settings.reloadTraefik`
+
+Restart the Traefik proxy service.
+
+<ParamField body="serverId" type="string">
+  Optional server ID for remote Traefik instances
+</ParamField>
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.reloadTraefik" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{}'
+```
+
+### Toggle Traefik Dashboard
+
+#### POST `/settings.toggleDashboard`
+
+Enable or disable the Traefik dashboard on port 8080.
+
+<ParamField body="enableDashboard" type="boolean" required>
+  Set to `true` to enable dashboard, `false` to disable
+</ParamField>
+
+<ParamField body="serverId" type="string">
+  Optional server ID for remote instances
+</ParamField>
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.toggleDashboard" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "enableDashboard": true
+  }'
+```
+
+### Read Traefik Configuration
+
+#### GET `/settings.readTraefikConfig`
+
+Retrieve the main Traefik configuration file.
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/settings.readTraefikConfig" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+### Update Traefik Configuration
+
+#### POST `/settings.updateTraefikConfig`
+
+<ParamField body="traefikConfig" type="string" required>
+  Updated Traefik configuration in YAML format
+</ParamField>
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.updateTraefikConfig" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "traefikConfig": "# Traefik config in YAML..."
+  }'
+```
+
+---
+
+## Docker Cleanup
+
+Manage automated Docker cleanup operations.
+
+### Clean Operations
+
+Perform various Docker cleanup tasks:
+
+#### Clean Unused Images
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.cleanUnusedImages" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+#### Clean Unused Volumes
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.cleanUnusedVolumes" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+#### Clean Stopped Containers
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.cleanStoppedContainers" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+#### Clean Docker Builder Cache
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.cleanDockerBuilder" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+#### Clean All (System Prune)
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.cleanAll" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+### Configure Automatic Cleanup
+
+#### POST `/settings.updateDockerCleanup`
+
+Enable or disable scheduled Docker cleanup.
+
+<ParamField body="enableDockerCleanup" type="boolean" required>
+  Enable automatic cleanup
+</ParamField>
+
+<ParamField body="serverId" type="string">
+  Optional server ID for remote cleanup
+</ParamField>
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.updateDockerCleanup" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "enableDockerCleanup": true
+  }'
+```
+
+---
+
+## SSH Key Management
+
+### Save SSH Private Key
+
+#### POST `/settings.saveSSHPrivateKey`
+
+<ParamField body="sshPrivateKey" type="string" required>
+  SSH private key content in PEM format
+</ParamField>
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.saveSSHPrivateKey" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "sshPrivateKey": "-----BEGIN OPENSSH PRIVATE KEY-----\n..."
+  }'
+```
+
+### Remove SSH Private Key
+
+#### POST `/settings.cleanSSHPrivateKey`
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.cleanSSHPrivateKey" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+---
+
+## Server Management
+
+### Reload Dokploy Server
+
+#### POST `/settings.reloadServer`
+
+Restart the Dokploy server container.
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.reloadServer" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+### Update Server
+
+#### POST `/settings.updateServer`
+
+Update Dokploy to the latest version.
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.updateServer" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+### Get Update Information
+
+#### POST `/settings.getUpdateData`
+
+Check for available updates.
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.getUpdateData" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+{
+  "updateAvailable": true,
+  "currentVersion": "0.5.0",
+  "latestVersion": "0.6.0",
+  "releaseNotes": "Bug fixes and performance improvements"
+}
+```
+
+---
+
+## Redis Management
+
+### Clean Redis
+
+#### POST `/settings.cleanRedis`
+
+Flush all Redis cache data.
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.cleanRedis" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+### Reload Redis
+
+#### POST `/settings.reloadRedis`
+
+Restart the Redis container.
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.reloadRedis" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+---
+
+## Monitoring Configuration
+
+### Clean Monitoring Data
+
+#### POST `/settings.cleanMonitoring`
+
+Delete all collected monitoring data.
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.cleanMonitoring" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+---
+
+## GPU Support
+
+### Setup GPU
+
+#### POST `/settings.setupGPU`
+
+Configure NVIDIA GPU support for Docker containers.
+
+<ParamField body="serverId" type="string">
+  Server ID (required on Dokploy Cloud)
+</ParamField>
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.setupGPU" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "serverId": "server_abc123"
+  }'
+```
+
+### Check GPU Status
+
+#### GET `/settings.checkGPUStatus`
+
+<ParamField query="serverId" type="string">
+  Server ID (required on Dokploy Cloud)
+</ParamField>
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/settings.checkGPUStatus?serverId=server_abc123" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+### Example Response
+
+```json
+{
+  "driverInstalled": true,
+  "driverVersion": "535.129.03",
+  "gpuModel": "NVIDIA GeForce RTX 3080",
+  "runtimeInstalled": true,
+  "runtimeConfigured": true,
+  "cudaSupport": true,
+  "cudaVersion": "12.2",
+  "memoryInfo": "10GB",
+  "availableGPUs": 1,
+  "swarmEnabled": true,
+  "gpuResources": 1
+}
+```
+
+---
+
+## System Information
+
+### Get Dokploy Version
+
+#### GET `/settings.getDokployVersion`
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/settings.getDokployVersion" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Get Server IP
+
+#### GET `/settings.getIp`
+
+Retrieve the configured server IP address.
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/settings.getIp" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Update Server IP
+
+#### POST `/settings.updateServerIp`
+
+<ParamField body="serverIp" type="string" required>
+  New server IP address
+</ParamField>
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.updateServerIp" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "serverIp": "203.0.113.42"
+  }'
+```
+
+---
+
+## Health Check
+
+### GET `/settings.health`
+
+Check the health status of the Dokploy instance and database connection.
+
+<Note>
+This endpoint does not require authentication.
+</Note>
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/settings.health"
+```
+
+### Example Response
+
+```json
+{
+  "status": "ok"
+}
+```

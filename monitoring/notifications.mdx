@@ -1,0 +1,558 @@
+---
+title: "Notifications"
+description: "Configure notification integrations to receive alerts from Dokploy monitoring and deployment events"
+---
+
+Dokploy supports multiple notification channels to keep you informed about deployment status, monitoring alerts, and system events. Configure notifications to receive real-time alerts via Slack, Discord, Telegram, Email, and other services.
+
+## Supported Notification Services
+
+Dokploy integrates with the following notification providers:
+
+- **Slack**: Send messages to Slack channels
+- **Discord**: Post notifications to Discord channels via webhooks
+- **Telegram**: Send messages via Telegram bot
+- **Email (SMTP)**: Send emails using custom SMTP server
+- **Resend**: Send emails using Resend API
+- **Gotify**: Push notifications to self-hosted Gotify server
+- **Ntfy**: Publish notifications to ntfy.sh or self-hosted instance
+- **Lark**: Send messages to Lark (Feishu) chat groups
+- **Microsoft Teams**: Post adaptive cards to Teams channels
+- **Pushover**: Send push notifications to mobile devices
+- **Custom Webhook**: POST notifications to custom HTTP endpoints
+
+## Notification Setup
+
+### Accessing Notifications
+
+1. Navigate to **Settings > Notifications**
+2. Click **Add Notification**
+3. Select your notification provider
+4. Configure provider-specific settings
+5. Test the connection
+6. Save the notification
+
+## Slack Configuration
+
+Send notifications to Slack channels using webhook URLs.
+
+### Setup Steps
+
+1. Create a Slack App in your workspace
+2. Enable Incoming Webhooks
+3. Copy the webhook URL
+4. Configure in Dokploy
+
+### Configuration Options
+
+```typescript
+{
+  "name": "Production Alerts",
+  "webhookUrl": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXX",
+  "channel": "#deployments"
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Identifier for this notification |
+| `webhookUrl` | Yes | Slack webhook URL |
+| `channel` | Yes | Target Slack channel (e.g., #deployments) |
+
+### Example Notification
+
+When a threshold is exceeded:
+
+```
+⚠️ Server Alert
+CPU usage (85.50%) exceeded threshold (80.00%)
+Server: Dokploy
+Timestamp: 2024-01-19 10:30:45 UTC
+```
+
+### Testing Connection
+
+```typescript
+await api.notification.testSlackConnection.mutate({
+  webhookUrl: "https://hooks.slack.com/services/...",
+  channel: "#test"
+});
+// Sends: "Hi, From Dokploy 👋"
+```
+
+## Discord Configuration
+
+Post notifications to Discord channels using webhook URLs.
+
+### Setup Steps
+
+1. Open Discord channel settings
+2. Navigate to **Integrations > Webhooks**
+3. Create new webhook
+4. Copy webhook URL
+5. Configure in Dokploy
+
+### Configuration Options
+
+```typescript
+{
+  "name": "Discord Alerts",
+  "webhookUrl": "https://discord.com/api/webhooks/1234567890/ABCDEFGHIJK",
+  "decoration": true
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Identifier for this notification |
+| `webhookUrl` | Yes | Discord webhook URL |
+| `decoration` | No | Add decoration to messages (default: false) |
+
+### Example Notification
+
+Discord notifications appear as embedded messages:
+
+```
+🤚 Test Notification
+Hi, From Dokploy 👋
+
+⚠️ CPU Alert
+CPU usage (85.50%) exceeded threshold (80.00%)
+Server: Dokploy
+Timestamp: 2024-01-19T10:30:45.000Z
+```
+
+### Testing Connection
+
+```typescript
+await api.notification.testDiscordConnection.mutate({
+  webhookUrl: "https://discord.com/api/webhooks/...",
+  decoration: true
+});
+```
+
+## Telegram Configuration
+
+Send notifications via Telegram bot.
+
+### Setup Steps
+
+1. Create a bot using [@BotFather](https://t.me/botfather)
+2. Get bot token from BotFather
+3. Get your chat ID (use [@userinfobot](https://t.me/userinfobot))
+4. Configure in Dokploy
+
+### Configuration Options
+
+```typescript
+{
+  "name": "Telegram Notifications",
+  "botToken": "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz",
+  "chatId": "-1001234567890"
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Identifier for this notification |
+| `botToken` | Yes | Telegram bot token from BotFather |
+| `chatId` | Yes | Chat ID (user, group, or channel) |
+
+### Example Notification
+
+```
+Hi, From Dokploy 👋
+
+⚠️ Memory Alert
+Memory usage (87.50%) exceeded threshold (85.00%)
+Server: Dokploy
+Time: 2024-01-19 10:30:45 UTC
+```
+
+### Testing Connection
+
+```typescript
+await api.notification.testTelegramConnection.mutate({
+  botToken: "1234567890:ABC...",
+  chatId: "-1001234567890"
+});
+```
+
+## Email (SMTP) Configuration
+
+Send notifications via custom SMTP server.
+
+### Configuration Options
+
+```typescript
+{
+  "name": "Email Alerts",
+  "smtpServer": "smtp.gmail.com",
+  "smtpPort": 587,
+  "username": "alerts@yourdomain.com",
+  "password": "your-app-password",
+  "fromAddress": "dokploy@yourdomain.com",
+  "toAddresses": ["admin@yourdomain.com", "ops@yourdomain.com"]
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Identifier for this notification |
+| `smtpServer` | Yes | SMTP server hostname |
+| `smtpPort` | Yes | SMTP port (usually 587 for TLS, 465 for SSL) |
+| `username` | Yes | SMTP authentication username |
+| `password` | Yes | SMTP authentication password |
+| `fromAddress` | Yes | Sender email address |
+| `toAddresses` | Yes | Array of recipient email addresses |
+
+### Common SMTP Servers
+
+| Provider | SMTP Server | Port | TLS |
+|----------|-------------|------|-----|
+| Gmail | smtp.gmail.com | 587 | Yes |
+| Outlook | smtp-mail.outlook.com | 587 | Yes |
+| SendGrid | smtp.sendgrid.net | 587 | Yes |
+| Mailgun | smtp.mailgun.org | 587 | Yes |
+| Custom | your-server.com | 587/465 | Varies |
+
+### Testing Connection
+
+```typescript
+await api.notification.testEmailConnection.mutate({
+  smtpServer: "smtp.gmail.com",
+  smtpPort: 587,
+  username: "alerts@yourdomain.com",
+  password: "app-password",
+  fromAddress: "dokploy@yourdomain.com",
+  toAddresses: ["test@yourdomain.com"]
+});
+// Sends test email: "Hi, From Dokploy 👋"
+```
+
+## Resend Configuration
+
+Send emails using the Resend API (recommended for transactional emails).
+
+### Setup Steps
+
+1. Sign up at [resend.com](https://resend.com)
+2. Create an API key
+3. Verify your domain
+4. Configure in Dokploy
+
+### Configuration Options
+
+```typescript
+{
+  "name": "Resend Notifications",
+  "apiKey": "re_123456789",
+  "fromAddress": "notifications@yourdomain.com",
+  "toAddresses": ["team@yourdomain.com"]
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Identifier for this notification |
+| `apiKey` | Yes | Resend API key |
+| `fromAddress` | Yes | Verified sender email address |
+| `toAddresses` | Yes | Array of recipient email addresses |
+
+### Testing Connection
+
+```typescript
+await api.notification.testResendConnection.mutate({
+  apiKey: "re_123456789",
+  fromAddress: "notifications@yourdomain.com",
+  toAddresses: ["test@yourdomain.com"]
+});
+```
+
+## Gotify Configuration
+
+Send push notifications to self-hosted Gotify server.
+
+### Configuration Options
+
+```typescript
+{
+  "name": "Gotify Alerts",
+  "serverUrl": "https://gotify.yourdomain.com",
+  "token": "AzHgQwerTyuiop"
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Identifier for this notification |
+| `serverUrl` | Yes | Gotify server URL |
+| `token` | Yes | Gotify application token |
+
+## Ntfy Configuration
+
+Publish notifications to ntfy.sh or self-hosted instance.
+
+### Configuration Options
+
+```typescript
+{
+  "name": "Ntfy Alerts",
+  "topic": "dokploy-alerts",
+  "serverUrl": "https://ntfy.sh",
+  "username": "optional-username",
+  "password": "optional-password"
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Identifier for this notification |
+| `topic` | Yes | Ntfy topic name |
+| `serverUrl` | No | Custom ntfy server URL (default: ntfy.sh) |
+| `username` | No | Basic auth username |
+| `password` | No | Basic auth password |
+
+### Testing Connection
+
+```typescript
+await api.notification.testNtfyConnection.mutate({
+  topic: "dokploy-alerts",
+  serverUrl: "https://ntfy.sh"
+});
+```
+
+## Lark (Feishu) Configuration
+
+Send messages to Lark chat groups.
+
+### Configuration Options
+
+```typescript
+{
+  "name": "Lark Notifications",
+  "webhookUrl": "https://open.feishu.cn/open-apis/bot/v2/hook/..."
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Identifier for this notification |
+| `webhookUrl` | Yes | Lark bot webhook URL |
+
+## Microsoft Teams Configuration
+
+Post notifications to Teams channels.
+
+### Configuration Options
+
+```typescript
+{
+  "name": "Teams Alerts",
+  "webhookUrl": "https://outlook.office.com/webhook/..."
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Identifier for this notification |
+| `webhookUrl` | Yes | Teams incoming webhook URL |
+
+## Pushover Configuration
+
+Send push notifications to mobile devices.
+
+### Configuration Options
+
+```typescript
+{
+  "name": "Pushover Alerts",
+  "apiToken": "your-app-token",
+  "userKey": "your-user-key"
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Identifier for this notification |
+| `apiToken` | Yes | Pushover application token |
+| `userKey` | Yes | Pushover user key |
+
+## Custom Webhook Configuration
+
+Send notifications to custom HTTP endpoints.
+
+### Configuration Options
+
+```typescript
+{
+  "name": "Custom Webhook",
+  "webhookUrl": "https://api.yourdomain.com/webhooks/dokploy",
+  "method": "POST",
+  "headers": {
+    "Authorization": "Bearer your-token",
+    "Content-Type": "application/json"
+  }
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Identifier for this notification |
+| `webhookUrl` | Yes | Target webhook URL |
+| `method` | No | HTTP method (default: POST) |
+| `headers` | No | Custom HTTP headers |
+
+### Webhook Payload
+
+Dokploy sends notifications in this format:
+
+```json
+{
+  "title": "CPU Alert",
+  "message": "CPU usage (85.50%) exceeded threshold (80.00%)",
+  "timestamp": "2024-01-19T10:30:45.000Z"
+}
+```
+
+## Notification Events
+
+Dokploy sends notifications for the following events:
+
+### Monitoring Alerts
+
+Triggered when metrics exceed configured thresholds:
+
+- **CPU Threshold Exceeded**: When CPU usage goes above the configured limit
+- **Memory Threshold Exceeded**: When memory usage goes above the configured limit
+
+Example payload sent to notification endpoint:
+
+```typescript
+{
+  ServerType: "Dokploy",
+  Type: "CPU",
+  Value: 85.5,
+  Threshold: 80,
+  Message: "CPU usage (85.50%) exceeded threshold (80.00%)",
+  Timestamp: "2024-01-19T10:30:45.000Z",
+  Token: "your-secure-token"
+}
+```
+
+### Setting Up Threshold Notifications
+
+1. Configure monitoring thresholds in **Settings > Monitoring**:
+```typescript
+{
+  "thresholds": {
+    "cpu": 80,      // Alert when CPU > 80%
+    "memory": 85    // Alert when Memory > 85%
+  }
+}
+```
+
+2. Set callback URL to Dokploy's notification endpoint:
+```
+http://localhost:3000/api/trpc/notification.receiveNotification
+```
+
+3. Configure notification providers to receive the alerts
+
+<Note>
+Setting a threshold to 0 disables notifications for that metric.
+</Note>
+
+## Managing Notifications
+
+### List All Notifications
+
+View all configured notifications:
+
+```typescript
+const notifications = await api.notification.all.query();
+```
+
+Returns array of notifications with provider details.
+
+### Update Notification
+
+Modify existing notification configuration:
+
+```typescript
+await api.notification.updateSlack.mutate({
+  notificationId: "notif-id",
+  webhookUrl: "https://hooks.slack.com/services/...",
+  channel: "#new-channel"
+});
+```
+
+### Delete Notification
+
+Remove a notification:
+
+```typescript
+await api.notification.remove.mutate({
+  notificationId: "notif-id"
+});
+```
+
+## Best Practices
+
+1. **Test Connections**: Always test notifications after configuration to ensure they work
+2. **Use Descriptive Names**: Give notifications clear names to identify their purpose
+3. **Separate Channels**: Use different channels for different alert types (e.g., #deployments, #critical-alerts)
+4. **Set Appropriate Thresholds**: Configure thresholds that match your normal operating ranges
+5. **Avoid Alert Fatigue**: Don't set thresholds too low or you'll receive too many notifications
+6. **Secure Credentials**: Store notification credentials securely and rotate them regularly
+7. **Monitor Notification Delivery**: Verify that critical alerts are being received
+8. **Use Multiple Channels**: Configure redundant notification channels for critical alerts
+
+## Troubleshooting
+
+### Notifications Not Sending
+
+1. **Verify configuration**: Check webhook URLs, tokens, and credentials
+2. **Test connection**: Use the test button to verify the provider is reachable
+3. **Check permissions**: Ensure bot/app has permission to post in target channel
+4. **Verify thresholds**: Make sure monitoring thresholds are properly configured
+5. **Check callback URL**: Ensure the urlCallback points to the correct endpoint
+
+### Slack Issues
+
+- **Invalid webhook**: Generate a new webhook URL in Slack settings
+- **Channel not found**: Verify the channel name includes the # symbol
+- **Permission denied**: Add the Slack app to the target channel
+
+### Discord Issues
+
+- **Webhook expired**: Create a new webhook in Discord channel settings
+- **Rate limited**: Discord limits webhook calls; reduce notification frequency
+
+### Telegram Issues
+
+- **Invalid bot token**: Verify token from @BotFather
+- **Wrong chat ID**: Use @userinfobot to get correct chat ID
+- **Bot not in group**: Add the bot to the group/channel first
+
+### Email Issues
+
+- **Authentication failed**: Check username/password or use app-specific password
+- **Connection timeout**: Verify SMTP server and port are correct
+- **TLS errors**: Try different ports (587 for STARTTLS, 465 for SSL)
+
+## Example Notification Flow
+
+1. **Monitoring service** detects CPU usage at 85%
+2. **Threshold check** compares against configured limit (80%)
+3. **Notification triggered** with alert details
+4. **Callback URL** receives POST request with alert payload
+5. **Dokploy routes** notification to configured providers
+6. **Messages sent** to Slack, Discord, Telegram, etc.
+7. **Team receives** alerts and can respond to the issue
+
+## Next Steps
+
+- [Configure Real-Time Metrics](/monitoring/real-time-metrics) to enable threshold alerts
+- [View Monitoring Overview](/monitoring/overview) for complete observability setup
+- [Check Application Logs](/monitoring/logs) for detailed troubleshooting

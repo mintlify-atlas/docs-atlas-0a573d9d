@@ -1,0 +1,551 @@
+---
+title: "Docker Swarm"
+description: "Configure and manage Docker Swarm for orchestrating containers across multiple nodes"
+---
+
+## Overview
+
+Docker Swarm is Docker's native clustering and orchestration tool that turns a pool of Docker hosts into a single virtual host. Dokploy leverages Docker Swarm to provide multi-node deployments, service scaling, load balancing, and high availability.
+
+<Info>
+Docker Swarm is included with Docker Engine and requires no additional installation.
+</Info>
+
+## What is Docker Swarm?
+
+Docker Swarm provides:
+
+- **Cluster Management**: Manage multiple Docker hosts as a single cluster
+- **Service Discovery**: Built-in DNS-based service discovery
+- **Load Balancing**: Automatic load balancing across containers
+- **Scaling**: Horizontal scaling of services
+- **Rolling Updates**: Zero-downtime deployments
+- **Security**: TLS authentication and encrypted communication
+
+## Swarm Architecture
+
+<Tabs>
+  <Tab title="Manager Nodes">
+    Manager nodes handle cluster management tasks:
+    
+    - Maintaining cluster state
+    - Scheduling services
+    - Serving Swarm API endpoints
+    - Leader election using Raft consensus
+    
+    **Recommendation**: Use 3 or 5 manager nodes for high availability
+  </Tab>
+  
+  <Tab title="Worker Nodes">
+    Worker nodes execute containers:
+    
+    - Run application workloads
+    - Report status to managers
+    - Execute tasks assigned by managers
+    
+    **Recommendation**: Scale worker nodes based on workload requirements
+  </Tab>
+  
+  <Tab title="Services & Tasks">
+    - **Service**: Defines the desired state (image, replicas, resources)
+    - **Task**: A running container, the atomic unit of work
+    - **Replica**: Multiple tasks of the same service
+  </Tab>
+</Tabs>
+
+## Initializing Docker Swarm
+
+Dokploy automatically initializes Docker Swarm during installation. You can verify the status:
+
+```bash Check Swarm Status
+docker info | grep Swarm
+# Output: Swarm: active
+```
+
+### Manual Initialization
+
+If you need to initialize Swarm manually:
+
+<Steps>
+  <Step title="Initialize on Manager Node">
+    ```bash
+    docker swarm init --advertise-addr <MANAGER-IP>
+    ```
+    
+    This returns a join token for worker nodes.
+  </Step>
+  
+  <Step title="Add Worker Nodes">
+    On each worker node, run:
+    
+    ```bash
+    docker swarm join --token <TOKEN> <MANAGER-IP>:2377
+    ```
+  </Step>
+  
+  <Step title="Verify Cluster">
+    ```bash
+    docker node ls
+    ```
+  </Step>
+</Steps>
+
+## Using the Cluster Router
+
+Dokploy provides a Cluster API for managing Swarm:
+
+```bash Get Cluster Status
+curl https://your-dokploy-instance.com/api/cluster.status \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```bash Initialize Cluster
+curl -X POST https://your-dokploy-instance.com/api/cluster.init \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "advertiseAddr": "192.168.1.10"
+  }'
+```
+
+## Deploying Services to Swarm
+
+### Using Docker Compose with Swarm
+
+Dokploy supports Docker Compose with Swarm-specific configuration:
+
+```yaml docker-compose.yml
+version: "3.8"
+
+services:
+  web:
+    image: nginx:latest
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == worker
+        preferences:
+          - spread: node.labels.zone
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    ports:
+      - "80:80"
+    networks:
+      - webnet
+
+networks:
+  webnet:
+    driver: overlay
+```
+
+### Deploy Modes
+
+<Tabs>
+  <Tab title="Replicated Mode (Default)">
+    Runs a specified number of replicas across available nodes:
+    
+    ```yaml
+    deploy:
+      mode: replicated
+      replicas: 5
+    ```
+  </Tab>
+  
+  <Tab title="Global Mode">
+    Runs exactly one container per node:
+    
+    ```yaml
+    deploy:
+      mode: global
+    ```
+    
+    Useful for monitoring agents or logging sidecars.
+  </Tab>
+</Tabs>
+
+## Service Scaling
+
+<CodeGroup>
+```bash Scale via Docker CLI
+docker service scale web=5
+```
+
+```bash Scale via Dokploy API
+curl -X POST https://your-dokploy-instance.com/api/swarm.scaleService \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "serviceId": "web",
+    "replicas": 5
+  }'
+```
+
+```yaml Scale in Compose
+services:
+  api:
+    image: myapi:latest
+    deploy:
+      replicas: 10
+```
+</CodeGroup>
+
+## Placement Constraints
+
+Control where services run using constraints:
+
+### Node Attributes
+
+```yaml
+deploy:
+  placement:
+    constraints:
+      - node.role == worker              # Only worker nodes
+      - node.hostname == worker-1        # Specific node
+      - node.labels.environment == prod  # Custom label
+      - node.platform.os == linux        # Operating system
+```
+
+### Node Labels
+
+Add custom labels to nodes:
+
+```bash
+docker node update --label-add environment=production worker-1
+docker node update --label-add region=us-east worker-1
+docker node update --label-add disktype=ssd worker-2
+```
+
+Use labels in placement:
+
+```yaml
+deploy:
+  placement:
+    constraints:
+      - node.labels.disktype == ssd
+      - node.labels.region == us-east
+```
+
+## Update Strategies
+
+Configure zero-downtime rolling updates:
+
+```yaml
+deploy:
+  update_config:
+    parallelism: 2          # Update 2 containers at a time
+    delay: 10s              # Wait 10s between batches
+    failure_action: rollback # Rollback on failure
+    monitor: 60s            # Monitor for 60s after update
+    max_failure_ratio: 0.3  # Rollback if >30% fail
+    order: start-first      # Start new before stopping old
+```
+
+### Rollback Configuration
+
+```yaml
+deploy:
+  rollback_config:
+    parallelism: 1
+    delay: 5s
+    failure_action: pause
+    monitor: 30s
+    max_failure_ratio: 0
+```
+
+## Service Discovery and Load Balancing
+
+### Internal Load Balancing
+
+Swarm provides DNS-based service discovery:
+
+```yaml
+services:
+  web:
+    image: nginx
+  api:
+    image: myapi
+    environment:
+      - API_URL=http://web  # DNS resolves to all web replicas
+```
+
+### Ingress Load Balancing
+
+Swarm's routing mesh distributes external traffic:
+
+- Requests to any node on the published port reach a service replica
+- Automatic load balancing across healthy replicas
+- No additional load balancer required
+
+```yaml
+services:
+  web:
+    image: nginx
+    ports:
+      - "80:80"  # Published on all nodes
+    deploy:
+      replicas: 3
+```
+
+## Overlay Networks
+
+Create encrypted overlay networks for multi-node communication:
+
+```yaml
+networks:
+  app-network:
+    driver: overlay
+    encrypted: true
+    attachable: true
+    driver_opts:
+      encrypted: "true"
+```
+
+### Network Isolation
+
+Each service can use multiple networks:
+
+```yaml
+services:
+  web:
+    networks:
+      - frontend
+      - backend
+  db:
+    networks:
+      - backend  # Not accessible from frontend
+
+networks:
+  frontend:
+    driver: overlay
+  backend:
+    driver: overlay
+```
+
+## Secrets Management
+
+Swarm provides secure secret storage:
+
+<Steps>
+  <Step title="Create a Secret">
+    ```bash
+    echo "my-secret-password" | docker secret create db_password -
+    ```
+  </Step>
+  
+  <Step title="Use in Service">
+    ```yaml
+    services:
+      db:
+        image: postgres
+        secrets:
+          - db_password
+        environment:
+          - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+    
+    secrets:
+      db_password:
+        external: true
+    ```
+  </Step>
+</Steps>
+
+Secrets are:
+- Encrypted at rest and in transit
+- Only available to services that explicitly request them
+- Mounted as files in `/run/secrets/`
+
+## Node Management
+
+### Drain a Node
+
+Prepare a node for maintenance:
+
+```bash
+docker node update --availability drain worker-1
+```
+
+This stops scheduling new tasks and migrates existing tasks to other nodes.
+
+### Promote/Demote Nodes
+
+```bash
+# Promote worker to manager
+docker node promote worker-1
+
+# Demote manager to worker
+docker node demote manager-2
+```
+
+### Remove a Node
+
+<Steps>
+  <Step title="Drain the Node">
+    ```bash
+    docker node update --availability drain worker-1
+    ```
+  </Step>
+  
+  <Step title="Leave Swarm (on the node)">
+    ```bash
+    docker swarm leave
+    ```
+  </Step>
+  
+  <Step title="Remove from Cluster">
+    ```bash
+    docker node rm worker-1
+    ```
+  </Step>
+</Steps>
+
+## Monitoring Swarm
+
+### Service Status
+
+```bash
+# List services
+docker service ls
+
+# Inspect service
+docker service ps web
+
+# View logs
+docker service logs web
+```
+
+### Node Health
+
+```bash
+# List nodes
+docker node ls
+
+# Inspect node
+docker node inspect worker-1
+```
+
+### Using Dokploy API
+
+```bash
+curl https://your-dokploy-instance.com/api/swarm.services \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use 3 or 5 Manager Nodes">
+    Raft consensus requires a quorum. Odd numbers provide fault tolerance:
+    - 3 managers: tolerates 1 failure
+    - 5 managers: tolerates 2 failures
+    - 7+ managers: not recommended (increased overhead)
+  </Accordion>
+  
+  <Accordion title="Separate Manager and Worker Workloads">
+    In production, dedicate managers to orchestration:
+    
+    ```bash
+    docker node update --availability drain manager-1
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Health Checks">
+    Define health checks for automatic recovery:
+    
+    ```yaml
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    ```
+  </Accordion>
+  
+  <Accordion title="Implement Resource Limits">
+    Prevent resource exhaustion:
+    
+    ```yaml
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Overlay Networks with Encryption">
+    Enable encryption for sensitive data:
+    
+    ```yaml
+    networks:
+      secure-net:
+        driver: overlay
+        driver_opts:
+          encrypted: "true"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<Accordion title="Service tasks failing to start">
+  - Check service logs: `docker service logs service-name`
+  - Verify image exists and is accessible
+  - Check resource constraints are satisfiable
+  - Review placement constraints
+</Accordion>
+
+<Accordion title="Network connectivity issues">
+  - Verify overlay network is created: `docker network ls`
+  - Check firewall rules (ports 2377, 7946, 4789)
+  - Ensure nodes can communicate
+  - Review network driver: `docker network inspect network-name`
+</Accordion>
+
+<Accordion title="Manager node not responding">
+  - Check manager quorum: `docker node ls`
+  - Review manager logs: `journalctl -u docker`
+  - Verify Raft consensus is healthy
+  - Ensure sufficient manager nodes are available
+</Accordion>
+
+<Accordion title="Rolling update stuck">
+  - Check service logs for errors
+  - Review update configuration
+  - Verify health checks are passing
+  - Consider manual rollback: `docker service rollback service-name`
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Multi-Node Deployment" icon="server" href="/advanced/multi-node">
+    Learn to deploy across multiple servers
+  </Card>
+  <Card title="Networking" icon="network-wired" href="/advanced/networking">
+    Configure advanced networking
+  </Card>
+  <Card title="Volumes & Storage" icon="hard-drive" href="/advanced/volumes-storage">
+    Manage persistent storage in Swarm
+  </Card>
+  <Card title="Monitoring" icon="chart-line" href="/monitoring/overview">
+    Monitor your Swarm cluster
+  </Card>
+</CardGroup>

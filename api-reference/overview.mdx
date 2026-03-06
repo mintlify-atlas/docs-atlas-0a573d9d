@@ -1,0 +1,193 @@
+---
+title: 'API Overview'
+description: 'Learn about the Dokploy API architecture and how to interact with it programmatically'
+---
+
+## Introduction
+
+The Dokploy API provides programmatic access to all features available in the Dokploy platform. You can use the API to deploy applications, manage databases, configure servers, monitor resources, and orchestrate your entire infrastructure.
+
+## API Architecture
+
+Dokploy uses **tRPC** (TypeScript Remote Procedure Call) for its API architecture. tRPC provides end-to-end type safety and excellent developer experience, particularly when working with TypeScript clients.
+
+### What is tRPC?
+
+tRPC allows you to build fully type-safe APIs without schemas or code generation. The API definitions are written in TypeScript and automatically shared between the server and client, ensuring type safety across your entire stack.
+
+### Key Benefits
+
+- **Type Safety**: Full TypeScript type inference from server to client
+- **No Code Generation**: API types are automatically derived
+- **Runtime Validation**: Input validation using Zod schemas
+- **Modern DX**: Excellent developer experience with autocomplete and inline documentation
+
+## Base URL
+
+All API requests should be made to your Dokploy instance:
+
+```
+https://your-dokploy-instance.com/api
+```
+
+Replace `your-dokploy-instance.com` with your actual Dokploy domain.
+
+## Endpoint Structure
+
+Dokploy API endpoints follow the tRPC naming convention:
+
+```
+/api/{router}.{procedure}
+```
+
+**Components:**
+- `router`: The service category (e.g., `application`, `project`, `docker`)
+- `procedure`: The specific action to perform (e.g., `create`, `one`, `all`, `update`)
+
+### Example Endpoints
+
+```bash
+# Get all projects
+GET /api/project.all
+
+# Create an application
+POST /api/application.create
+
+# Get Docker containers
+GET /api/docker.getContainers
+
+# Restart a container
+POST /api/docker.restartContainer
+```
+
+## Available Routers
+
+Dokploy organizes its API into the following routers:
+
+| Router | Description |
+|--------|-------------|
+| `admin` | Administrative operations and monitoring setup |
+| `application` | Application management and deployment |
+| `backup` | Backup configuration and management |
+| `certificates` | SSL certificate management |
+| `cluster` | Multi-node cluster operations |
+| `compose` | Docker Compose stack management |
+| `deployment` | Deployment history and operations |
+| `destination` | Deployment destination configuration |
+| `docker` | Docker container and image management |
+| `domain` | Domain and routing configuration |
+| `environment` | Environment variable management |
+| `mariadb` | MariaDB database operations |
+| `mongo` | MongoDB database operations |
+| `mysql` | MySQL database operations |
+| `notification` | Notification settings and alerts |
+| `organization` | Organization and team management |
+| `postgres` | PostgreSQL database operations |
+| `project` | Project management operations |
+| `redis` | Redis database operations |
+| `registry` | Docker registry configuration |
+| `server` | Server management and configuration |
+| `settings` | Global settings management |
+| `user` | User management and authentication |
+
+## Request Types
+
+### Query Procedures (GET)
+
+Used for retrieving data. Parameters are passed as query strings.
+
+```bash
+GET /api/project.one?projectId=abc123
+```
+
+### Mutation Procedures (POST)
+
+Used for creating, updating, or deleting resources. Data is sent in the request body as JSON.
+
+```bash
+POST /api/application.create
+Content-Type: application/json
+
+{
+  "name": "my-app",
+  "environmentId": "env-123"
+}
+```
+
+## Response Format
+
+All API responses return JSON data:
+
+**Success Response:**
+```json
+{
+  "result": {
+    "data": {
+      // Response data here
+    }
+  }
+}
+```
+
+**Error Response:**
+```json
+{
+  "error": {
+    "message": "Error description",
+    "code": "ERROR_CODE",
+    "data": {
+      // Additional error details
+    }
+  }
+}
+```
+
+## HTTP Status Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| `200` | Success - Request completed successfully |
+| `400` | Bad Request - Invalid parameters or request body |
+| `401` | Unauthorized - Missing or invalid authentication |
+| `403` | Forbidden - Insufficient permissions |
+| `404` | Not Found - Resource does not exist |
+| `500` | Internal Server Error - Server-side error occurred |
+
+## Rate Limiting
+
+<Note>
+Rate limiting policies depend on your Dokploy instance configuration. Check with your administrator for specific limits.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Authentication"
+    icon="key"
+    href="/api-reference/authentication"
+  >
+    Learn how to authenticate your API requests
+  </Card>
+  <Card
+    title="Application API"
+    icon="rocket"
+    href="/api-reference/applications/overview"
+  >
+    Explore application management endpoints
+  </Card>
+  <Card
+    title="Project API"
+    icon="folder"
+    href="/api-reference/projects"
+  >
+    Manage projects programmatically
+  </Card>
+  <Card
+    title="Docker API"
+    icon="docker"
+    href="/api-reference/docker/containers"
+  >
+    Control Docker containers and images
+  </Card>
+</CardGroup>

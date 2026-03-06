@@ -1,0 +1,125 @@
+---
+title: "Monitoring Overview"
+description: "Learn about Dokploy's built-in monitoring and observability features for tracking server and container metrics"
+---
+
+Dokploy provides comprehensive monitoring and observability features to help you track the health and performance of your infrastructure. The monitoring system collects real-time metrics from both the host server and individual containers, allowing you to make informed decisions about resource allocation and scaling.
+
+## Architecture
+
+Dokploy's monitoring system consists of two main components:
+
+- **Server Monitoring**: Tracks system-level metrics including CPU, memory, disk, and network usage for the host machine
+- **Container Monitoring**: Collects metrics from Docker containers including CPU, memory, network I/O, and block I/O
+
+The monitoring service is powered by a lightweight Go application that runs alongside Dokploy and stores metrics in a local database with configurable retention periods.
+
+## Key Features
+
+### Real-Time Metrics Collection
+
+Monitor critical system resources in real-time with customizable refresh rates:
+
+- CPU usage and core information
+- Memory utilization and available RAM
+- Disk usage and I/O operations
+- Network traffic (input/output)
+- Container-specific resource consumption
+
+### Threshold Alerts
+
+Configure CPU and memory thresholds to receive notifications when resource usage exceeds defined limits. Alerts are sent through your configured notification channels.
+
+### Data Retention
+
+Control how long metrics are stored with configurable retention periods. The system automatically cleans up old metrics based on your settings to manage disk space efficiently.
+
+### Service Filtering
+
+Choose which containers to monitor using include/exclude lists. This allows you to focus on critical services and reduce monitoring overhead.
+
+## Monitoring Types
+
+### Free Monitoring (Default)
+
+The built-in free monitoring provides:
+- Real-time container metrics for Dokploy itself
+- Basic CPU and memory graphs
+- Network and disk I/O statistics
+- Last 24 hours of data retention
+
+Free monitoring is enabled by default and requires no configuration.
+
+### Advanced Monitoring
+
+Advanced monitoring offers:
+- Extended metrics history (configurable retention)
+- Custom refresh rates
+- Threshold-based alerting
+- Container service filtering
+- Multiple server monitoring support
+- Integration with notification services
+
+Advanced monitoring requires configuration through the Settings > Monitoring section.
+
+## Metrics Collected
+
+### Server Metrics
+
+| Metric | Description |
+|--------|-------------|
+| CPU Usage | Percentage of CPU utilization across all cores |
+| CPU Model | Processor model and specifications |
+| CPU Cores | Number of logical and physical cores |
+| Memory Used | RAM usage in percentage and GB |
+| Memory Total | Total available RAM |
+| Disk Usage | Percentage of disk space used |
+| Disk Total | Total disk capacity |
+| Network I/O | Incoming and outgoing network traffic |
+| Uptime | System uptime in seconds |
+
+### Container Metrics
+
+| Metric | Description |
+|--------|-------------|
+| CPU | Percentage of CPU used by the container |
+| Memory | RAM usage (used/total) and percentage |
+| Network | Input/output network traffic with units |
+| Block I/O | Read/write disk operations with units |
+| Container ID | Unique container identifier |
+| Container Name | Human-readable container name |
+
+## Getting Started
+
+To begin monitoring your infrastructure:
+
+1. Navigate to **Settings > Monitoring** in the Dokploy dashboard
+2. Configure your monitoring preferences (refresh rates, retention, thresholds)
+3. Set up notification integrations for alerts (optional)
+4. View real-time metrics in the **Monitoring** dashboard
+
+For detailed configuration instructions, see [Real-Time Metrics](/monitoring/real-time-metrics).
+
+## Use Cases
+
+### Performance Optimization
+
+Monitor resource usage patterns to identify bottlenecks and optimize application performance.
+
+### Capacity Planning
+
+Track historical trends to make informed decisions about infrastructure scaling and resource allocation.
+
+### Incident Response
+
+Receive instant notifications when thresholds are exceeded, enabling proactive issue resolution.
+
+### Cost Management
+
+Identify underutilized resources and right-size your infrastructure to reduce costs.
+
+## Next Steps
+
+- [Configure Real-Time Metrics](/monitoring/real-time-metrics)
+- [View Container Logs](/monitoring/logs)
+- [Set Up Notifications](/monitoring/notifications)

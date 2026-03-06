@@ -1,0 +1,246 @@
+---
+title: "Introduction to Dokploy"
+description: "A free, self-hostable Platform as a Service (PaaS) that simplifies deployment and management of applications and databases"
+---
+
+## What is Dokploy?
+
+Dokploy is a free, self-hostable Platform as a Service (PaaS) that simplifies the deployment and management of applications and databases. Built for developers who want the power of cloud platforms like Vercel, Heroku, or Netlify, but with complete control over their infrastructure.
+
+<Note>
+Dokploy is 100% open source under the Apache 2.0 license. You own your data, your infrastructure, and your deployment pipeline.
+</Note>
+
+## Why Dokploy?
+
+Modern application deployment shouldn't require extensive DevOps knowledge or expensive managed services. Dokploy bridges this gap by providing:
+
+<CardGroup cols={2}>
+  <Card title="Self-Hosted Freedom" icon="house">
+    Deploy on your own VPS or server. No vendor lock-in, no usage limits, complete data ownership.
+  </Card>
+  <Card title="Simple Yet Powerful" icon="wand-magic-sparkles">
+    Intuitive web interface with powerful features underneath. From hobby projects to production workloads.
+  </Card>
+  <Card title="Docker-Native" icon="docker">
+    Built on Docker and Docker Swarm. Deploy containers, compose stacks, and scale across multiple nodes.
+  </Card>
+  <Card title="Production Ready" icon="shield-check">
+    Automatic SSL certificates, real-time monitoring, automated backups, and zero-downtime deployments.
+  </Card>
+</CardGroup>
+
+## Quick Installation
+
+Get Dokploy running on your VPS in under 5 minutes:
+
+```bash
+curl -sSL https://dokploy.com/install.sh | sh
+```
+
+After installation, access the dashboard at `http://your-server-ip:3000` and complete the setup wizard.
+
+<Tip>
+Want to skip the installation? Try [Dokploy Cloud](https://app.dokploy.com) for a managed experience.
+</Tip>
+
+## Core Capabilities
+
+### Application Deployment
+
+Deploy applications from multiple sources with flexible build options:
+
+- **Source Types**: Git repositories (GitHub, GitLab, Bitbucket, Gitea), Docker registries, or raw Docker images
+- **Build Systems**: Nixpacks, Heroku Buildpacks, Paketo Buildpacks, Dockerfile, or static file hosting
+- **Languages**: Node.js, PHP, Python, Go, Ruby, and any language with Docker support
+- **Automation**: Automatic deployments on git push, manual triggers, or API-driven deployments
+
+```typescript
+// Application schema supports multiple source and build types
+sourceType: "github" | "gitlab" | "bitbucket" | "gitea" | "docker" | "git" | "drop"
+buildType: "dockerfile" | "heroku_buildpacks" | "paketo_buildpacks" | "nixpacks" | "static" | "railpack"
+```
+
+### Database Management
+
+Provision and manage production-ready databases with a single click:
+
+<CardGroup cols={3}>
+  <Card title="PostgreSQL" icon="database">
+    Fully managed PostgreSQL instances
+  </Card>
+  <Card title="MySQL" icon="database">
+    MySQL database hosting
+  </Card>
+  <Card title="MongoDB" icon="leaf">
+    NoSQL document database
+  </Card>
+  <Card title="MariaDB" icon="database">
+    MySQL-compatible database
+  </Card>
+  <Card title="Redis" icon="memory">
+    In-memory data store and cache
+  </Card>
+  <Card title="Custom Images" icon="docker">
+    Any database Docker image
+  </Card>
+</CardGroup>
+
+Each database includes:
+- Automatic configuration and user setup
+- Environment variable injection
+- Volume persistence
+- Backup scheduling to external storage
+- Resource limits and monitoring
+
+### Docker Compose Support
+
+Deploy complex multi-container applications using Docker Compose:
+
+```yaml
+# Native support for docker-compose.yml files
+composeType: "docker-compose" | "stack"
+```
+
+Features include:
+- Direct repository integration
+- Custom compose file paths
+- Environment variable management
+- Service isolation options
+- Automatic network configuration
+
+### Multi-Node Scaling
+
+Scale your applications across multiple servers using Docker Swarm:
+
+```typescript
+// Swarm-specific configuration options
+serviceModeSwarm: {
+  mode: "replicated" | "global",
+  replicas?: number
+}
+
+placementSwarm: {
+  constraints?: string[],
+  preferences?: Array<{ spread: string }>
+}
+```
+
+Distribute workloads, ensure high availability, and manage clusters through the Dokploy dashboard.
+
+## Architecture Overview
+
+Dokploy consists of several integrated components:
+
+<Steps>
+  <Step title="Core Application">
+    Next.js-based dashboard for managing all resources. Provides the web interface and API endpoints.
+  </Step>
+  
+  <Step title="Server Package">
+    Backend services handling Docker operations, deployments, database management, and system orchestration.
+  </Step>
+  
+  <Step title="Monitoring Service">
+    Go-based monitoring agent collecting real-time metrics for CPU, memory, disk, network, and container statistics.
+  </Step>
+  
+  <Step title="Scheduling Service">
+    Manages automated backups, cleanup tasks, and scheduled operations.
+  </Step>
+  
+  <Step title="Traefik Integration">
+    Automatic reverse proxy and load balancer for routing, SSL termination, and domain management.
+  </Step>
+</Steps>
+
+## Real-Time Monitoring
+
+Built-in monitoring provides visibility into your infrastructure:
+
+- **Server Metrics**: CPU usage, memory consumption, disk space, and network traffic
+- **Container Metrics**: Per-container resource usage with historical data
+- **Retention**: Configurable data retention (default: 7 days)
+- **Thresholds**: Set alerts for CPU and memory usage
+- **Notifications**: Receive alerts via Slack, Discord, Telegram, Email, and more
+
+```json
+// Example metrics response
+{
+  "timestamp": "2025-01-19T22:16:30.796129Z",
+  "CPU": 83.76,
+  "Memory": {
+    "percentage": 0.03,
+    "used": 2.262,
+    "total": 7.654,
+    "usedUnit": "MB",
+    "totalUnit": "GB"
+  },
+  "Network": {
+    "input": 306,
+    "output": 0,
+    "inputUnit": "B",
+    "outputUnit": "B"
+  }
+}
+```
+
+## Automated Backups
+
+Protect your data with scheduled backups:
+
+- **Database Backups**: Automated backups for PostgreSQL, MySQL, MongoDB, MariaDB
+- **Volume Backups**: Backup Docker Compose service volumes
+- **External Storage**: S3-compatible storage, local destinations
+- **Retention Policies**: Configure how many backups to keep
+- **Scheduling**: Cron-based scheduling for flexible backup windows
+
+## Notification System
+
+Stay informed about your deployments and infrastructure:
+
+<CardGroup cols={3}>
+  <Card title="Slack" icon="slack">
+    Team notifications
+  </Card>
+  <Card title="Discord" icon="discord">
+    Community alerts
+  </Card>
+  <Card title="Telegram" icon="telegram">
+    Mobile notifications
+  </Card>
+  <Card title="Email/Resend" icon="envelope">
+    Email alerts
+  </Card>
+  <Card title="Teams" icon="microsoft">
+    Microsoft Teams
+  </Card>
+  <Card title="Custom Webhooks" icon="webhook">
+    Custom integrations
+  </Card>
+</CardGroup>
+
+Notification events include:
+- Application deployments (success/failure)
+- Build errors
+- Database backups
+- Server threshold alerts
+- Docker cleanup operations
+- Dokploy system restarts
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Explore Features" icon="sparkles" href="/features">
+    Dive deep into all Dokploy capabilities
+  </Card>
+  <Card title="Installation Guide" icon="rocket" href="/getting-started/installation">
+    Set up Dokploy on your server
+  </Card>
+  <Card title="First Deployment" icon="upload" href="/getting-started/first-deployment">
+    Deploy your first application
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Automate with the REST API
+  </Card>
+</CardGroup>

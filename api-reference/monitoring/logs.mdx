@@ -1,0 +1,280 @@
+---
+title: 'Logs'
+description: 'Access and manage deployment logs and request statistics'
+---
+
+## Get Deployment Logs
+
+Retrieve all deployments for a specific application, compose project, or server.
+
+### GET `/deployment.all`
+
+Get all deployments for an application.
+
+<ParamField query="applicationId" type="string" required>
+  The unique identifier of the application
+</ParamField>
+
+### Authentication
+
+This endpoint requires authentication using an API key or session token.
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/deployment.all?applicationId=app_123" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+[
+  {
+    "deploymentId": "dep_abc123",
+    "applicationId": "app_123",
+    "status": "success",
+    "createdAt": "2024-03-15T10:00:00.000Z",
+    "completedAt": "2024-03-15T10:05:00.000Z",
+    "logPath": "/logs/dep_abc123.log"
+  }
+]
+```
+
+---
+
+## Get Deployments by Compose
+
+### GET `/deployment.allByCompose`
+
+Retrieve all deployments for a Docker Compose project.
+
+<ParamField query="composeId" type="string" required>
+  The unique identifier of the compose project
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/deployment.allByCompose?composeId=compose_456" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Get Deployments by Server
+
+### GET `/deployment.allByServer`
+
+Retrieve all deployments for a specific server.
+
+<ParamField query="serverId" type="string" required>
+  The unique identifier of the server
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/deployment.allByServer?serverId=server_789" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Get Deployments by Type
+
+### GET `/deployment.allByType`
+
+Retrieve deployments filtered by resource type.
+
+<ParamField query="id" type="string" required>
+  The unique identifier of the resource
+</ParamField>
+
+<ParamField query="type" type="string" required>
+  The type of deployment resource
+  
+  **Allowed values:**
+  - `application`
+  - `compose`
+  - `server`
+  - `schedule`
+  - `previewDeployment`
+  - `backup`
+  - `volumeBackup`
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/deployment.allByType?id=res_123&type=application" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Kill Deployment Process
+
+### POST `/deployment.killProcess`
+
+Terminate a running deployment process.
+
+<ParamField body="deploymentId" type="string" required>
+  The unique identifier of the deployment to terminate
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/deployment.killProcess" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "deploymentId": "dep_abc123"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "message": "Deployment process terminated"
+}
+```
+
+---
+
+## Read Request Statistics
+
+### POST `/settings.readStatsLogs`
+
+Retrieve access logs and request statistics with filtering and pagination.
+
+<Note>
+This endpoint is disabled on Dokploy Cloud instances.
+</Note>
+
+<ParamField body="page" type="number">
+  Page number for pagination (default: 1)
+</ParamField>
+
+<ParamField body="sort" type="object">
+  Sorting configuration for results
+</ParamField>
+
+<ParamField body="search" type="string">
+  Search term to filter logs
+</ParamField>
+
+<ParamField body="status" type="string">
+  Filter logs by HTTP status code
+</ParamField>
+
+<ParamField body="dateRange" type="object">
+  Date range filter for logs
+  
+  <ParamField body="start" type="string">
+    Start date in ISO format
+  </ParamField>
+  
+  <ParamField body="end" type="string">
+    End date in ISO format
+  </ParamField>
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.readStatsLogs" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "page": 1,
+    "search": "/api",
+    "status": "200",
+    "dateRange": {
+      "start": "2024-03-01T00:00:00.000Z",
+      "end": "2024-03-15T23:59:59.999Z"
+    }
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "data": [
+    {
+      "timestamp": "2024-03-15T10:30:15.000Z",
+      "method": "GET",
+      "path": "/api/projects",
+      "status": 200,
+      "duration": 45,
+      "ip": "192.168.1.100",
+      "userAgent": "Mozilla/5.0..."
+    }
+  ],
+  "totalCount": 1250
+}
+```
+
+---
+
+## Toggle Request Logging
+
+### POST `/settings.toggleRequests`
+
+Enable or disable request logging in Traefik.
+
+<Note>
+This endpoint is disabled on Dokploy Cloud instances.
+</Note>
+
+<ParamField body="enable" type="boolean" required>
+  Set to `true` to enable request logging, `false` to disable
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/settings.toggleRequests" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "enable": true
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "enabled": true
+}
+```
+
+---
+
+## Check Active Requests
+
+### GET `/settings.haveActivateRequests`
+
+Check if request logging is currently enabled.
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/settings.haveActivateRequests" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+{
+  "enabled": true,
+  "filePath": "/etc/dokploy/traefik/dynamic/access.log"
+}
+```

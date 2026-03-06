@@ -1,0 +1,85 @@
+---
+title: Database Management
+description: Manage PostgreSQL, MySQL, MongoDB, and Redis databases through the Dokploy API
+---
+
+Dokploy provides comprehensive API endpoints to manage multiple database types. Each database service can be created, configured, deployed, and monitored programmatically.
+
+## Supported Databases
+
+Dokploy supports the following database systems:
+
+- **PostgreSQL** - Powerful open-source relational database
+- **MySQL** - Popular relational database management system
+- **MongoDB** - NoSQL document database
+- **Redis** - In-memory data structure store
+
+## Common Operations
+
+All database services support the following operations:
+
+### Create
+Create a new database instance within an environment.
+
+### Deploy
+Deploy or redeploy a database service with its current configuration.
+
+### Start/Stop
+Control the running state of database containers.
+
+### Update
+Modify database configuration including resource limits, environment variables, and connection settings.
+
+### Remove
+Delete a database instance and its associated resources.
+
+### External Port
+Configure external ports for accessing databases from outside the Docker network.
+
+## Connection Strings
+
+Each database type has its own connection string format:
+
+### PostgreSQL
+```
+postgresql://[user]:[password]@[host]:[port]/[database]
+```
+
+### MySQL
+```
+mysql://[user]:[password]@[host]:[port]/[database]
+```
+
+### MongoDB
+```
+mongodb://[user]:[password]@[host]:[port]/[database]
+```
+
+### Redis
+```
+redis://:[password]@[host]:[port]
+```
+
+## Resource Management
+
+All databases support configuring:
+
+- **Memory Limits** - Maximum memory allocation
+- **Memory Reservation** - Guaranteed memory allocation
+- **CPU Limits** - Maximum CPU usage
+- **CPU Reservation** - Guaranteed CPU allocation
+
+## Environment Variables
+
+Each database can have custom environment variables added through the `saveEnvironment` endpoint. This is useful for database-specific configuration options.
+
+## Docker Images
+
+Dokploy uses official Docker images by default:
+
+- PostgreSQL: `postgres:18`
+- MySQL: `mysql:8`
+- MongoDB: `mongo:15`
+- Redis: `redis:8`
+
+Custom images can be specified during creation.

@@ -1,0 +1,383 @@
+---
+title: "Multi-Node Deployment"
+description: "Deploy and manage applications across multiple servers for high availability and scalability"
+---
+
+## Overview
+
+Dokploy's multi-node deployment capability allows you to distribute your applications and databases across multiple servers, providing high availability, load balancing, and horizontal scalability. This is achieved through Docker Swarm integration.
+
+<Note>
+Multi-node deployment requires Docker Swarm to be configured. If you haven't set up Docker Swarm yet, see the [Docker Swarm](/advanced/docker-swarm) guide.
+</Note>
+
+## Benefits of Multi-Node Deployment
+
+<CardGroup cols={2}>
+  <Card title="High Availability" icon="shield-check">
+    Automatic failover if a node goes down, ensuring zero downtime
+  </Card>
+  <Card title="Load Balancing" icon="scale-balanced">
+    Distribute traffic across multiple nodes automatically
+  </Card>
+  <Card title="Horizontal Scaling" icon="arrows-left-right">
+    Scale by adding more servers instead of upgrading hardware
+  </Card>
+  <Card title="Resource Optimization" icon="gauge-high">
+    Utilize resources across multiple machines efficiently
+  </Card>
+</CardGroup>
+
+## Architecture
+
+In a multi-node Dokploy setup:
+
+1. **Manager Node**: The primary Dokploy instance that orchestrates deployments
+2. **Worker Nodes**: Additional servers that run your applications and services
+3. **Overlay Network**: Secure network that connects all nodes
+4. **Service Discovery**: Automatic DNS-based service discovery
+
+## Adding a Server to Dokploy
+
+<Steps>
+  <Step title="Prepare the Remote Server">
+    Ensure the remote server meets the requirements:
+    
+    - Ubuntu 20.04+ or similar Linux distribution
+    - Docker installed (Dokploy can install it for you)
+    - SSH access with key-based authentication
+    - Port 2377 (cluster management) open for Swarm communication
+    - Port 7946 (node communication) open
+    - Port 4789 (overlay network) open
+  </Step>
+  
+  <Step title="Add Server in Dokploy Dashboard">
+    Navigate to **Settings** → **Servers** → **Add Server**
+    
+    Provide the following information:
+    
+    <ParamField path="name" type="string" required>
+      A friendly name for the server (e.g., "worker-1")
+    </ParamField>
+    
+    <ParamField path="ipAddress" type="string" required>
+      The IP address or hostname of the remote server
+    </ParamField>
+    
+    <ParamField path="port" type="number" default="22">
+      SSH port (default: 22)
+    </ParamField>
+    
+    <ParamField path="username" type="string" required>
+      SSH username (e.g., "root" or "ubuntu")
+    </ParamField>
+    
+    <ParamField path="sshKeyId" type="string" required>
+      Select the SSH key to use for authentication
+    </ParamField>
+  </Step>
+  
+  <Step title="Test Connection">
+    Click **Test Connection** to verify SSH connectivity before saving.
+  </Step>
+  
+  <Step title="Initialize the Server">
+    After adding, Dokploy will:
+    - Install Docker (if not present)
+    - Configure Docker daemon
+    - Join the Docker Swarm cluster
+    - Set up monitoring agents
+  </Step>
+</Steps>
+
+## Using the API
+
+You can also manage servers programmatically:
+
+```bash Create Server
+curl -X POST https://your-dokploy-instance.com/api/server.create \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "worker-1",
+    "ipAddress": "192.168.1.100",
+    "port": 22,
+    "username": "root",
+    "sshKeyId": "ssh-key-id"
+  }'
+```
+
+```bash List Servers
+curl https://your-dokploy-instance.com/api/server.all \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+## Deploying to Specific Servers
+
+### Application Placement
+
+When creating or updating an application, you can specify which server(s) should run it:
+
+<Tabs>
+  <Tab title="Via Dashboard">
+    1. Go to your application settings
+    2. Navigate to **Advanced** → **Deployment**
+    3. Under **Server**, select the target server
+    4. For Swarm mode, use **Placement Constraints**
+  </Tab>
+  
+  <Tab title="Via API">
+    ```bash
+    curl -X POST https://your-dokploy-instance.com/api/application.update \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "applicationId": "app-id",
+        "serverId": "server-id"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### Swarm Placement Constraints
+
+For more granular control, use Docker Swarm placement constraints:
+
+```yaml docker-compose.yml
+services:
+  web:
+    image: myapp:latest
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+          - node.labels.environment == production
+          - node.labels.region == us-east
+```
+
+## Service Replication
+
+Run multiple replicas of your application across nodes:
+
+<CodeGroup>
+```yaml docker-compose.yml
+services:
+  api:
+    image: myapi:latest
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+```
+
+```bash Via API
+curl -X POST https://your-dokploy-instance.com/api/application.update \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-id",
+    "replicas": 3
+  }'
+```
+</CodeGroup>
+
+## Load Balancing
+
+Docker Swarm provides built-in load balancing:
+
+- **Ingress Load Balancing**: Automatically distributes external requests across replicas
+- **Internal Load Balancing**: Service discovery with DNS round-robin
+- **Traefik Integration**: Dokploy uses Traefik for advanced routing and SSL termination
+
+## Health Checks and Failover
+
+Configure health checks to ensure automatic failover:
+
+```yaml docker-compose.yml
+services:
+  app:
+    image: myapp:latest
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      replicas: 3
+      update_config:
+        failure_action: rollback
+        monitor: 60s
+```
+
+## Monitoring Multi-Node Deployments
+
+Dokploy provides centralized monitoring across all nodes:
+
+- **Node Metrics**: CPU, memory, disk, and network per server
+- **Service Metrics**: Container-level metrics for each replica
+- **Aggregate Views**: Combined metrics across all nodes
+
+<Tip>
+Enable the monitoring service on all nodes for comprehensive visibility. See [Monitoring](/monitoring/overview).
+</Tip>
+
+## Database Considerations
+
+<Warning>
+Databases should be deployed with careful planning in multi-node environments:
+
+- Use persistent volumes with backup strategies
+- Consider managed database services for production
+- Configure replication for high availability
+- Pin database containers to specific nodes with placement constraints
+</Warning>
+
+### Example: PostgreSQL with Node Pinning
+
+```yaml
+services:
+  postgres:
+    image: postgres:16
+    deploy:
+      placement:
+        constraints:
+          - node.labels.database == postgres-primary
+      replicas: 1
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+    driver: local
+```
+
+## Networking Across Nodes
+
+Dokploy creates an overlay network for multi-node communication:
+
+```yaml
+networks:
+  dokploy-network:
+    driver: overlay
+    attachable: true
+    encrypt: true
+```
+
+- **Encrypted**: All inter-node traffic is encrypted
+- **Automatic Service Discovery**: Services can communicate using service names
+- **Isolated**: Each project/stack has its own network namespace
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Odd Number of Manager Nodes">
+    For high availability of the control plane, use 3 or 5 manager nodes. This provides fault tolerance using Raft consensus.
+  </Accordion>
+  
+  <Accordion title="Separate Manager and Worker Roles">
+    In production, dedicate nodes to either manager or worker roles. Avoid running application workloads on manager nodes.
+  </Accordion>
+  
+  <Accordion title="Configure Resource Limits">
+    Set CPU and memory limits to prevent a single service from consuming all node resources:
+    
+    ```yaml
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Node Labels for Organization">
+    Label nodes by environment, region, or capability:
+    
+    ```bash
+    docker node update --label-add environment=production worker-1
+    docker node update --label-add region=us-east worker-1
+    docker node update --label-add ssd=true worker-1
+    ```
+  </Accordion>
+  
+  <Accordion title="Implement Rolling Updates">
+    Configure update strategies to avoid downtime:
+    
+    ```yaml
+    deploy:
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 60s
+    ```
+  </Accordion>
+  
+  <Accordion title="Monitor Node Health">
+    Regularly check node status and set up alerts for node failures:
+    
+    ```bash
+    docker node ls
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+### Node Connection Issues
+
+<Accordion title="Cannot connect to remote server">
+  - Verify SSH key is correctly configured
+  - Check firewall rules allow SSH (port 22)
+  - Ensure the user has sudo/root privileges
+  - Test SSH manually: `ssh user@server-ip`
+</Accordion>
+
+<Accordion title="Node fails to join swarm">
+  - Verify ports 2377, 7946, and 4789 are open
+  - Check if Docker is running: `systemctl status docker`
+  - Review swarm join logs: `docker swarm join-token worker`
+  - Ensure network connectivity between nodes
+</Accordion>
+
+### Service Deployment Issues
+
+<Accordion title="Service not starting on worker nodes">
+  - Check placement constraints are satisfied
+  - Verify node has required labels
+  - Review service logs: `docker service logs service-name`
+  - Check resource availability on the node
+</Accordion>
+
+<Accordion title="Load balancing not working">
+  - Ensure all replicas are healthy
+  - Verify ingress network is properly configured
+  - Check Traefik configuration and logs
+  - Test with direct node IP to isolate the issue
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Docker Swarm" icon="docker" href="/advanced/docker-swarm">
+    Learn more about Docker Swarm configuration
+  </Card>
+  <Card title="Networking" icon="network-wired" href="/advanced/networking">
+    Configure advanced networking options
+  </Card>
+  <Card title="Monitoring" icon="chart-line" href="/monitoring/overview">
+    Set up monitoring for your cluster
+  </Card>
+  <Card title="Backups" icon="clock" href="/advanced/backups">
+    Configure backups for distributed deployments
+  </Card>
+</CardGroup>

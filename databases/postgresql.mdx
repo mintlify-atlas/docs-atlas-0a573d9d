@@ -1,0 +1,320 @@
+---
+title: PostgreSQL
+description: Deploy and manage PostgreSQL databases in Dokploy
+---
+
+PostgreSQL is a powerful, open-source relational database system. Dokploy makes it easy to deploy and manage PostgreSQL instances as Docker services.
+
+## Creating a PostgreSQL Database
+
+To create a PostgreSQL database in Dokploy:
+
+1. Navigate to your project
+2. Select the environment (e.g., Production, Staging)
+3. Click "Add Service" and select "PostgreSQL"
+4. Configure the following settings:
+
+### Basic Configuration
+
+- **Name** - A friendly name for your database
+- **App Name** - The Docker service name (used for internal DNS)
+- **Description** - Optional description
+- **Docker Image** - Default: `postgres:latest` (recommended to use specific version like `postgres:16`)
+
+### Database Credentials
+
+- **Database Name** - Name of the database to create
+- **Database User** - Username for database access
+- **Database Password** - Password for the user
+
+<Note>
+These credentials are automatically configured via environment variables:
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+</Note>
+
+### Advanced Settings
+
+- **External Port** - Optional port to expose PostgreSQL externally (default internal port: 5432)
+- **Command** - Override the default container command
+- **Args** - Additional arguments to pass to PostgreSQL
+- **Environment Variables** - Additional custom environment variables
+
+## Connection Strings
+
+### Internal Connection (from other services)
+
+When connecting from applications within the same Docker network:
+
+```bash
+postgresql://[user]:[password]@[appName]:5432/[database]
+```
+
+**Example:**
+```bash
+postgresql://myuser:mypassword@my-postgres:5432/myapp
+```
+
+### External Connection
+
+If you've configured an external port (e.g., 5433):
+
+```bash
+postgresql://[user]:[password]@[host]:[externalPort]/[database]
+```
+
+**Example:**
+```bash
+postgresql://myuser:mypassword@your-server.com:5433/myapp
+```
+
+### Connection String Formats
+
+<Tabs>
+  <Tab title="Standard URI">
+    ```bash
+    postgresql://username:password@hostname:5432/database
+    ```
+  </Tab>
+  <Tab title="psql Command">
+    ```bash
+    psql -h hostname -p 5432 -U username -d database
+    ```
+  </Tab>
+  <Tab title="Node.js (pg)">
+    ```javascript
+    const { Client } = require('pg');
+    
+    const client = new Client({
+      host: 'my-postgres',
+      port: 5432,
+      user: 'myuser',
+      password: 'mypassword',
+      database: 'myapp'
+    });
+    ```
+  </Tab>
+  <Tab title="Python (psycopg2)">
+    ```python
+    import psycopg2
+    
+    conn = psycopg2.connect(
+        host="my-postgres",
+        port=5432,
+        user="myuser",
+        password="mypassword",
+        database="myapp"
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## Environment Variables
+
+PostgreSQL containers support these environment variables:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `POSTGRES_DB` | Database name | Yes |
+| `POSTGRES_USER` | Database user | Yes |
+| `POSTGRES_PASSWORD` | User password | Yes |
+| `POSTGRES_INITDB_ARGS` | Additional initdb arguments | No |
+| `PGDATA` | Data directory path | No |
+
+Dokploy automatically sets the required variables. You can add custom variables in the database settings.
+
+## Data Persistence
+
+PostgreSQL data is stored in a Docker volume mounted at the data directory (path varies by image version):
+
+- PostgreSQL 14+: `/var/lib/postgresql/data`
+- Older versions may use different paths
+
+The volume is named `{appName}-data` and persists even when the container is stopped or removed.
+
+## Resource Configuration
+
+Configure resource limits for your PostgreSQL instance:
+
+```yaml
+Memory Limit: 2GB        # Maximum memory
+Memory Reservation: 1GB   # Guaranteed memory
+CPU Limit: 2.0           # Maximum CPU cores
+CPU Reservation: 0.5     # Guaranteed CPU cores
+```
+
+<Tip>
+For production workloads, allocate at least 2GB of memory and 1 CPU core. Adjust based on your specific workload.
+</Tip>
+
+## Operations
+
+### Starting the Database
+
+Click the "Start" button in the Dokploy UI or use the API:
+
+```bash
+POST /api/postgres/start
+{
+  "postgresId": "your-postgres-id"
+}
+```
+
+### Stopping the Database
+
+Click the "Stop" button or use the API:
+
+```bash
+POST /api/postgres/stop
+{
+  "postgresId": "your-postgres-id"
+}
+```
+
+### Reloading the Database
+
+Reload applies configuration changes by stopping and starting the service:
+
+```bash
+POST /api/postgres/reload
+{
+  "postgresId": "your-postgres-id"
+}
+```
+
+### Rebuilding the Database
+
+<Warning>
+Rebuilding will delete all data. Make sure to backup first!
+</Warning>
+
+```bash
+POST /api/postgres/rebuild
+{
+  "postgresId": "your-postgres-id"
+}
+```
+
+## Accessing PostgreSQL CLI
+
+To access the PostgreSQL CLI (psql) in the running container:
+
+```bash
+docker exec -it $(docker ps -qf "name=my-postgres") psql -U myuser -d myapp
+```
+
+Or use the Dokploy terminal feature in the UI.
+
+## Common PostgreSQL Commands
+
+```sql
+-- List all databases
+\l
+
+-- Connect to database
+\c database_name
+
+-- List all tables
+\dt
+
+-- Describe table
+\d table_name
+
+-- Show current database
+SELECT current_database();
+
+-- Show current user
+SELECT current_user;
+
+-- Create database
+CREATE DATABASE new_database;
+
+-- Create user
+CREATE USER new_user WITH PASSWORD 'password';
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE myapp TO myuser;
+```
+
+## Backups
+
+Dokploy provides automated backup functionality for PostgreSQL. Backups are performed using `pg_dump`:
+
+```bash
+pg_dump -U username -d database > backup.sql
+```
+
+See the [Backups](/databases/backups) page for detailed backup configuration.
+
+## Troubleshooting
+
+### Connection Refused
+
+- Verify the service is running: Check the status in Dokploy UI
+- Check the service name: Use the exact `appName` for internal connections
+- Verify network: Ensure your application is in the same Docker network
+
+### Authentication Failed
+
+- Verify credentials in the database settings
+- Check environment variables are correctly set
+- Try recreating the database with correct credentials
+
+### Out of Memory
+
+- Increase memory limits in resource configuration
+- Check PostgreSQL logs for memory-related errors
+- Consider optimizing queries or adding more resources
+
+### Data Volume Issues
+
+- Check volume mounts in Docker: `docker volume ls`
+- Inspect volume: `docker volume inspect {appName}-data`
+- Verify mount path matches PostgreSQL version
+
+## Best Practices
+
+1. **Use Specific Versions** - Pin to specific PostgreSQL versions (e.g., `postgres:16.1`) instead of `latest`
+2. **Strong Passwords** - Use strong, randomly generated passwords for production
+3. **Regular Backups** - Configure automated backups and test restoration
+4. **Monitor Resources** - Watch memory and CPU usage, adjust limits as needed
+5. **Connection Pooling** - Use connection pooling in your applications (e.g., pgBouncer)
+6. **Read Replicas** - For high-traffic applications, consider read replicas
+7. **Maintenance Windows** - Schedule regular maintenance for updates and optimization
+
+## Performance Tuning
+
+Add these environment variables to tune PostgreSQL:
+
+```bash
+# Shared buffers (25% of memory)
+shared_buffers=512MB
+
+# Work memory per operation
+work_mem=16MB
+
+# Maintenance work memory
+maintenance_work_mem=128MB
+
+# Effective cache size (50-75% of memory)
+effective_cache_size=2GB
+
+# Max connections
+max_connections=100
+```
+
+<Tip>
+For more advanced configuration, mount a custom `postgresql.conf` file using volume mounts.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Backups" icon="clock" href="/databases/backups">
+    Configure automated PostgreSQL backups
+  </Card>
+  <Card title="Environment Variables" icon="gear" href="/core-concepts/environments">
+    Learn about environment variable management
+  </Card>
+</CardGroup>

@@ -1,0 +1,470 @@
+---
+title: Database Backups
+description: Configure automated backups for your databases in Dokploy
+---
+
+Dokploy provides automated backup functionality for all supported database types. Backups can be scheduled, stored in various destinations, and restored when needed.
+
+## Supported Databases
+
+Automated backups are available for:
+
+- PostgreSQL (using `pg_dump`)
+- MySQL (using `mysqldump`)
+- MariaDB (using `mariadb-dump`)
+- MongoDB (using `mongodump`)
+- Compose services (using tar archives)
+
+<Note>
+Redis backups are supported if persistence is enabled (RDB or AOF).
+</Note>
+
+## Creating a Backup Configuration
+
+To create a backup configuration:
+
+1. Navigate to your database service
+2. Go to the "Backups" tab
+3. Click "Create Backup"
+4. Configure the backup settings
+
+### Basic Configuration
+
+- **Schedule** - Cron expression for backup frequency
+- **Enabled** - Whether the backup is active
+- **Destination** - Where to store backups (S3, local, etc.)
+- **Backups to Keep** - Number of recent backups to retain
+
+### Cron Schedule Examples
+
+```bash
+# Every day at 2 AM
+0 2 * * *
+
+# Every 6 hours
+0 */6 * * *
+
+# Every Sunday at midnight
+0 0 * * 0
+
+# Every weekday at 3 AM
+0 3 * * 1-5
+
+# Every hour
+0 * * * *
+
+# Twice a day (2 AM and 2 PM)
+0 2,14 * * *
+```
+
+<Tip>
+Use [Crontab Guru](https://crontab.guru/) to help create and understand cron expressions.
+</Tip>
+
+## Backup Destinations
+
+Dokploy supports multiple backup destinations:
+
+### S3-Compatible Storage
+
+Store backups in S3-compatible object storage (AWS S3, MinIO, DigitalOcean Spaces, etc.):
+
+- **Bucket** - S3 bucket name
+- **Region** - S3 region
+- **Access Key** - S3 access key ID
+- **Secret Key** - S3 secret access key
+- **Endpoint** - Custom endpoint for S3-compatible services
+
+### Configuration
+
+Backups are uploaded using `rclone` with the following format:
+
+```bash
+rclone copy /backup/file.sql :s3:bucket/path/
+```
+
+## Backup Process
+
+### PostgreSQL Backups
+
+PostgreSQL backups are created using `pg_dump`:
+
+```bash
+pg_dump -U username -d database > backup.sql
+```
+
+The backup includes:
+- All database schemas
+- Tables and data
+- Indexes
+- Constraints
+- Views and functions
+
+### MySQL/MariaDB Backups
+
+MySQL and MariaDB backups are created using `mysqldump` or `mariadb-dump`:
+
+```bash
+mysqldump -u username -p database > backup.sql
+```
+
+The backup includes:
+- All database tables
+- Data and schema
+- Triggers and procedures
+- Views
+
+### MongoDB Backups
+
+MongoDB backups are created using `mongodump`:
+
+```bash
+mongodump --uri="mongodb://user:pass@host/?authSource=admin" --out=/backup
+```
+
+The backup includes:
+- All collections
+- Documents (BSON format)
+- Indexes
+
+### Compose Backups
+
+Compose service backups create tar archives of:
+- Docker volumes
+- Configuration files
+- Application data
+
+## Manual Backups
+
+You can trigger manual backups at any time:
+
+### Via UI
+
+1. Navigate to your database
+2. Go to the "Backups" tab
+3. Click "Run Backup Now"
+
+### Via API
+
+<Tabs>
+  <Tab title="PostgreSQL">
+    ```bash
+    POST /api/backup/manualBackupPostgres
+    {
+      "backupId": "your-backup-id"
+    }
+    ```
+  </Tab>
+  <Tab title="MySQL">
+    ```bash
+    POST /api/backup/manualBackupMySql
+    {
+      "backupId": "your-backup-id"
+    }
+    ```
+  </Tab>
+  <Tab title="MariaDB">
+    ```bash
+    POST /api/backup/manualBackupMariadb
+    {
+      "backupId": "your-backup-id"
+    }
+    ```
+  </Tab>
+  <Tab title="MongoDB">
+    ```bash
+    POST /api/backup/manualBackupMongo
+    {
+      "backupId": "your-backup-id"
+    }
+    ```
+  </Tab>
+  <Tab title="Compose">
+    ```bash
+    POST /api/backup/manualBackupCompose
+    {
+      "backupId": "your-backup-id"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Retention Policy
+
+Dokploy automatically manages backup retention:
+
+- Set the "Backups to Keep" value (e.g., 7 for one week)
+- Old backups are automatically deleted after each successful backup
+- Keeps only the most recent N backups
+
+<Warning>
+Make sure to set an appropriate retention period. Very short retention (1-2 backups) increases risk of data loss.
+</Warning>
+
+## Restoring Backups
+
+To restore a backup:
+
+1. Navigate to your database
+2. Go to the "Backups" tab
+3. Find the backup file you want to restore
+4. Click "Restore"
+5. Confirm the restoration
+
+### Restore Process
+
+The restore process varies by database type:
+
+<Tabs>
+  <Tab title="PostgreSQL">
+    ```bash
+    # Download backup from S3
+    rclone copy :s3:bucket/backup.sql /tmp/
+    
+    # Restore to database
+    psql -U username -d database < /tmp/backup.sql
+    ```
+  </Tab>
+  <Tab title="MySQL/MariaDB">
+    ```bash
+    # Download backup from S3
+    rclone copy :s3:bucket/backup.sql /tmp/
+    
+    # Restore to database
+    mysql -u username -p database < /tmp/backup.sql
+    ```
+  </Tab>
+  <Tab title="MongoDB">
+    ```bash
+    # Download backup from S3
+    rclone copy :s3:bucket/backup/ /tmp/backup/
+    
+    # Restore to database
+    mongorestore --uri="mongodb://user:pass@host/?authSource=admin" /tmp/backup/
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+Restoring a backup will overwrite existing data. Make sure to backup current data before restoring.
+</Warning>
+
+## Backup Monitoring
+
+### Check Backup Status
+
+Monitor your backups through:
+
+1. **Dokploy UI** - View backup history and status
+2. **Logs** - Check logs for backup execution details
+3. **Storage** - Verify files in your backup destination
+
+### Backup Notifications
+
+Configure notifications for backup failures:
+
+- Email notifications
+- Webhook notifications
+- Slack/Discord integrations
+
+## Best Practices
+
+### 1. Regular Testing
+
+Regularly test backup restoration:
+
+```bash
+# Test restore in a separate database
+1. Create a test database
+2. Restore backup to test database
+3. Verify data integrity
+4. Delete test database
+```
+
+### 2. Multiple Destinations
+
+Store backups in multiple locations:
+
+- Primary: S3 bucket
+- Secondary: Different region or provider
+- Tertiary: Local storage for recent backups
+
+### 3. Encryption
+
+Encrypt sensitive backups:
+
+```bash
+# Encrypt backup before upload
+openssl enc -aes-256-cbc -in backup.sql -out backup.sql.enc
+
+# Decrypt before restore
+openssl enc -d -aes-256-cbc -in backup.sql.enc -out backup.sql
+```
+
+### 4. Backup Verification
+
+Automate backup verification:
+
+- Check file size (should not be zero)
+- Verify file format (valid SQL, BSON, etc.)
+- Test restore periodically
+
+### 5. Documentation
+
+Document your backup strategy:
+
+- Backup schedule
+- Retention policy
+- Restore procedures
+- Emergency contacts
+
+## Troubleshooting
+
+### Backup Failed
+
+**Check database access:**
+```bash
+# PostgreSQL
+psql -U username -d database -c "SELECT 1"
+
+# MySQL
+mysql -u username -p database -e "SELECT 1"
+
+# MongoDB
+mongosh --uri="mongodb://user:pass@host" --eval "db.version()"
+```
+
+**Check disk space:**
+```bash
+df -h
+docker system df
+```
+
+**Check destination access:**
+```bash
+# Test S3 connection
+rclone ls :s3:bucket/
+```
+
+### Backup Too Large
+
+**Compress backups:**
+```bash
+# PostgreSQL with compression
+pg_dump database | gzip > backup.sql.gz
+
+# MySQL with compression
+mysqldump database | gzip > backup.sql.gz
+```
+
+**Split large backups:**
+```bash
+# Split backup into smaller files
+split -b 1G backup.sql backup.sql.part-
+```
+
+### Restore Failed
+
+**Check backup integrity:**
+```bash
+# Verify SQL file
+head -n 10 backup.sql
+tail -n 10 backup.sql
+
+# Check for errors
+grep -i error backup.sql
+```
+
+**Restore with verbose logging:**
+```bash
+# PostgreSQL
+psql -U username -d database -f backup.sql -v ON_ERROR_STOP=1
+
+# MySQL
+mysql -u username -p database --verbose < backup.sql
+```
+
+## Advanced Configuration
+
+### Custom Backup Scripts
+
+Create custom backup scripts for advanced scenarios:
+
+```bash
+#!/bin/bash
+# Custom PostgreSQL backup with pre/post hooks
+
+# Pre-backup hook
+echo "Starting backup at $(date)"
+
+# Backup
+pg_dump -U username -d database > backup.sql
+
+# Compress
+gzip backup.sql
+
+# Upload to S3
+rclone copy backup.sql.gz :s3:bucket/backups/
+
+# Post-backup hook
+echo "Backup completed at $(date)"
+
+# Cleanup
+rm backup.sql.gz
+```
+
+### Incremental Backups
+
+For large databases, consider incremental backups:
+
+```bash
+# PostgreSQL WAL archiving
+archive_mode = on
+archive_command = 'rclone copy %p :s3:bucket/wal/%f'
+```
+
+### Point-in-Time Recovery
+
+Enable continuous archiving for PostgreSQL:
+
+1. Enable WAL archiving
+2. Take regular base backups
+3. Archive WAL files
+4. Restore to specific point in time
+
+## Backup Costs
+
+### Storage Costs
+
+- **S3 Standard**: ~$0.023/GB/month
+- **S3 Infrequent Access**: ~$0.0125/GB/month
+- **S3 Glacier**: ~$0.004/GB/month
+
+### Bandwidth Costs
+
+- **Upload**: Usually free
+- **Download**: ~$0.09/GB
+
+### Optimization
+
+1. **Compression** - Reduce storage by 70-90%
+2. **Lifecycle Policies** - Move old backups to cheaper storage
+3. **Deduplication** - Remove duplicate data
+4. **Incremental Backups** - Backup only changes
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="PostgreSQL" icon="database" href="/databases/postgresql">
+    Learn more about PostgreSQL backups
+  </Card>
+  <Card title="MongoDB" icon="database" href="/databases/mongodb">
+    Learn more about MongoDB backups
+  </Card>
+  <Card title="Destinations" icon="server" href="/features/destinations">
+    Configure backup destinations
+  </Card>
+  <Card title="Monitoring" icon="chart-line" href="/features/monitoring">
+    Monitor backup health
+  </Card>
+</CardGroup>

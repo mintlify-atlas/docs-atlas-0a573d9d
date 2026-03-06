@@ -1,0 +1,198 @@
+---
+title: 'Deployments'
+description: 'Manage and monitor deployments in Dokploy'
+---
+
+## Overview
+
+Deployments in Dokploy track the build and deployment history of your applications and compose services. Each deployment contains logs, status, and metadata about the build process.
+
+## Get Application Deployments
+
+Retrieve all deployments for a specific application.
+
+<ParamField query="applicationId" type="string" required>
+  The unique identifier of the application.
+</ParamField>
+
+### Response
+
+Returns an array of deployment objects with details about each deployment including:
+- Deployment ID and status
+- Creation timestamp
+- Title and description
+- Build logs
+- Commit information (if from Git)
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/deployment.all?applicationId=app-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Get Compose Deployments
+
+Retrieve all deployments for a Docker Compose application.
+
+<ParamField query="composeId" type="string" required>
+  The unique identifier of the compose application.
+</ParamField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/deployment.allByCompose?composeId=compose-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Get Server Deployments
+
+Get all deployments for applications running on a specific server.
+
+<ParamField query="serverId" type="string" required>
+  The server ID to query deployments for.
+</ParamField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/deployment.allByServer?serverId=server-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Get All Deployments (Centralized)
+
+Retrieve all deployments across your organization.
+
+### Response
+
+Returns a centralized view of all deployments for applications and services you have access to.
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/deployment.allCentralized" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Get Deployment Queue
+
+View the current deployment queue showing pending and in-progress builds.
+
+### Response
+
+Returns an array of queued jobs with:
+- Job ID and name
+- Current state (waiting, active, completed, failed)
+- Timestamps (queued, started, finished)
+- Service path information
+- Failure reason (if applicable)
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/deployment.queueList" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Get Deployments by Type
+
+Retrieve deployments for a specific service by type.
+
+<ParamField query="type" type="string" required>
+  The service type: `application`, `compose`, `postgres`, `mysql`, `mariadb`, `mongo`, or `redis`.
+</ParamField>
+
+<ParamField query="id" type="string" required>
+  The service ID to get deployments for.
+</ParamField>
+
+```bash cURL
+curl -X GET "https://your-dokploy-instance.com/api/deployment.allByType?type=application&id=app-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Kill Deployment Process
+
+Force stop a running deployment.
+
+<ParamField body="deploymentId" type="string" required>
+  The ID of the deployment to terminate.
+</ParamField>
+
+<Warning>
+  This will forcefully kill the deployment process. Use with caution as it may leave the application in an inconsistent state.
+</Warning>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/deployment.killProcess" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "deploymentId": "deploy-123"
+  }'
+```
+
+## Delete Deployment
+
+Remove a deployment from the history.
+
+<ParamField body="deploymentId" type="string" required>
+  The ID of the deployment to delete.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/deployment.removeDeployment" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "deploymentId": "deploy-123"
+  }'
+```
+
+## Deployment Status
+
+Deployments can have the following statuses:
+
+<ResponseField name="idle" type="string">
+  Deployment is queued but not started.
+</ResponseField>
+
+<ResponseField name="running" type="string">
+  Deployment is currently in progress.
+</ResponseField>
+
+<ResponseField name="done" type="string">
+  Deployment completed successfully.
+</ResponseField>
+
+<ResponseField name="error" type="string">
+  Deployment failed with errors.
+</ResponseField>
+
+## Deployment Workflow
+
+A typical deployment goes through these stages:
+
+1. **Queued** - Deployment is added to the queue
+2. **Running** - Build process starts
+   - Clone repository (if from Git)
+   - Build Docker image
+   - Push to registry (if configured)
+   - Update container configuration
+3. **Deploy** - Start new containers
+4. **Health Check** - Verify application is running
+5. **Done** - Deployment complete
+
+## Monitoring Deployments
+
+### View Logs
+
+Deployment logs are included in the deployment response and contain:
+- Build output
+- Docker commands
+- Error messages
+- Timestamps for each step
+
+### Rollback
+
+To rollback a deployment:
+1. Get the list of deployments
+2. Find a previous successful deployment
+3. Use the rollback endpoint (if enabled) or redeploy the previous version
+
+```bash Example: Get Recent Deployments
+curl -X GET "https://your-dokploy-instance.com/api/deployment.all?applicationId=app-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```

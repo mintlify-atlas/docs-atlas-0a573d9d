@@ -1,0 +1,719 @@
+---
+title: Notifications
+description: Configure notifications for deployments, backups, and system events across multiple channels
+---
+
+## Overview
+
+Dokploy can send notifications to multiple channels when important events occur. Configure notifications once and receive alerts for deployments, errors, backups, and system events.
+
+## Supported Channels
+
+Dokploy integrates with 10+ notification services:
+
+- **Slack** - Team messaging platform
+- **Discord** - Community and team chat
+- **Telegram** - Instant messaging
+- **Email** - SMTP email notifications
+- **Resend** - Modern email API
+- **Gotify** - Self-hosted push notifications
+- **Ntfy** - Simple HTTP-based notifications
+- **Pushover** - Push notifications for iOS and Android
+- **Lark** - Enterprise collaboration platform
+- **Microsoft Teams** - Team collaboration
+- **Custom** - Webhook to any HTTP endpoint
+
+## Event Types
+
+Configure which events trigger notifications:
+
+<ParamField path="appDeploy" type="boolean" default="false">
+  Notify when applications are successfully deployed
+</ParamField>
+
+<ParamField path="appBuildError" type="boolean" default="false">
+  Notify when application builds or deployments fail
+</ParamField>
+
+<ParamField path="databaseBackup" type="boolean" default="false">
+  Notify when database backups complete or fail
+</ParamField>
+
+<ParamField path="volumeBackup" type="boolean" default="false">
+  Notify when volume backups complete or fail
+</ParamField>
+
+<ParamField path="dokployRestart" type="boolean" default="false">
+  Notify when Dokploy server restarts
+</ParamField>
+
+<ParamField path="dockerCleanup" type="boolean" default="false">
+  Notify when Docker cleanup tasks run
+</ParamField>
+
+<ParamField path="serverThreshold" type="boolean" default="false">
+  Notify when server CPU or memory exceeds configured thresholds
+</ParamField>
+
+## Slack
+
+Send notifications to Slack channels using webhooks.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this notification channel
+  
+  ```bash
+  Production Deployments
+  ```
+</ParamField>
+
+<ParamField path="webhookUrl" type="string" required>
+  Slack webhook URL
+  
+  ```bash
+  https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXX
+  ```
+</ParamField>
+
+<ParamField path="channel" type="string">
+  Slack channel name (optional, defaults to webhook's configured channel)
+  
+  ```bash
+  #deployments
+  ```
+</ParamField>
+
+### Creating a Slack Webhook
+
+1. Go to [Slack API: Incoming Webhooks](https://api.slack.com/messaging/webhooks)
+2. Create a new app or select existing one
+3. Enable Incoming Webhooks
+4. Add webhook to workspace
+5. Select channel and copy webhook URL
+
+### Example
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.createSlack \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production Alerts",
+    "webhookUrl": "https://hooks.slack.com/services/T00000000/B00000000/XXX",
+    "channel": "#deployments",
+    "appDeploy": true,
+    "appBuildError": true,
+    "databaseBackup": true
+  }'
+```
+
+## Discord
+
+Send notifications to Discord channels using webhooks.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this notification channel
+</ParamField>
+
+<ParamField path="webhookUrl" type="string" required>
+  Discord webhook URL
+  
+  ```bash
+  https://discord.com/api/webhooks/123456789/abcdefghijk
+  ```
+</ParamField>
+
+<ParamField path="decoration" type="boolean">
+  Enable rich embeds with colors and formatting
+</ParamField>
+
+### Creating a Discord Webhook
+
+1. Open Discord channel settings
+2. Go to Integrations > Webhooks
+3. Click "New Webhook"
+4. Configure name and channel
+5. Copy webhook URL
+
+### Example
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.createDiscord \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Discord Notifications",
+    "webhookUrl": "https://discord.com/api/webhooks/123456789/abcdefghijk",
+    "decoration": true,
+    "appDeploy": true,
+    "appBuildError": true
+  }'
+```
+
+## Telegram
+
+Send notifications to Telegram chats using a bot.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this notification channel
+</ParamField>
+
+<ParamField path="botToken" type="string" required>
+  Telegram bot token from BotFather
+  
+  ```bash
+  123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+  ```
+</ParamField>
+
+<ParamField path="chatId" type="string" required>
+  Telegram chat ID to send messages to
+  
+  ```bash
+  # User chat
+  123456789
+  
+  # Group chat (negative number)
+  -1001234567890
+  ```
+</ParamField>
+
+<ParamField path="messageThreadId" type="string">
+  Thread ID for topics in groups (optional)
+</ParamField>
+
+### Creating a Telegram Bot
+
+1. Message [@BotFather](https://t.me/botfather) on Telegram
+2. Send `/newbot` command
+3. Follow prompts to create bot
+4. Copy the bot token
+5. Add bot to your chat/channel
+6. Get chat ID using [@userinfobot](https://t.me/userinfobot)
+
+### Example
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.createTelegram \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Telegram Alerts",
+    "botToken": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+    "chatId": "123456789",
+    "appDeploy": true,
+    "appBuildError": true,
+    "serverThreshold": true
+  }'
+```
+
+## Email (SMTP)
+
+Send notifications via SMTP email.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this notification channel
+</ParamField>
+
+<ParamField path="smtpServer" type="string" required>
+  SMTP server hostname
+  
+  ```bash
+  smtp.gmail.com
+  ```
+</ParamField>
+
+<ParamField path="smtpPort" type="number" required>
+  SMTP server port
+  
+  - `587` - TLS (recommended)
+  - `465` - SSL
+  - `25` - Unencrypted (not recommended)
+</ParamField>
+
+<ParamField path="username" type="string" required>
+  SMTP authentication username
+</ParamField>
+
+<ParamField path="password" type="string" required>
+  SMTP authentication password
+</ParamField>
+
+<ParamField path="fromAddress" type="string" required>
+  Email address to send from
+  
+  ```bash
+  notifications@example.com
+  ```
+</ParamField>
+
+<ParamField path="toAddresses" type="array" required>
+  List of recipient email addresses
+  
+  ```json
+  ["admin@example.com", "team@example.com"]
+  ```
+</ParamField>
+
+### Example
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.createEmail \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Email Notifications",
+    "smtpServer": "smtp.gmail.com",
+    "smtpPort": 587,
+    "username": "notifications@example.com",
+    "password": "app-specific-password",
+    "fromAddress": "notifications@example.com",
+    "toAddresses": ["admin@example.com"],
+    "appBuildError": true,
+    "databaseBackup": true
+  }'
+```
+
+## Resend
+
+Send notifications using the Resend email API.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this notification channel
+</ParamField>
+
+<ParamField path="apiKey" type="string" required>
+  Resend API key
+  
+  ```bash
+  re_123456789_abcdefghijklmnop
+  ```
+</ParamField>
+
+<ParamField path="fromAddress" type="string" required>
+  Email address to send from (must be verified in Resend)
+  
+  ```bash
+  notifications@yourdomain.com
+  ```
+</ParamField>
+
+<ParamField path="toAddresses" type="array" required>
+  List of recipient email addresses
+</ParamField>
+
+### Example
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.createResend \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Resend Notifications",
+    "apiKey": "re_123456789_abcdefghijklmnop",
+    "fromAddress": "notifications@yourdomain.com",
+    "toAddresses": ["team@example.com"],
+    "appDeploy": true,
+    "appBuildError": true
+  }'
+```
+
+## Gotify
+
+Send push notifications to self-hosted Gotify server.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this notification channel
+</ParamField>
+
+<ParamField path="serverUrl" type="string" required>
+  Gotify server URL
+  
+  ```bash
+  https://gotify.example.com
+  ```
+</ParamField>
+
+<ParamField path="appToken" type="string" required>
+  Gotify application token
+</ParamField>
+
+<ParamField path="priority" type="number" default="5">
+  Message priority (0-10)
+  
+  - `0` - Very low
+  - `5` - Normal (default)
+  - `10` - Emergency
+</ParamField>
+
+<ParamField path="decoration" type="boolean">
+  Enable markdown formatting in messages
+</ParamField>
+
+### Example
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.createGotify \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Gotify Alerts",
+    "serverUrl": "https://gotify.example.com",
+    "appToken": "AaBbCcDd123456",
+    "priority": 8,
+    "decoration": true,
+    "appBuildError": true
+  }'
+```
+
+## Ntfy
+
+Send notifications via ntfy.sh or self-hosted ntfy server.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this notification channel
+</ParamField>
+
+<ParamField path="serverUrl" type="string" required>
+  Ntfy server URL
+  
+  ```bash
+  # Public ntfy.sh
+  https://ntfy.sh
+  
+  # Self-hosted
+  https://ntfy.example.com
+  ```
+</ParamField>
+
+<ParamField path="topic" type="string" required>
+  Ntfy topic name
+  
+  ```bash
+  dokploy-alerts
+  ```
+</ParamField>
+
+<ParamField path="accessToken" type="string">
+  Access token for protected topics (optional)
+</ParamField>
+
+<ParamField path="priority" type="number" default="3">
+  Message priority (1-5)
+  
+  - `1` - Min
+  - `3` - Default
+  - `5` - Max/Urgent
+</ParamField>
+
+### Example
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.createNtfy \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Ntfy Notifications",
+    "serverUrl": "https://ntfy.sh",
+    "topic": "dokploy-prod",
+    "priority": 4,
+    "appDeploy": true,
+    "appBuildError": true
+  }'
+```
+
+## Pushover
+
+Send push notifications to iOS and Android via Pushover.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this notification channel
+</ParamField>
+
+<ParamField path="userKey" type="string" required>
+  Pushover user key
+  
+  ```bash
+  uQiRzpo4DXghDmr9QzzfQu27cmVRsG
+  ```
+</ParamField>
+
+<ParamField path="apiToken" type="string" required>
+  Pushover application API token
+  
+  ```bash
+  azGDORePK8gMaC0QOYAMyEEuzJnyUi
+  ```
+</ParamField>
+
+<ParamField path="priority" type="number" default="0">
+  Message priority
+  
+  - `-2` - Lowest (no notification)
+  - `-1` - Low (no sound/vibration)
+  - `0` - Normal
+  - `1` - High
+  - `2` - Emergency (requires acknowledgment)
+</ParamField>
+
+<ParamField path="retry" type="number">
+  Retry interval in seconds (required for emergency priority)
+  
+  Minimum: 30 seconds
+</ParamField>
+
+<ParamField path="expire" type="number">
+  Expiration time in seconds (required for emergency priority)
+  
+  Maximum: 10800 seconds (3 hours)
+</ParamField>
+
+### Example
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.createPushover \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Pushover Alerts",
+    "userKey": "uQiRzpo4DXghDmr9QzzfQu27cmVRsG",
+    "apiToken": "azGDORePK8gMaC0QOYAMyEEuzJnyUi",
+    "priority": 1,
+    "appBuildError": true,
+    "serverThreshold": true
+  }'
+```
+
+## Lark
+
+Send notifications to Lark (Feishu) using webhooks.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this notification channel
+</ParamField>
+
+<ParamField path="webhookUrl" type="string" required>
+  Lark webhook URL
+  
+  ```bash
+  https://open.larksuite.com/open-apis/bot/v2/hook/xxxxxxxx
+  ```
+</ParamField>
+
+### Example
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.createLark \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Lark Notifications",
+    "webhookUrl": "https://open.larksuite.com/open-apis/bot/v2/hook/xxx",
+    "appDeploy": true,
+    "appBuildError": true
+  }'
+```
+
+## Microsoft Teams
+
+Send notifications to Microsoft Teams channels.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this notification channel
+</ParamField>
+
+<ParamField path="webhookUrl" type="string" required>
+  Teams webhook URL
+  
+  ```bash
+  https://outlook.office.com/webhook/xxx/IncomingWebhook/yyy
+  ```
+</ParamField>
+
+### Creating a Teams Webhook
+
+1. Open Teams channel
+2. Click "..." > Connectors
+3. Search for "Incoming Webhook"
+4. Configure and create
+5. Copy webhook URL
+
+### Example
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.createTeams \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Teams Notifications",
+    "webhookUrl": "https://outlook.office.com/webhook/xxx/IncomingWebhook/yyy",
+    "appDeploy": true,
+    "appBuildError": true,
+    "databaseBackup": true
+  }'
+```
+
+## Custom Webhook
+
+Send notifications to any HTTP endpoint.
+
+### Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for this notification channel
+</ParamField>
+
+<ParamField path="endpoint" type="string" required>
+  HTTP endpoint URL
+  
+  ```bash
+  https://api.example.com/notifications
+  ```
+</ParamField>
+
+<ParamField path="headers" type="object">
+  Custom HTTP headers
+  
+  ```json
+  {
+    "Authorization": "Bearer token123",
+    "Content-Type": "application/json"
+  }
+  ```
+</ParamField>
+
+### Payload Format
+
+Dokploy sends POST requests with this JSON payload:
+
+```json
+{
+  "event": "appDeploy",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "data": {
+    "applicationName": "my-app",
+    "status": "success",
+    "message": "Application deployed successfully"
+  }
+}
+```
+
+### Example
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.createCustom \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Custom Webhook",
+    "endpoint": "https://api.example.com/notifications",
+    "headers": {
+      "Authorization": "Bearer token123"
+    },
+    "appDeploy": true,
+    "appBuildError": true
+  }'
+```
+
+## Managing Notifications
+
+### List All Notifications
+
+```bash
+curl https://your-domain.com/api/trpc/notification.getAll \
+  -H "x-api-key: your-api-key"
+```
+
+### Update Notification
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.updateSlack \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "notificationId": "notif-123",
+    "name": "Updated Name",
+    "appDeploy": false,
+    "appBuildError": true
+  }'
+```
+
+### Delete Notification
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.delete \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"notificationId": "notif-123"}'
+```
+
+### Test Notification
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/notification.testSlack \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "webhookUrl": "https://hooks.slack.com/services/...",
+    "channel": "#test"
+  }'
+```
+
+## Authorization
+
+- Notifications are scoped to organizations
+- Users can only manage notifications in their active organization
+- Admin role required for creating/updating notifications
+
+## Best Practices
+
+1. **Start Small**: Begin with build errors only, then expand
+2. **Channel Strategy**: Use different channels for different severity levels
+3. **Test First**: Always test notifications before deploying
+4. **Rate Limiting**: Be aware of rate limits on notification services
+5. **Redundancy**: Configure multiple channels for critical alerts
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Notifications Not Sending">
+    - Test the connection using the test endpoint
+    - Verify credentials are correct
+    - Check event toggles are enabled
+    - Review Dokploy server logs
+  </Accordion>
+
+  <Accordion title="Slack Webhook Invalid">
+    - Ensure webhook URL is complete
+    - Verify webhook wasn't deleted in Slack
+    - Check channel still exists
+    - Confirm bot has channel access
+  </Accordion>
+
+  <Accordion title="Email Not Delivering">
+    - Verify SMTP credentials
+    - Check firewall allows SMTP port
+    - Confirm from address is authorized
+    - Review spam folders
+  </Accordion>
+</AccordionGroup>

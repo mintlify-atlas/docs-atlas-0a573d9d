@@ -1,122 +1,192 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Dokploy",
+  "theme": "aspen",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#7c7c7a",
+    "light": "#101010",
+    "dark": "#f4f4f4"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "https://media.brand.dev/5c091dee-5119-414e-95cc-7859458adbbe.jpg",
+  "logo": {
+    "light": "https://media.brand.dev/330514d0-617d-4000-b1bc-314c5c765454.svg",
+    "dark": "https://media.brand.dev/330514d0-617d-4000-b1bc-314c5c765454.svg"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/Dokploy/dokploy"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/Dokploy/dokploy",
+      "discord": "https://discord.gg/2tBnJ3jDJc"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Overview",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "features"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Getting Started",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "getting-started/installation",
+              "getting-started/quickstart",
+              "getting-started/first-deployment"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "core-concepts/projects",
+              "core-concepts/applications",
+              "core-concepts/databases",
+              "core-concepts/docker-compose",
+              "core-concepts/domains-routing"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Deployments",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "deployments/overview",
+              "deployments/git-integration",
+              "deployments/docker-registry",
+              "deployments/build-configuration",
+              "deployments/environment-variables"
+            ]
+          },
+          {
+            "group": "Databases",
+            "pages": [
+              "databases/overview",
+              "databases/postgresql",
+              "databases/mysql",
+              "databases/mongodb",
+              "databases/mariadb",
+              "databases/redis",
+              "databases/backups"
+            ]
+          },
+          {
+            "group": "Monitoring & Observability",
+            "pages": [
+              "monitoring/overview",
+              "monitoring/real-time-metrics",
+              "monitoring/logs",
+              "monitoring/notifications"
+            ]
+          },
+          {
+            "group": "Advanced Features",
+            "pages": [
+              "advanced/multi-node",
+              "advanced/docker-swarm",
+              "advanced/templates",
+              "advanced/ssl-certificates",
+              "advanced/backups",
+              "advanced/networking",
+              "advanced/volumes-storage"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/server-settings",
+              "configuration/security",
+              "configuration/git-providers",
+              "configuration/notifications",
+              "configuration/registry"
+            ]
+          },
+          {
+            "group": "CLI & Automation",
+            "pages": [
+              "cli/overview",
+              "cli/commands",
+              "cli/automation"
+            ]
+          },
+          {
+            "group": "Community & Support",
+            "pages": [
+              "community/contributing",
+              "community/troubleshooting",
+              "community/faq"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Getting Started",
             "pages": [
-              "api-reference/introduction"
+              "api-reference/overview",
+              "api-reference/authentication"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Applications",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/applications/overview",
+              "api-reference/applications/create",
+              "api-reference/applications/deploy",
+              "api-reference/applications/manage"
+            ]
+          },
+          {
+            "group": "Databases",
+            "pages": [
+              "api-reference/databases/overview",
+              "api-reference/databases/postgresql",
+              "api-reference/databases/mysql",
+              "api-reference/databases/mongodb",
+              "api-reference/databases/redis"
+            ]
+          },
+          {
+            "group": "Docker",
+            "pages": [
+              "api-reference/docker/containers",
+              "api-reference/docker/images",
+              "api-reference/docker/compose"
+            ]
+          },
+          {
+            "group": "Projects & Deployments",
+            "pages": [
+              "api-reference/projects",
+              "api-reference/deployments",
+              "api-reference/domains"
+            ]
+          },
+          {
+            "group": "Monitoring",
+            "pages": [
+              "api-reference/monitoring/metrics",
+              "api-reference/monitoring/logs"
+            ]
+          },
+          {
+            "group": "Administration",
+            "pages": [
+              "api-reference/admin/servers",
+              "api-reference/admin/settings",
+              "api-reference/admin/users"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

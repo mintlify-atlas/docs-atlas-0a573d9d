@@ -1,0 +1,510 @@
+---
+title: Applications
+description: Deploy and manage containerized applications with Dokploy
+---
+
+Applications are containerized services that you deploy and run on Dokploy. They can be web applications, APIs, microservices, or any other software that can run in a Docker container.
+
+## What is an Application?
+
+An application in Dokploy is a deployable service that runs as a Docker container. Dokploy handles the entire deployment lifecycle including:
+
+- Building from source code or Docker images
+- Configuring runtime environment
+- Managing domains and routing
+- Monitoring and logging
+- Automatic deployments from Git
+
+<CardGroup cols={2}>
+  <Card title="Multiple Sources" icon="code-branch">
+    Deploy from GitHub, GitLab, Bitbucket, Gitea, custom Git, Docker images, or by uploading files.
+  </Card>
+  <Card title="Build Methods" icon="hammer">
+    Support for Dockerfile, Nixpacks, Heroku buildpacks, Paketo buildpacks, and static sites.
+  </Card>
+  <Card title="Auto Deploy" icon="rotate">
+    Automatically deploy when you push code to your repository.
+  </Card>
+  <Card title="Preview Deployments" icon="eye">
+    Create temporary deployments for pull requests to test changes before merging.
+  </Card>
+</CardGroup>
+
+## Application Lifecycle
+
+Applications in Dokploy go through several stages:
+
+```mermaid
+graph LR
+    A[Idle] --> B[Running]
+    B --> C[Done]
+    B --> D[Error]
+    C --> A
+    D --> A
+    A --> E[Restarting]
+    E --> B
+```
+
+### Application Status
+
+- **idle**: Application is created but not deployed or has been stopped
+- **running**: Build or deployment is in progress
+- **done**: Application is successfully deployed and running
+- **error**: Deployment failed or application crashed
+
+## Source Types
+
+Dokploy supports multiple ways to deploy your applications:
+
+### Git Providers
+
+<Tabs>
+  <Tab title="GitHub">
+    Connect to GitHub repositories using OAuth or GitHub Apps. Supports:
+    - Automatic deployments on push or pull request
+    - Submodule support
+    - Branch protection
+    - Preview deployments for pull requests
+    
+    
+  </Tab>
+  
+  <Tab title="GitLab">
+    Deploy from GitLab repositories with support for:
+    - Project ID and namespace tracking
+    - Automatic deployments
+    - Custom build paths
+    
+    
+  </Tab>
+  
+  <Tab title="Bitbucket">
+    Connect to Bitbucket Cloud or Server:
+    - Repository slug support
+    - Webhook integration
+    - Automatic deployments
+    
+    
+  </Tab>
+  
+  <Tab title="Gitea">
+    Deploy from self-hosted Gitea instances:
+    - Custom Gitea URL support
+    - Webhook integration
+    
+    
+  </Tab>
+  
+  <Tab title="Custom Git">
+    Use any Git repository with SSH access:
+    - SSH key authentication
+    - Custom Git URLs
+    - Submodule support
+    
+    
+  </Tab>
+</Tabs>
+
+### Docker Images
+
+Deploy pre-built Docker images from:
+- Docker Hub
+- GitHub Container Registry (GHCR)
+- Private registries
+- Self-hosted registries
+
+
+
+### File Upload (Drop)
+
+Upload a ZIP file containing your application code and deploy it directly:
+
+```typescript
+// The drop deployment endpoint accepts a FormData with:
+// - zip: The ZIP file containing your code
+// - applicationId: Target application ID
+// - dropBuildPath: Optional custom build path
+```
+
+
+
+## Build Types
+
+Dokploy supports multiple build strategies:
+
+### Dockerfile
+
+Use an existing Dockerfile in your repository:
+
+<ParamField path="dockerfile" type="string" default="Dockerfile">
+  Path to your Dockerfile relative to the build context
+</ParamField>
+
+<ParamField path="dockerContextPath" type="string" default=".">
+  Docker build context path
+</ParamField>
+
+<ParamField path="dockerBuildStage" type="string">
+  Specific build stage to target in multi-stage builds
+</ParamField>
+
+### Nixpacks
+
+Automatic detection and building using Nixpacks. No configuration needed for many common frameworks.
+
+### Buildpacks
+
+<Tabs>
+  <Tab title="Heroku Buildpacks">
+    Use Heroku's official buildpacks for automatic detection and building.
+    
+    <ParamField path="herokuVersion" type="string">
+      Specific Heroku stack version (e.g., heroku-22)
+    </ParamField>
+  </Tab>
+  
+  <Tab title="Paketo Buildpacks">
+    Cloud-native buildpacks for modern applications with enhanced caching and security.
+  </Tab>
+</Tabs>
+
+### Static Sites
+
+Deploy static websites with automatic web server configuration:
+
+<ParamField path="publishDirectory" type="string" default="dist">
+  Directory containing the built static files
+</ParamField>
+
+<ParamField path="isStaticSpa" type="boolean" default={false}>
+  Enable single-page application routing (redirects all routes to index.html)
+</ParamField>
+
+## Configuration
+
+### Environment Variables
+
+Manage your application's environment variables through the UI or API:
+
+```bash
+# Format: KEY=value (one per line)
+NODE_ENV=production
+API_URL=https://api.example.com
+DATABASE_URL=postgresql://user:pass@host:5432/db
+```
+
+<Info>
+  Environment variables are inherited from the environment and project levels, with application-level variables taking precedence.
+</Info>
+
+### Build Arguments
+
+Pass arguments to your Docker build:
+
+```bash
+NODE_VERSION=18
+BUILD_ENV=production
+```
+
+### Build Secrets
+
+Securely pass sensitive data during build time without exposing them in the final image:
+
+```bash
+NPM_TOKEN=your-token-here
+PRIVATE_KEY=your-key-here
+```
+
+<Warning>
+  Build secrets are only available during the build process and are not included in the final Docker image or runtime environment.
+</Warning>
+
+## Resource Management
+
+Control resource allocation for your applications:
+
+<ParamField path="memoryReservation" type="string">
+  Minimum memory guaranteed for the container (e.g., "512m", "1g")
+</ParamField>
+
+<ParamField path="memoryLimit" type="string">
+  Maximum memory the container can use (e.g., "1g", "2g")
+</ParamField>
+
+<ParamField path="cpuReservation" type="string">
+  Minimum CPU guaranteed (e.g., "0.5", "1.0")
+</ParamField>
+
+<ParamField path="cpuLimit" type="string">
+  Maximum CPU the container can use (e.g., "1.0", "2.0")
+</ParamField>
+
+## Domains and Routing
+
+Applications can have multiple domains configured for routing traffic. See [Domains & Routing](/core-concepts/domains-routing) for detailed information.
+
+### Quick Example
+
+```typescript
+// Add a domain to your application
+{
+  host: "myapp.example.com",
+  port: 3000,
+  path: "/",
+  https: true,
+  certificateType: "letsencrypt"
+}
+```
+
+## Deployments
+
+### Manual Deployment
+
+Trigger a deployment manually through the UI or API:
+
+```typescript
+// Deploy endpoint
+POST /api/application.deploy
+{
+  applicationId: "app_123",
+  title: "Manual deployment",
+  description: "Deploying latest changes"
+}
+```
+
+
+
+### Automatic Deployment
+
+Enable automatic deployments when code is pushed to your repository:
+
+<ParamField path="autoDeploy" type="boolean" default={true}>
+  Automatically deploy when changes are pushed to the configured branch
+</ParamField>
+
+<ParamField path="triggerType" type="enum" default="push">
+  When to trigger deployments: `push` or `pull_request`
+</ParamField>
+
+### Watch Paths
+
+Optimize deployments by only triggering when specific paths change:
+
+```typescript
+watchPaths: [
+  "src/**",
+  "package.json",
+  "Dockerfile"
+]
+```
+
+<Tip>
+  Use watch paths to avoid unnecessary deployments when documentation or unrelated files change.
+</Tip>
+
+## Preview Deployments
+
+Create temporary deployments for pull requests to test changes before merging:
+
+<ParamField path="isPreviewDeploymentsActive" type="boolean" default={false}>
+  Enable preview deployments for pull requests
+</ParamField>
+
+<ParamField path="previewLimit" type="integer" default={3}>
+  Maximum number of concurrent preview deployments
+</ParamField>
+
+<ParamField path="previewRequireCollaboratorPermissions" type="boolean" default={true}>
+  Require repository collaborator permissions to create preview deployments (security measure)
+</ParamField>
+
+### Preview Configuration
+
+Preview deployments can have separate configuration:
+
+- **previewEnv**: Environment variables specific to preview deployments
+- **previewBuildArgs**: Build arguments for preview builds
+- **previewWildcard**: Domain pattern for preview deployments (e.g., `*.preview.example.com`)
+- **previewPort**: Port for preview applications
+- **previewPath**: Base path for preview routing
+
+
+
+## Advanced Features
+
+### Ports
+
+Expose additional ports from your application:
+
+```typescript
+{
+  publishedPort: 8080,      // Port on the host
+  targetPort: 8080,         // Port in the container
+  protocol: "tcp"           // tcp or udp
+}
+```
+
+### Mounts
+
+Persist data or inject configuration files:
+
+<Tabs>
+  <Tab title="Volume Mount">
+    ```typescript
+    {
+      type: "volume",
+      volumeName: "app-data",
+      mountPath: "/app/data"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="File Mount">
+    ```typescript
+    {
+      type: "file",
+      filePath: "/config/app.json",
+      content: JSON.stringify(config)
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Bind Mount">
+    ```typescript
+    {
+      type: "bind",
+      hostPath: "/host/path",
+      mountPath: "/container/path"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Redirects
+
+Configure URL redirects for your application:
+
+```typescript
+{
+  regex: "^/old-path/(.*)",
+  replacement: "/new-path/$1",
+  permanent: true  // 301 vs 302 redirect
+}
+```
+
+### Security
+
+Add HTTP basic authentication to your application:
+
+```typescript
+{
+  username: "admin",
+  password: "secure-password"
+}
+```
+
+<Warning>
+  Basic authentication is applied at the reverse proxy level. Use it for simple protection, but consider implementing proper authentication in your application for production use.
+</Warning>
+
+## Database Schema
+
+Applications are stored with the following structure:
+
+```typescript
+interface Application {
+  applicationId: string;
+  name: string;
+  appName: string;              // Unique internal name
+  description?: string;
+  environmentId: string;
+  sourceType: "github" | "gitlab" | "bitbucket" | "gitea" | "git" | "docker" | "drop";
+  buildType: "dockerfile" | "nixpacks" | "heroku_buildpacks" | "paketo_buildpacks" | "static" | "railpack";
+  applicationStatus: "idle" | "running" | "done" | "error" | "restarting";
+  
+  // Build configuration
+  env?: string;
+  buildArgs?: string;
+  buildSecrets?: string;
+  command?: string;
+  dockerfile?: string;
+  dockerImage?: string;
+  
+  // Resources
+  memoryReservation?: string;
+  memoryLimit?: string;
+  cpuReservation?: string;
+  cpuLimit?: string;
+  
+  // Git configuration
+  repository?: string;
+  owner?: string;
+  branch?: string;
+  buildPath?: string;
+  autoDeploy: boolean;
+  
+  createdAt: string;
+}
+```
+
+
+
+## Monitoring & Logs
+
+### Deployment Logs
+
+View real-time logs during deployment:
+- Build output
+- Error messages
+- Deployment status
+
+### Runtime Logs
+
+Access container logs after deployment:
+- stdout and stderr output
+- Historical logs
+- Real-time streaming
+
+### Resource Metrics
+
+Monitor your application's resource usage:
+- CPU usage
+- Memory consumption
+- Network traffic
+
+
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Health Checks">
+    Implement health check endpoints in your application to ensure Dokploy can properly monitor its status.
+  </Accordion>
+  
+  <Accordion title="Set Resource Limits">
+    Always configure memory and CPU limits to prevent applications from consuming excessive resources.
+  </Accordion>
+  
+  <Accordion title="Enable Auto Deploy Carefully">
+    Only enable automatic deployments for branches you trust. Consider using preview deployments for testing changes.
+  </Accordion>
+  
+  <Accordion title="Separate Build and Runtime Secrets">
+    Use build secrets for build-time sensitive data and environment variables for runtime configuration.
+  </Accordion>
+  
+  <Accordion title="Use Watch Paths">
+    Configure watch paths to avoid unnecessary deployments when unrelated files change.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Domains & Routing" icon="globe" href="/core-concepts/domains-routing">
+    Learn how to configure domains and routing for your applications
+  </Card>
+  <Card title="Databases" icon="database" href="/core-concepts/databases">
+    Add databases to your applications
+  </Card>
+</CardGroup>

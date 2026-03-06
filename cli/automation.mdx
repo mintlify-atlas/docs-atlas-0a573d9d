@@ -1,0 +1,506 @@
+---
+title: "Automation"
+description: "Automate deployments and workflows with Dokploy API and CI/CD integration"
+icon: "robot"
+---
+
+## Overview
+
+Dokploy's API enables powerful automation capabilities, allowing you to integrate deployments into your existing CI/CD pipelines, automate infrastructure management, and create custom deployment workflows.
+
+## CI/CD Integration
+
+### GitHub Actions
+
+Automate deployments when code is pushed to your repository:
+
+```yaml .github/workflows/deploy.yml
+name: Deploy to Dokploy
+
+on:
+  push:
+    branches:
+      - main
+      - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to Dokploy
+        env:
+          DOKPLOY_API_URL: ${{ secrets.DOKPLOY_API_URL }}
+          DOKPLOY_TOKEN: ${{ secrets.DOKPLOY_TOKEN }}
+          APP_ID: ${{ secrets.DOKPLOY_APP_ID }}
+        run: |
+          curl -X POST "$DOKPLOY_API_URL/api/application.deploy" \
+            -H "Authorization: Bearer $DOKPLOY_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"applicationId": "'$APP_ID'"}'
+      
+      - name: Wait for deployment
+        run: |
+          sleep 30
+          # Add health check here
+      
+      - name: Notify on success
+        if: success()
+        run: echo "Deployment successful!"
+```
+
+<Tip>
+  Store your API tokens and sensitive information in GitHub Secrets, not in your workflow files.
+</Tip>
+
+### GitLab CI/CD
+
+Integrate with GitLab pipelines:
+
+```yaml .gitlab-ci.yml
+stages:
+  - deploy
+
+deploy_production:
+  stage: deploy
+  only:
+    - main
+  script:
+    - |
+      curl -X POST "$DOKPLOY_API_URL/api/application.deploy" \
+        -H "Authorization: Bearer $DOKPLOY_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"applicationId": "'$APP_ID'"}'
+  environment:
+    name: production
+    url: https://myapp.example.com
+```
+
+### Jenkins Pipeline
+
+Create a Jenkins pipeline for Dokploy deployments:
+
+```groovy Jenkinsfile
+pipeline {
+    agent any
+    
+    environment {
+        DOKPLOY_API_URL = credentials('dokploy-api-url')
+        DOKPLOY_TOKEN = credentials('dokploy-token')
+        APP_ID = 'your-app-id'
+    }
+    
+    stages {
+        stage('Deploy') {
+            steps {
+                script {
+                    sh '''
+                        curl -X POST "${DOKPLOY_API_URL}/api/application.deploy" \
+                          -H "Authorization: Bearer ${DOKPLOY_TOKEN}" \
+                          -H "Content-Type: application/json" \
+                          -d '{"applicationId": "'${APP_ID}'"}'
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Deployment completed successfully!'
+        }
+        failure {
+            echo 'Deployment failed!'
+        }
+    }
+}
+```
+
+### Bitbucket Pipelines
+
+```yaml bitbucket-pipelines.yml
+pipelines:
+  branches:
+    main:
+      - step:
+          name: Deploy to Dokploy
+          script:
+            - |
+              curl -X POST "$DOKPLOY_API_URL/api/application.deploy" \
+                -H "Authorization: Bearer $DOKPLOY_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d '{"applicationId": "'$APP_ID'"}'
+```
+
+## Webhook-Based Automation
+
+Dokploy supports webhooks for triggering deployments without requiring API tokens in your repository.
+
+### Setting Up Webhooks
+
+1. Navigate to your application in Dokploy
+2. Go to **Settings** > **Webhooks**
+3. Click **Generate Webhook URL**
+4. Copy the webhook URL
+
+### Using Webhooks
+
+```yaml .github/workflows/deploy.yml
+name: Deploy via Webhook
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Deployment
+        run: |
+          curl -X POST ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+```
+
+<Note>
+  Webhooks are specific to each application and don't require authentication, making them ideal for public repositories.
+</Note>
+
+## Automated Infrastructure Provisioning
+
+### Infrastructure as Code Script
+
+Create a script to provision your entire infrastructure:
+
+```bash provision.sh
+#!/bin/bash
+
+set -e
+
+API_URL="https://dokploy.example.com"
+TOKEN="your-api-token"
+
+# Function to make API calls
+api_call() {
+  local endpoint=$1
+  local data=$2
+  
+  curl -X POST "${API_URL}/api/${endpoint}" \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d "${data}"
+}
+
+# Create project
+echo "Creating project..."
+PROJECT_RESPONSE=$(api_call "project.create" '{
+  "name": "Production Environment",
+  "description": "Main production infrastructure"
+}')
+
+PROJECT_ID=$(echo $PROJECT_RESPONSE | jq -r '.projectId')
+
+# Create database
+echo "Creating database..."
+api_call "postgres.create" '{
+  "name": "main-db",
+  "projectId": "'$PROJECT_ID'",
+  "databaseName": "app_production",
+  "databaseUser": "app_user",
+  "databasePassword": "'$DB_PASSWORD'"
+}'
+
+# Create application
+echo "Creating application..."
+api_call "application.create" '{
+  "name": "web-app",
+  "projectId": "'$PROJECT_ID'",
+  "repository": "https://github.com/user/app",
+  "branch": "main",
+  "buildType": "nixpacks"
+}'
+
+echo "Infrastructure provisioned successfully!"
+```
+
+## Scheduled Tasks
+
+### Automated Backups with Cron
+
+Schedule regular database backups:
+
+```bash backup.sh
+#!/bin/bash
+
+API_URL="https://dokploy.example.com"
+TOKEN="your-api-token"
+DATABASE_ID="db-123"
+
+curl -X POST "${API_URL}/api/backup.create" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "databaseId": "'$DATABASE_ID'",
+    "destination": "s3",
+    "enabled": true
+  }'
+```
+
+Add to crontab for daily backups at 2 AM:
+
+```bash
+0 2 * * * /path/to/backup.sh >> /var/log/dokploy-backup.log 2>&1
+```
+
+### Health Check Automation
+
+Monitor and restart unhealthy applications:
+
+```bash healthcheck.sh
+#!/bin/bash
+
+APP_URL="https://myapp.example.com/health"
+APP_ID="app-123"
+DOKPLOY_API="https://dokploy.example.com"
+TOKEN="your-token"
+
+# Check application health
+if ! curl -f -s "$APP_URL" > /dev/null; then
+  echo "Application unhealthy, restarting..."
+  
+  curl -X POST "${DOKPLOY_API}/api/application.restart" \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Content-Type: application/json" \
+    -d '{"applicationId": "'$APP_ID'"}'
+fi
+```
+
+## Multi-Environment Deployments
+
+### Deploy to Multiple Environments
+
+```bash deploy-multi-env.sh
+#!/bin/bash
+
+ENVIRONMENT=$1
+
+case $ENVIRONMENT in
+  staging)
+    APP_ID="app-staging-123"
+    ;;
+  production)
+    APP_ID="app-prod-456"
+    ;;
+  *)
+    echo "Unknown environment: $ENVIRONMENT"
+    exit 1
+    ;;
+esac
+
+curl -X POST "$DOKPLOY_API_URL/api/application.deploy" \
+  -H "Authorization: Bearer $DOKPLOY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"applicationId": "'$APP_ID'"}'
+```
+
+Usage:
+```bash
+./deploy-multi-env.sh staging
+./deploy-multi-env.sh production
+```
+
+## Integration with Development Tools
+
+### VS Code Task
+
+Create a VS Code task for quick deployments:
+
+```json .vscode/tasks.json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Deploy to Dokploy",
+      "type": "shell",
+      "command": "curl -X POST ${DOKPLOY_API_URL}/api/application.deploy -H 'Authorization: Bearer ${DOKPLOY_TOKEN}' -H 'Content-Type: application/json' -d '{\"applicationId\": \"${APP_ID}\"}'",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
+}
+```
+
+### Make Commands
+
+Simplify deployments with a Makefile:
+
+```makefile Makefile
+.PHONY: deploy deploy-staging deploy-production
+
+DOKPLOY_API_URL := https://dokploy.example.com
+DOKPLOY_TOKEN := $(shell cat .dokploy-token)
+
+deploy-staging:
+	@curl -X POST "$(DOKPLOY_API_URL)/api/application.deploy" \
+	  -H "Authorization: Bearer $(DOKPLOY_TOKEN)" \
+	  -H "Content-Type: application/json" \
+	  -d '{"applicationId": "app-staging-123"}'
+
+deploy-production:
+	@curl -X POST "$(DOKPLOY_API_URL)/api/application.deploy" \
+	  -H "Authorization: Bearer $(DOKPLOY_TOKEN)" \
+	  -H "Content-Type: application/json" \
+	  -d '{"applicationId": "app-prod-456"}'
+
+deploy: deploy-staging
+```
+
+Usage:
+```bash
+make deploy-staging
+make deploy-production
+```
+
+## Advanced Automation Examples
+
+### Blue-Green Deployments
+
+```bash blue-green-deploy.sh
+#!/bin/bash
+
+BLUE_APP_ID="app-blue-123"
+GREEN_APP_ID="app-green-456"
+CURRENT=$(cat .current-env)
+
+# Deploy to inactive environment
+if [ "$CURRENT" = "blue" ]; then
+  DEPLOY_TO=$GREEN_APP_ID
+  NEW_ENV="green"
+else
+  DEPLOY_TO=$BLUE_APP_ID
+  NEW_ENV="blue"
+fi
+
+echo "Deploying to $NEW_ENV environment..."
+curl -X POST "$DOKPLOY_API_URL/api/application.deploy" \
+  -H "Authorization: Bearer $DOKPLOY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"applicationId": "'$DEPLOY_TO'"}'
+
+# Wait and verify
+sleep 30
+
+# Switch traffic (update load balancer/DNS here)
+# ...
+
+echo $NEW_ENV > .current-env
+echo "Switched to $NEW_ENV environment"
+```
+
+### Canary Deployments
+
+Gradually roll out updates:
+
+```bash canary-deploy.sh
+#!/bin/bash
+
+MAIN_APP_ID="app-main-123"
+CANARY_APP_ID="app-canary-456"
+
+# Deploy canary version
+echo "Deploying canary..."
+curl -X POST "$DOKPLOY_API_URL/api/application.deploy" \
+  -H "Authorization: Bearer $DOKPLOY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"applicationId": "'$CANARY_APP_ID'"}'
+
+# Monitor metrics (simplified)
+echo "Monitoring canary for 10 minutes..."
+sleep 600
+
+# If successful, deploy to main
+echo "Deploying to main..."
+curl -X POST "$DOKPLOY_API_URL/api/application.deploy" \
+  -H "Authorization: Bearer $DOKPLOY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"applicationId": "'$MAIN_APP_ID'"}'
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Secure Credential Management">
+    - Store API tokens in environment variables or secret management systems
+    - Never commit tokens to version control
+    - Rotate tokens regularly
+    - Use different tokens for different environments
+  </Accordion>
+  
+  <Accordion title="Error Handling">
+    - Always check API response status codes
+    - Implement retry logic for transient failures
+    - Log all automation activities
+    - Set up alerts for failed deployments
+  </Accordion>
+  
+  <Accordion title="Testing">
+    - Test automation scripts in staging before production
+    - Implement rollback mechanisms
+    - Verify deployments with health checks
+    - Monitor application metrics post-deployment
+  </Accordion>
+  
+  <Accordion title="Documentation">
+    - Document your automation workflows
+    - Keep scripts version-controlled
+    - Include usage examples and prerequisites
+    - Maintain a deployment runbook
+  </Accordion>
+</AccordionGroup>
+
+## Monitoring Automation
+
+Track automation success with monitoring tools:
+
+```bash
+# Log deployment
+DEPLOYMENT_LOG="/var/log/dokploy-deployments.log"
+echo "$(date): Deploying $APP_ID" >> $DEPLOYMENT_LOG
+
+# Trigger deployment
+RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$DOKPLOY_API_URL/api/application.deploy" \
+  -H "Authorization: Bearer $DOKPLOY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"applicationId": "'$APP_ID'"}')
+
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+
+if [ "$HTTP_CODE" = "200" ]; then
+  echo "$(date): Deployment successful" >> $DEPLOYMENT_LOG
+else
+  echo "$(date): Deployment failed with code $HTTP_CODE" >> $DEPLOYMENT_LOG
+  # Send alert
+fi
+```
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="book" href="/api-reference/overview">
+    Complete API endpoint documentation
+  </Card>
+  <Card title="CLI Commands" icon="terminal" href="/cli/commands">
+    Available CLI commands reference
+  </Card>
+  <Card title="Deployment Guide" icon="rocket" href="/deployments/overview">
+    Learn about deployment strategies
+  </Card>
+  <Card title="Monitoring" icon="chart-line" href="/monitoring/overview">
+    Set up monitoring and alerts
+  </Card>
+</CardGroup>

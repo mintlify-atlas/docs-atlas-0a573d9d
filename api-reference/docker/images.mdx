@@ -1,0 +1,162 @@
+---
+title: 'Docker Images'
+description: 'Manage Docker images in Dokploy'
+---
+
+## Overview
+
+Docker images are managed through the application and service configuration endpoints in Dokploy. When you deploy applications, you can specify Docker images from various sources.
+
+## Image Sources
+
+Dokploy supports multiple Docker image sources:
+
+- **Docker Hub** - Public and private images
+- **GitHub Container Registry (ghcr.io)**
+- **GitLab Container Registry**
+- **Custom Registries** - Self-hosted or third-party registries
+
+## Configuring Image Sources
+
+### Docker Image Provider
+
+Set up an application to use a Docker image directly:
+
+<ParamField body="dockerImage" type="string">
+  The full image name including registry, repository, and tag (e.g., `nginx:latest`, `ghcr.io/user/app:v1.0`).
+</ParamField>
+
+<ParamField body="username" type="string" optional>
+  Username for private registry authentication.
+</ParamField>
+
+<ParamField body="password" type="string" optional>
+  Password or access token for private registry authentication.
+</ParamField>
+
+<ParamField body="registryUrl" type="string" optional>
+  Custom registry URL if not using Docker Hub.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/application.saveDockerProvider" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "dockerImage": "nginx:latest"
+  }'
+```
+
+## Database Images
+
+When creating database services, you can specify the Docker image version:
+
+### PostgreSQL
+
+<ParamField body="dockerImage" type="string" default="postgres:18">
+  The PostgreSQL Docker image to use.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/postgres.create" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Database",
+    "appName": "mydb",
+    "environmentId": "env-123",
+    "dockerImage": "postgres:16",
+    "databaseName": "myapp",
+    "databaseUser": "dbuser",
+    "databasePassword": "secure_password"
+  }'
+```
+
+### MySQL
+
+<ParamField body="dockerImage" type="string" default="mysql:8">
+  The MySQL Docker image to use.
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/mysql.create" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "MySQL Database",
+    "appName": "mysql-db",
+    "environmentId": "env-123",
+    "dockerImage": "mysql:8.0",
+    "databaseName": "myapp",
+    "databaseUser": "dbuser",
+    "databasePassword": "secure_password",
+    "databaseRootPassword": "root_password"
+  }'
+```
+
+### MariaDB
+
+<ParamField body="dockerImage" type="string" default="mariadb:11">
+  The MariaDB Docker image to use.
+</ParamField>
+
+### MongoDB
+
+<ParamField body="dockerImage" type="string" default="mongo:8">
+  The MongoDB Docker image to use.
+</ParamField>
+
+### Redis
+
+<ParamField body="dockerImage" type="string" default="redis:7">
+  The Redis Docker image to use.
+</ParamField>
+
+## Build Types
+
+For applications, Dokploy supports multiple build types:
+
+<ParamField body="buildType" type="string" required>
+  The method used to build your application image:
+  
+  - `dockerfile` - Build from a Dockerfile
+  - `heroku_buildpacks` - Use Heroku buildpacks
+  - `paketo_buildpacks` - Use Paketo buildpacks
+  - `nixpacks` - Use Nixpacks for automatic builds
+  - `static` - Serve static files
+  - `railpack` - Build Ruby on Rails applications
+</ParamField>
+
+```bash cURL
+curl -X POST "https://your-dokploy-instance.com/api/application.saveBuildType" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "buildType": "dockerfile",
+    "dockerfile": "Dockerfile",
+    "dockerContextPath": "./",
+    "dockerBuildStage": "production"
+  }'
+```
+
+## Registry Management
+
+Manage private Docker registries for pulling and pushing images:
+
+<ResponseField name="registryId" type="string">
+  Unique identifier for the registry configuration.
+</ResponseField>
+
+<ResponseField name="registryUrl" type="string">
+  The URL of the Docker registry (e.g., `ghcr.io`, `registry.gitlab.com`).
+</ResponseField>
+
+<ResponseField name="username" type="string">
+  Registry authentication username.
+</ResponseField>
+
+<ResponseField name="password" type="string">
+  Registry authentication password or token.
+</ResponseField>

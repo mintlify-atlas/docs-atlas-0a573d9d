@@ -1,0 +1,167 @@
+---
+title: "CLI Overview"
+description: "Command-line interface and API for managing Dokploy programmatically"
+icon: "terminal"
+---
+
+## Introduction
+
+Dokploy provides a powerful command-line interface (CLI) and comprehensive REST API that allows you to manage your applications, databases, and infrastructure programmatically. This enables automation, CI/CD integration, and advanced deployment workflows.
+
+## Key Capabilities
+
+<CardGroup cols={2}>
+  <Card title="Application Management" icon="rocket">
+    Deploy, update, and manage applications through code
+  </Card>
+  <Card title="Database Operations" icon="database">
+    Create and configure databases programmatically
+  </Card>
+  <Card title="Deployment Automation" icon="gears">
+    Automate deployments with CI/CD pipelines
+  </Card>
+  <Card title="Infrastructure Control" icon="server">
+    Manage servers, containers, and resources via API
+  </Card>
+</CardGroup>
+
+## API Access
+
+The Dokploy API is a RESTful API that provides complete control over your Dokploy instance. All operations available in the web interface can be performed through the API.
+
+### API Endpoint
+
+Your API is available at:
+
+```
+https://your-dokploy-instance.com/api
+```
+
+### Authentication
+
+All API requests require authentication using an API token. You can generate API tokens from the Dokploy dashboard:
+
+1. Navigate to **Settings** > **API Tokens**
+2. Click **Generate New Token**
+3. Copy and securely store your token
+
+<Warning>
+  API tokens provide full access to your Dokploy instance. Keep them secure and never commit them to version control.
+</Warning>
+
+### Making API Requests
+
+Include your API token in the `Authorization` header:
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/endpoint \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"key": "value"}'
+```
+
+## Use Cases
+
+### CI/CD Integration
+
+Integrate Dokploy with your CI/CD pipeline to automatically deploy applications when code changes:
+
+```yaml GitHub Actions Example
+name: Deploy to Dokploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Deployment
+        run: |
+          curl -X POST https://dokploy.example.com/api/deploy \
+            -H "Authorization: Bearer ${{ secrets.DOKPLOY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"applicationId": "app-123"}'
+```
+
+### Infrastructure as Code
+
+Define your entire infrastructure in code and deploy it programmatically:
+
+```javascript
+const response = await fetch('https://dokploy.example.com/api/application.create', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    name: 'my-app',
+    projectId: 'project-123',
+    repository: 'https://github.com/user/repo',
+    branch: 'main'
+  })
+});
+```
+
+### Automated Backups
+
+Schedule and automate database backups:
+
+```bash
+#!/bin/bash
+curl -X POST https://dokploy.example.com/api/backup.create \
+  -H "Authorization: Bearer $DOKPLOY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "databaseId": "db-123",
+    "schedule": "0 2 * * *"
+  }'
+```
+
+## API Documentation
+
+For complete API reference documentation, including all available endpoints, request/response formats, and examples, see:
+
+<Card title="API Reference" icon="code" href="/api-reference/overview">
+  Complete REST API documentation with interactive examples
+</Card>
+
+## Getting Started
+
+<Steps>
+  <Step title="Generate API Token">
+    Create an API token from your Dokploy dashboard under Settings > API Tokens
+  </Step>
+  <Step title="Test Connection">
+    Make a test API call to verify your token works correctly
+  </Step>
+  <Step title="Explore Commands">
+    Review available CLI commands and API endpoints for your use case
+  </Step>
+  <Step title="Build Automation">
+    Create scripts or integrate with your CI/CD pipeline
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="CLI Commands" icon="terminal" href="/cli/commands">
+    Learn about available CLI commands and usage
+  </Card>
+  <Card title="Automation Guide" icon="robot" href="/cli/automation">
+    Build automated deployment workflows
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    Explore the complete API documentation
+  </Card>
+  <Card title="Authentication" icon="key" href="/api-reference/authentication">
+    Learn about API authentication methods
+  </Card>
+</CardGroup>
+
+<Note>
+  Need help? Join our [Discord community](https://discord.gg/2tBnJ3jDJc) for support and examples.
+</Note>

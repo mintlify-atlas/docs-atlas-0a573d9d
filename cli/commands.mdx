@@ -1,0 +1,293 @@
+---
+title: "CLI Commands"
+description: "Complete reference for Dokploy CLI commands and usage"
+icon: "code"
+---
+
+## Installation Commands
+
+### Install Dokploy
+
+Install Dokploy on a fresh VPS or server:
+
+```bash
+curl -sSL https://dokploy.com/install.sh | sh
+```
+
+This command will:
+- Install Docker and required dependencies
+- Set up Dokploy containers
+- Configure Traefik for routing
+- Initialize the database
+- Start the Dokploy web interface
+
+<Tip>
+  The installation typically takes 2-5 minutes depending on your server specifications.
+</Tip>
+
+## Development Commands
+
+These commands are used when contributing to Dokploy or running a local development environment.
+
+### Setup Development Environment
+
+```bash
+pnpm install
+cp apps/dokploy/.env.example apps/dokploy/.env
+pnpm run dokploy:setup
+```
+
+### Start Development Server
+
+```bash
+pnpm run dokploy:dev
+```
+
+Starts the development server at `http://localhost:3000`
+
+### Run Server Scripts
+
+```bash
+pnpm run server:script
+```
+
+Executes server initialization scripts required for development.
+
+### Build for Production
+
+```bash
+pnpm run dokploy:build
+```
+
+Builds the Dokploy application for production deployment.
+
+### Start Production Server
+
+```bash
+pnpm run dokploy:start
+```
+
+Starts the production build of Dokploy.
+
+## Docker Commands
+
+### Build Docker Image
+
+```bash
+pnpm run docker:build
+```
+
+Builds the Dokploy Docker image locally.
+
+### Build Canary Image
+
+```bash
+pnpm run docker:build:canary
+```
+
+Builds the canary (development) version of the Docker image.
+
+### Push Docker Image
+
+```bash
+pnpm run docker:push
+```
+
+Pushes the built Docker image to the registry.
+
+## Utility Commands
+
+### Reset Password
+
+If you've lost access to your Dokploy instance, reset your admin password:
+
+```bash
+pnpm run reset-password
+```
+
+<Warning>
+  This command should be run on the server where Dokploy is installed.
+</Warning>
+
+### Type Checking
+
+```bash
+pnpm run typecheck
+```
+
+Runs TypeScript type checking across all packages.
+
+### Linting and Formatting
+
+```bash
+# Check formatting and linting issues
+pnpm run format-and-lint
+
+# Auto-fix formatting and linting issues
+pnpm run format-and-lint:fix
+
+# Check with write (alternative)
+pnpm run check
+```
+
+Dokploy uses [Biome](https://biomejs.dev/) for code formatting and linting.
+
+### Generate OpenAPI Specification
+
+```bash
+pnpm run generate:openapi
+```
+
+Generates the OpenAPI specification file for the Dokploy API.
+
+### Run Tests
+
+```bash
+pnpm run test
+```
+
+Executs the test suite.
+
+## API Commands via cURL
+
+While Dokploy doesn't have a dedicated CLI tool, you can interact with it using the REST API via `curl` or any HTTP client.
+
+### Deploy Application
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.deploy \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-id-here"
+  }'
+```
+
+### Create Application
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/application.create \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-app",
+    "projectId": "project-id",
+    "repository": "https://github.com/user/repo",
+    "branch": "main"
+  }'
+```
+
+### List Applications
+
+```bash
+curl -X GET https://your-dokploy-instance.com/api/application.all \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+### Create Database
+
+```bash
+curl -X POST https://your-dokploy-instance.com/api/postgres.create \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "my-database",
+    "databaseName": "app_db",
+    "databaseUser": "dbuser",
+    "databasePassword": "secure-password"
+  }'
+```
+
+### Get Deployment Logs
+
+```bash
+curl -X GET https://your-dokploy-instance.com/api/deployment.logs?deploymentId=deploy-123 \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Build Pack Commands
+
+Dokploy supports multiple build strategies. Install these tools for local development:
+
+### Install Nixpacks
+
+```bash
+curl -sSL https://nixpacks.com/install.sh -o install.sh && \
+  chmod +x install.sh && \
+  ./install.sh
+```
+
+### Install Railpack
+
+```bash
+curl -sSL https://railpack.com/install.sh | sh
+```
+
+### Install Buildpacks
+
+```bash
+curl -sSL "https://github.com/buildpacks/pack/releases/download/v0.39.1/pack-v0.39.1-linux.tgz" | \
+  tar -C /usr/local/bin/ --no-same-owner -xzv pack
+```
+
+## Environment Variables
+
+Common environment variables used by Dokploy:
+
+```bash
+# API Configuration
+export DOKPLOY_API_URL="https://your-instance.com"
+export DOKPLOY_API_TOKEN="your-api-token"
+
+# Database Configuration
+export DATABASE_URL="postgresql://user:pass@host:5432/db"
+
+# Docker Configuration
+export DOCKER_HOST="unix:///var/run/docker.sock"
+```
+
+## Command Aliases
+
+Create helpful aliases for common operations:
+
+```bash ~/.bashrc or ~/.zshrc
+# Add to your shell configuration
+alias dokploy-deploy='curl -X POST $DOKPLOY_API_URL/api/application.deploy -H "Authorization: Bearer $DOKPLOY_API_TOKEN"'
+alias dokploy-logs='curl -X GET $DOKPLOY_API_URL/api/deployment.logs -H "Authorization: Bearer $DOKPLOY_API_TOKEN"'
+```
+
+## Advanced Usage
+
+### Webhooks for Deployment
+
+Trigger deployments via webhooks without API tokens:
+
+```bash
+curl -X POST https://your-dokploy-instance.com/webhook/deploy/YOUR_WEBHOOK_ID
+```
+
+Webhook URLs can be generated in the application settings.
+
+### Docker Socket Permission Fix
+
+If you encounter Docker permission issues:
+
+```bash
+# Option 1: Change ownership to your user
+sudo chown -R $(whoami) ~/.docker
+
+# Option 2: Add user to docker group
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Automation Guide" icon="robot" href="/cli/automation">
+    Learn how to automate deployments and workflows
+  </Card>
+  <Card title="API Reference" icon="book" href="/api-reference/overview">
+    Explore the complete API documentation
+  </Card>
+</CardGroup>

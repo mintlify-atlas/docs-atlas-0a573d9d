@@ -1,0 +1,473 @@
+---
+title: Server Settings
+description: Configure server-level settings including domain, SSL certificates, cleanup policies, and monitoring
+---
+
+## Overview
+
+Server settings allow you to configure core Dokploy server behavior, including domain configuration, SSL/TLS certificates, automated cleanup tasks, and monitoring options.
+
+## Domain Configuration
+
+Assign a domain to your Dokploy server and configure SSL/TLS certificates.
+
+<ParamField path="host" type="string">
+  The domain name for your Dokploy server
+  
+  ```bash
+  # Example
+  dokploy.example.com
+  ```
+</ParamField>
+
+<ParamField path="https" type="boolean" default="false">
+  Enable HTTPS for the server
+</ParamField>
+
+<ParamField path="certificateType" type="enum" default="none">
+  SSL certificate type to use
+  
+  - `none` - No SSL certificate
+  - `letsencrypt` - Automatic Let's Encrypt certificate
+  - `custom` - Custom SSL certificate
+</ParamField>
+
+<ParamField path="letsEncryptEmail" type="string">
+  Email address for Let's Encrypt certificate notifications (required when using Let's Encrypt)
+  
+  ```bash
+  admin@example.com
+  ```
+</ParamField>
+
+## Server IP Configuration
+
+<ParamField path="serverIp" type="string">
+  Public IP address of your server. Used for DNS configuration and service access.
+  
+  ```bash
+  # IPv4 example
+  192.168.1.100
+  
+  # IPv6 example
+  2001:0db8:85a3:0000:0000:8a2e:0370:7334
+  ```
+</ParamField>
+
+## SSH Configuration
+
+<ParamField path="sshPrivateKey" type="string">
+  SSH private key for remote server access. Used for deploying to remote servers and executing commands.
+  
+  ```bash
+  -----BEGIN OPENSSH PRIVATE KEY-----
+  b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
+  ...
+  -----END OPENSSH PRIVATE KEY-----
+  ```
+  
+  <Warning>
+    Keep your SSH private key secure. It grants access to remote servers.
+  </Warning>
+</ParamField>
+
+## Docker Cleanup
+
+Automate Docker resource cleanup to prevent disk space issues.
+
+<ParamField path="enableDockerCleanup" type="boolean" default="true">
+  Enable automated Docker cleanup tasks
+  
+  When enabled, Dokploy will periodically clean up:
+  - Unused Docker images
+  - Stopped containers
+  - Unused volumes
+  - Build cache
+  - Dangling images
+</ParamField>
+
+### Cleanup Schedule
+
+Docker cleanup runs on a cron schedule: `0 0 * * *` (daily at midnight)
+
+The cleanup process:
+1. Removes unused Docker images
+2. Removes stopped containers
+3. Removes unused volumes
+4. Prunes build cache
+5. Sends notifications (if configured)
+
+### Manual Cleanup
+
+You can also trigger cleanup operations manually through the API:
+
+```bash
+# Clean unused images
+curl -X POST https://your-domain.com/api/trpc/settings.cleanUnusedImages \
+  -H "x-api-key: your-api-key"
+
+# Clean stopped containers
+curl -X POST https://your-domain.com/api/trpc/settings.cleanStoppedContainers \
+  -H "x-api-key: your-api-key"
+
+# Clean unused volumes
+curl -X POST https://your-domain.com/api/trpc/settings.cleanUnusedVolumes \
+  -H "x-api-key: your-api-key"
+
+# Clean all (comprehensive cleanup)
+curl -X POST https://your-domain.com/api/trpc/settings.cleanAll \
+  -H "x-api-key: your-api-key"
+```
+
+## Log Cleanup
+
+<ParamField path="logCleanupCron" type="string" default="0 0 * * *">
+  Cron expression for automated log cleanup. Default runs daily at midnight.
+  
+  ```bash
+  # Every day at midnight
+  0 0 * * *
+  
+  # Every Sunday at 3 AM
+  0 3 * * 0
+  
+  # Every 6 hours
+  0 */6 * * *
+  ```
+</ParamField>
+
+## Build Cache Cleanup
+
+Configure automatic cache cleanup for different deployment types:
+
+<ParamField path="cleanupCacheApplications" type="boolean" default="false">
+  Clean build cache for application deployments
+  
+  When enabled, build cache is cleared after each application deployment.
+</ParamField>
+
+<ParamField path="cleanupCacheOnPreviews" type="boolean" default="false">
+  Clean build cache for preview deployments
+  
+  When enabled, build cache is cleared after each preview deployment.
+</ParamField>
+
+<ParamField path="cleanupCacheOnCompose" type="boolean" default="false">
+  Clean build cache for Docker Compose deployments
+  
+  When enabled, build cache is cleared after each compose deployment.
+</ParamField>
+
+## Metrics Configuration
+
+Configure server and container monitoring settings.
+
+### Server Metrics
+
+<ParamField path="metricsConfig.server.type" type="enum" default="Dokploy">
+  Metrics collection type
+  
+  - `Dokploy` - Built-in metrics collection
+  - `Remote` - Remote metrics server
+</ParamField>
+
+<ParamField path="metricsConfig.server.refreshRate" type="number" default="60">
+  Metrics refresh rate in seconds. Minimum value: 2 seconds.
+</ParamField>
+
+<ParamField path="metricsConfig.server.port" type="number" default="4500">
+  Port for metrics server
+</ParamField>
+
+<ParamField path="metricsConfig.server.retentionDays" type="number" default="2">
+  Number of days to retain metrics data
+</ParamField>
+
+<ParamField path="metricsConfig.server.thresholds.cpu" type="number" default="0">
+  CPU usage threshold for alerts (percentage). Set to 0 to disable.
+  
+  ```json
+  {
+    "cpu": 80
+  }
+  ```
+</ParamField>
+
+<ParamField path="metricsConfig.server.thresholds.memory" type="number" default="0">
+  Memory usage threshold for alerts (percentage). Set to 0 to disable.
+  
+  ```json
+  {
+    "memory": 85
+  }
+  ```
+</ParamField>
+
+### Container Metrics
+
+<ParamField path="metricsConfig.containers.refreshRate" type="number" default="60">
+  Container metrics refresh rate in seconds. Minimum value: 2 seconds.
+</ParamField>
+
+<ParamField path="metricsConfig.containers.services.include" type="array">
+  List of container names to include in metrics collection
+  
+  ```json
+  {
+    "include": ["app-container-1", "app-container-2"]
+  }
+  ```
+</ParamField>
+
+<ParamField path="metricsConfig.containers.services.exclude" type="array">
+  List of container names to exclude from metrics collection
+  
+  ```json
+  {
+    "exclude": ["temp-container", "test-container"]
+  }
+  ```
+</ParamField>
+
+## Traefik Configuration
+
+Dokploy uses Traefik as its reverse proxy and load balancer.
+
+### Dashboard
+
+Enable the Traefik dashboard for monitoring and debugging:
+
+```bash
+# The dashboard runs on port 8080
+http://your-server-ip:8080
+```
+
+<Warning>
+  Port 8080 must be available on your server. The system will check for conflicts before enabling the dashboard.
+</Warning>
+
+### Environment Variables
+
+Traefik can be configured using environment variables. Access them via:
+
+```bash
+# Read current Traefik environment variables
+curl https://your-domain.com/api/trpc/settings.readTraefikEnv \
+  -H "x-api-key: your-api-key"
+```
+
+### Custom Ports
+
+Configure additional ports for Traefik:
+
+```typescript
+{
+  "additionalPorts": [
+    {
+      "targetPort": 3000,
+      "publishedPort": 3000,
+      "protocol": "tcp"
+    }
+  ]
+}
+```
+
+<ParamField path="targetPort" type="number">
+  The port inside the container
+</ParamField>
+
+<ParamField path="publishedPort" type="number">
+  The port exposed on the host
+</ParamField>
+
+<ParamField path="protocol" type="enum">
+  Network protocol
+  
+  - `tcp` - Transmission Control Protocol
+  - `udp` - User Datagram Protocol
+  - `sctp` - Stream Control Transmission Protocol
+</ParamField>
+
+## Access Logs
+
+Enable request logging for debugging and monitoring:
+
+```json
+{
+  "accessLog": {
+    "filePath": "/etc/dokploy/traefik/dynamic/access.log",
+    "format": "json",
+    "bufferingSize": 100
+  }
+}
+```
+
+When enabled, Traefik logs all HTTP requests with:
+- Request method and path
+- Response status code
+- Client IP address
+- Request duration
+- Timestamp
+
+## GPU Support
+
+Configure GPU support for applications that require GPU acceleration:
+
+```bash
+# Setup GPU support
+curl -X POST https://your-domain.com/api/trpc/settings.setupGPU \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"serverId": "your-server-id"}'
+
+# Check GPU status
+curl https://your-domain.com/api/trpc/settings.checkGPUStatus \
+  -H "x-api-key: your-api-key"
+```
+
+GPU status includes:
+- Driver installation status
+- GPU model information
+- CUDA support and version
+- Available memory
+- Number of GPUs
+- Docker runtime configuration
+
+## Environment Variables
+
+Core Dokploy environment variables:
+
+<ParamField path="DATABASE_URL" type="string" required>
+  PostgreSQL database connection string
+  
+  ```bash
+  DATABASE_URL="postgres://user:password@localhost:5432/dokploy"
+  ```
+</ParamField>
+
+<ParamField path="PORT" type="number" default="3000">
+  Port for the Dokploy server
+  
+  ```bash
+  PORT=3000
+  ```
+</ParamField>
+
+<ParamField path="NODE_ENV" type="string" default="production">
+  Node.js environment mode
+  
+  - `development` - Development mode with hot reload
+  - `production` - Production mode with optimizations
+</ParamField>
+
+<ParamField path="DOKPLOY_CLOUD_IPS" type="string">
+  Comma-separated list of Dokploy Cloud IP addresses (Cloud version only)
+  
+  ```bash
+  DOKPLOY_CLOUD_IPS="192.168.1.1,192.168.1.2"
+  ```
+</ParamField>
+
+## Server Management
+
+### Reload Server
+
+Restart the Dokploy server:
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/settings.reloadServer \
+  -H "x-api-key: your-api-key"
+```
+
+### Reload Traefik
+
+Restart the Traefik proxy:
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/settings.reloadTraefik \
+  -H "x-api-key: your-api-key"
+```
+
+### Reload Redis
+
+Restart the Redis cache:
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/settings.reloadRedis \
+  -H "x-api-key: your-api-key"
+```
+
+### Clean Redis
+
+Flush all Redis data:
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/settings.cleanRedis \
+  -H "x-api-key: your-api-key"
+```
+
+<Warning>
+  This will remove all cached data and queued jobs.
+</Warning>
+
+## Updates
+
+### Check for Updates
+
+```bash
+curl https://your-domain.com/api/trpc/settings.getUpdateData \
+  -H "x-api-key: your-api-key"
+```
+
+Response:
+```json
+{
+  "updateAvailable": true,
+  "latestVersion": "v0.5.0",
+  "currentVersion": "v0.4.0"
+}
+```
+
+### Update Server
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/settings.updateServer \
+  -H "x-api-key: your-api-key"
+```
+
+The update process:
+1. Downloads the latest version
+2. Creates a backup
+3. Updates the Docker service
+4. Restarts Dokploy
+
+<Info>
+  The server will be unavailable for a few minutes during the update.
+</Info>
+
+## Health Check
+
+Verify server health:
+
+```bash
+curl https://your-domain.com/api/trpc/settings.health
+```
+
+Response:
+```json
+{
+  "status": "ok"
+}
+```
+
+## Version Information
+
+```bash
+# Get Dokploy version
+curl https://your-domain.com/api/trpc/settings.getDokployVersion \
+  -H "x-api-key: your-api-key"
+
+# Get release tag
+curl https://your-domain.com/api/trpc/settings.getReleaseTag \
+  -H "x-api-key: your-api-key"
+```

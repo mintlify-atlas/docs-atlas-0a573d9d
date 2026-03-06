@@ -1,0 +1,732 @@
+---
+title: Docker Compose
+description: Deploy multi-container applications using Docker Compose in Dokploy
+---
+
+Docker Compose deployments allow you to run multi-container applications defined in a `docker-compose.yml` file. This is ideal for complex applications that require multiple services working together.
+
+## What is Docker Compose?
+
+Docker Compose is a tool for defining and running multi-container Docker applications. With Dokploy, you can deploy entire application stacks that include:
+
+- Multiple interconnected services
+- Databases and caching layers
+- Message queues and background workers
+- Reverse proxies and load balancers
+- Any combination of containerized services
+
+<CardGroup cols={2}>
+  <Card title="Multi-Service" icon="layer-group">
+    Deploy multiple containers that work together as a single application stack.
+  </Card>
+  <Card title="Service Dependencies" icon="diagram-project">
+    Define relationships and dependencies between services.
+  </Card>
+  <Card title="Shared Networks" icon="network-wired">
+    Services automatically share a network for seamless communication.
+  </Card>
+  <Card title="Templates" icon="file-code">
+    Use pre-built templates for popular application stacks.
+  </Card>
+</CardGroup>
+
+## Compose vs Stack Mode
+
+Dokploy supports two deployment modes for Docker Compose:
+
+<Tabs>
+  <Tab title="docker-compose">
+    Standard Docker Compose mode using `docker compose` CLI:
+    
+    - Suitable for single-server deployments
+    - Simpler configuration
+    - Direct mapping of compose file features
+    - Recommended for most use cases
+  </Tab>
+  
+  <Tab title="stack">
+    Docker Swarm stack mode using `docker stack deploy`:
+    
+    - Enables multi-node deployments
+    - High availability features
+    - Load balancing across nodes
+    - Requires Docker Swarm mode
+    - Advanced orchestration features
+  </Tab>
+</Tabs>
+
+## Creating a Compose Deployment
+
+Compose deployments are created within environments, similar to applications and databases.
+
+### Basic Configuration
+
+<ParamField path="name" type="string" required>
+  Display name for your compose deployment
+</ParamField>
+
+<ParamField path="appName" type="string" required>
+  Unique internal identifier (auto-generated if not provided)
+</ParamField>
+
+<ParamField path="description" type="string">
+  Optional description to help identify the deployment's purpose
+</ParamField>
+
+<ParamField path="composeFile" type="string" required>
+  The complete docker-compose.yml content
+</ParamField>
+
+<ParamField path="composeType" type="enum" default="docker-compose">
+  Deployment mode: `docker-compose` or `stack`
+</ParamField>
+
+<ParamField path="environmentId" type="string" required>
+  The environment where this compose deployment will be created
+</ParamField>
+
+## Source Types
+
+Compose deployments support multiple source options:
+
+### Git Repositories
+
+<Tabs>
+  <Tab title="GitHub">
+    Deploy from GitHub repositories:
+    
+    <ParamField path="repository" type="string" required>
+      Repository name (e.g., `myorg/myrepo`)
+    </ParamField>
+    
+    <ParamField path="owner" type="string" required>
+      Repository owner or organization
+    </ParamField>
+    
+    <ParamField path="branch" type="string" required>
+      Branch to deploy from
+    </ParamField>
+    
+    <ParamField path="composePath" type="string" default="./docker-compose.yml">
+      Path to the compose file in the repository
+    </ParamField>
+    
+    
+  </Tab>
+  
+  <Tab title="GitLab">
+    Deploy from GitLab repositories:
+    
+    <ParamField path="gitlabRepository" type="string" required>
+      Repository name
+    </ParamField>
+    
+    <ParamField path="gitlabOwner" type="string" required>
+      Project owner
+    </ParamField>
+    
+    <ParamField path="gitlabProjectId" type="number" required>
+      GitLab project ID
+    </ParamField>
+    
+    <ParamField path="gitlabBranch" type="string" required>
+      Branch name
+    </ParamField>
+    
+    
+  </Tab>
+  
+  <Tab title="Bitbucket">
+    Deploy from Bitbucket repositories:
+    
+    <ParamField path="bitbucketRepository" type="string" required>
+      Repository name
+    </ParamField>
+    
+    <ParamField path="bitbucketOwner" type="string" required>
+      Repository owner
+    </ParamField>
+    
+    <ParamField path="bitbucketBranch" type="string" required>
+      Branch name
+    </ParamField>
+    
+    
+  </Tab>
+  
+  <Tab title="Custom Git">
+    Use any Git repository with SSH access:
+    
+    <ParamField path="customGitUrl" type="string" required>
+      Git repository URL (SSH format)
+    </ParamField>
+    
+    <ParamField path="customGitBranch" type="string" required>
+      Branch to deploy
+    </ParamField>
+    
+    <ParamField path="customGitSSHKeyId" type="string" required>
+      SSH key for repository access
+    </ParamField>
+    
+    
+  </Tab>
+</Tabs>
+
+### Raw Compose File
+
+Paste or upload your docker-compose.yml content directly:
+
+```yaml
+version: '3.8'
+
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./html:/usr/share/nginx/html
+  
+  api:
+    image: node:18-alpine
+    command: npm start
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - db
+  
+  db:
+    image: postgres:16
+    environment:
+      - POSTGRES_PASSWORD=secret
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
+```
+
+
+
+## Environment Variables
+
+Compose deployments support environment variable substitution:
+
+### Setting Variables
+
+```bash
+# Format: KEY=value (one per line)
+NODE_ENV=production
+API_KEY=your-secret-key
+DATABASE_URL=postgresql://user:pass@db:5432/mydb
+REDIS_URL=redis://redis:6379
+```
+
+### Using Variables in Compose File
+
+```yaml
+services:
+  api:
+    image: myapp:latest
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - API_KEY=${API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+```
+
+<Info>
+  Variables from the environment and project levels are automatically inherited. Compose-level variables take precedence.
+</Info>
+
+## Isolated Deployments
+
+Dokploy supports isolated compose deployments, which modify service names to enable multiple instances:
+
+<ParamField path="isolatedDeployment" type="boolean" default={false}>
+  Enable isolated deployment mode
+</ParamField>
+
+<ParamField path="suffix" type="string">
+  Suffix to append to service names (auto-generated if not provided)
+</ParamField>
+
+### How It Works
+
+When isolated deployments are enabled:
+
+1. Service names get a unique suffix: `web` becomes `web-abc123`
+2. Container names are similarly modified
+3. Networks are isolated per deployment
+4. Volume names can be isolated (optional)
+
+This allows running multiple instances of the same compose stack side-by-side.
+
+
+
+### Example
+
+Original compose file:
+```yaml
+services:
+  web:
+    image: nginx:alpine
+```
+
+With isolated deployment (suffix: `abc123`):
+```yaml
+services:
+  web-abc123:
+    image: nginx:alpine
+    container_name: web-abc123
+```
+
+## Randomization
+
+Randomization automatically generates unique identifiers for services:
+
+<ParamField path="randomize" type="boolean" default={false}>
+  Enable service name randomization
+</ParamField>
+
+<Warning>
+  Use randomization carefully as it changes service discovery names. Applications must be designed to handle dynamic service names.
+</Warning>
+
+
+
+## Domain Configuration
+
+Compose deployments can have multiple domains configured for routing traffic to specific services:
+
+### Adding Domains
+
+```typescript
+{
+  host: "app.example.com",
+  serviceName: "web",        // Target service in compose file
+  port: 80,
+  path: "/",
+  https: true,
+  certificateType: "letsencrypt"
+}
+```
+
+### Multiple Services, Multiple Domains
+
+```typescript
+[
+  {
+    host: "app.example.com",
+    serviceName: "web",
+    port: 80,
+    https: true
+  },
+  {
+    host: "api.example.com",
+    serviceName: "api",
+    port: 3000,
+    https: true
+  }
+]
+```
+
+See [Domains & Routing](/core-concepts/domains-routing) for detailed information.
+
+## File Mounts
+
+Inject configuration files into your compose deployment:
+
+```typescript
+{
+  type: "file",
+  filePath: "/app/config/settings.json",
+  content: JSON.stringify({
+    api: {
+      baseUrl: "https://api.example.com",
+      timeout: 30000
+    }
+  }),
+  serviceId: composeId,
+  serviceType: "compose"
+}
+```
+
+
+
+## Automatic Deployments
+
+<ParamField path="autoDeploy" type="boolean" default={true}>
+  Automatically deploy when changes are pushed to the repository
+</ParamField>
+
+<ParamField path="triggerType" type="enum" default="push">
+  When to trigger deployments: `push` or `pull_request`
+</ParamField>
+
+<ParamField path="watchPaths" type="array">
+  Only trigger deployments when specific paths change
+</ParamField>
+
+### Watch Paths Example
+
+```typescript
+watchPaths: [
+  "docker-compose.yml",
+  "services/**",
+  ".env.example"
+]
+```
+
+## Deploying Templates
+
+Dokploy provides pre-built templates for popular application stacks:
+
+### Available Templates
+
+Fetch available templates:
+
+```typescript
+GET /api/compose.templates
+```
+
+Templates include:
+- WordPress + MySQL
+- Ghost + MySQL
+- Nextcloud + PostgreSQL
+- GitLab + PostgreSQL + Redis
+- Directus + PostgreSQL
+- And many more...
+
+
+
+### Deploying a Template
+
+```typescript
+POST /api/compose.deployTemplate
+{
+  environmentId: "env_123",
+  serverId: "server_456",    // Optional for cloud deployments
+  id: "wordpress",            // Template ID
+  baseUrl: "..."              // Optional custom template repository
+}
+```
+
+Templates automatically configure:
+- Environment variables with secure defaults
+- Persistent volume mounts
+- Domain configuration
+- Service dependencies
+
+
+
+## Managing Services
+
+View and manage individual services within your compose deployment:
+
+### Loading Services
+
+```typescript
+GET /api/compose.loadServices
+{
+  composeId: "compose_123",
+  type: "code" | "running"    // From compose file or running containers
+}
+```
+
+Returns service information:
+- Service names
+- Image names
+- Port mappings
+- Environment variables
+- Volume mounts
+- Network configuration
+
+
+
+### Service Volumes
+
+View volume mounts for a specific service:
+
+```typescript
+GET /api/compose.loadMountsByService
+{
+  composeId: "compose_123",
+  serviceName: "web"
+}
+```
+
+
+
+## Deployment Operations
+
+### Manual Deployment
+
+Trigger a deployment manually:
+
+```typescript
+POST /api/compose.deploy
+{
+  composeId: "compose_123",
+  title: "Manual deployment",
+  description: "Deploying latest changes"
+}
+```
+
+
+
+### Rebuild Deployment
+
+Rebuild without fetching latest code:
+
+```typescript
+POST /api/compose.redeploy
+{
+  composeId: "compose_123",
+  title: "Rebuild",
+  description: "Rebuilding with same code"
+}
+```
+
+
+
+### Start/Stop
+
+Control the compose stack:
+
+```typescript
+// Start all services
+POST /api/compose.start
+{ composeId: "compose_123" }
+
+// Stop all services
+POST /api/compose.stop
+{ composeId: "compose_123" }
+```
+
+
+
+## Advanced Features
+
+### Custom Commands
+
+Override the default docker compose command:
+
+<ParamField path="command" type="string">
+  Custom command to append to `docker compose`
+</ParamField>
+
+Example:
+```typescript
+command: "up -d --build --force-recreate"
+```
+
+### Submodule Support
+
+<ParamField path="enableSubmodules" type="boolean" default={false}>
+  Clone Git submodules when fetching repository
+</ParamField>
+
+### Fetch Source Type
+
+Load the latest compose file from the repository:
+
+```typescript
+POST /api/compose.fetchSourceType
+{
+  composeId: "compose_123"
+}
+```
+
+This clones the repository and loads the compose file without deploying.
+
+
+
+### Get Converted Compose
+
+Get the final compose file with all transformations applied (variables substituted, domains added, etc.):
+
+```typescript
+GET /api/compose.getConvertedCompose
+{
+  composeId: "compose_123"
+}
+```
+
+
+
+## Importing Templates
+
+Import custom templates or configurations:
+
+```typescript
+POST /api/compose.import
+{
+  composeId: "compose_123",
+  base64: "base64_encoded_template_data"
+}
+```
+
+The template data should include:
+- Docker compose file content
+- Configuration (environment variables, domains, mounts)
+
+
+
+## Database Schema
+
+Compose deployments are stored with the following structure:
+
+```typescript
+interface Compose {
+  composeId: string;
+  name: string;
+  appName: string;
+  description?: string;
+  environmentId: string;
+  
+  // Source configuration
+  sourceType: "github" | "gitlab" | "bitbucket" | "gitea" | "git" | "raw";
+  composeFile: string;
+  composePath: string;
+  composeType: "docker-compose" | "stack";
+  
+  // Git configuration
+  repository?: string;
+  owner?: string;
+  branch?: string;
+  autoDeploy: boolean;
+  triggerType: "push" | "pull_request";
+  watchPaths?: string[];
+  
+  // Deployment configuration
+  env?: string;
+  command: string;
+  suffix: string;
+  randomize: boolean;
+  isolatedDeployment: boolean;
+  
+  // Status
+  composeStatus: "idle" | "running" | "done" | "error";
+  
+  // Metadata
+  serverId?: string;
+  createdAt: string;
+}
+```
+
+
+
+## Monitoring & Logs
+
+### Deployment Logs
+
+View logs for the deployment process:
+- Service build output
+- Pull progress
+- Container startup logs
+- Error messages
+
+### Service Logs
+
+Access logs for individual services:
+```bash
+# View logs for a specific service
+docker compose -p {appName} logs -f {serviceName}
+```
+
+### Resource Usage
+
+Monitor resource consumption for all services in the stack:
+- Combined CPU usage
+- Total memory usage
+- Network traffic
+- Disk I/O
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Pin Image Versions">
+    Always use specific image tags instead of `latest` to ensure reproducible deployments:
+    
+    ```yaml
+    # Good
+    image: postgres:16.1
+    
+    # Avoid
+    image: postgres:latest
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Health Checks">
+    Define health checks for services to ensure proper startup order and monitoring:
+    
+    ```yaml
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    ```
+  </Accordion>
+  
+  <Accordion title="Organize with Labels">
+    Use labels to organize and document your services:
+    
+    ```yaml
+    labels:
+      - "com.example.description=Main web server"
+      - "com.example.department=engineering"
+      - "com.example.owner=team@example.com"
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Isolated Deployments for Testing">
+    Enable isolated deployments when you need to test changes without affecting production.
+  </Accordion>
+  
+  <Accordion title="Keep Secrets Secure">
+    Never commit secrets to your compose file. Use environment variables instead:
+    
+    ```yaml
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD}
+      - API_KEY=${API_KEY}
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+### Services Won't Start
+
+1. Check the deployment logs for error messages
+2. Verify all required environment variables are set
+3. Ensure image names are correct and accessible
+4. Check for port conflicts with other services
+
+### Service Communication Issues
+
+1. Verify services are on the same network
+2. Use service names (not container names) for communication
+3. Check firewall rules if accessing external services
+4. Verify port mappings in your compose file
+
+### Volume Mount Problems
+
+1. Ensure volume paths are correctly specified
+2. Check file permissions in mounted directories
+3. Verify volumes are created before containers start
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Domains & Routing" icon="globe" href="/core-concepts/domains-routing">
+    Configure domains for your compose services
+  </Card>
+  <Card title="Templates" icon="file-code" href="/templates/overview">
+    Explore available compose templates
+  </Card>
+</CardGroup>

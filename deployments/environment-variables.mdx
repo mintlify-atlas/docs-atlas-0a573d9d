@@ -1,0 +1,858 @@
+---
+title: Environment Variables
+description: Configure application settings, manage secrets, and control runtime behavior with environment variables
+---
+
+## Overview
+
+Environment variables provide runtime configuration for your applications. Dokploy supports environment variables at multiple levels with inheritance and secret management.
+
+## Variable Hierarchy
+
+Dokploy applies environment variables in this order (later overrides earlier):
+
+<Steps>
+  <Step title="Project Variables">
+    Shared across all applications in a project:
+    ```bash
+    # Set at project level
+    COMPANY_NAME=Acme Corp
+    DEFAULT_REGION=us-east-1
+    ```
+  </Step>
+  
+  <Step title="Environment Variables">
+    Specific to an environment (dev, staging, prod):
+    ```bash
+    # Set at environment level
+    ENV_NAME=production
+    LOG_LEVEL=info
+    ```
+  </Step>
+  
+  <Step title="Application Variables">
+    Specific to individual applications:
+    ```bash
+    # Set at application level
+    DATABASE_URL=postgresql://...
+    API_KEY=abc123
+    PORT=3000
+    ```
+    
+    **Highest priority** - overrides project and environment variables.
+  </Step>
+</Steps>
+
+## Configuration
+
+### Basic Variables
+
+Set environment variables in the Dokploy UI or via API:
+
+```typescript
+{
+  "applicationId": "app-123",
+  "env": "NODE_ENV=production\nPORT=3000\nDATABASE_URL=postgresql://user:pass@db:5432/myapp\nAPI_URL=https://api.example.com"
+}
+```
+
+**Format:**
+- One variable per line
+- Use `KEY=value` format
+- No quotes needed around values
+- Empty lines are ignored
+
+### Multi-line Values
+
+For values containing newlines:
+
+```bash
+# Private key example
+PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA...
+-----END RSA PRIVATE KEY-----"
+
+# JSON configuration
+CONFIG='{"key":"value","nested":{"data":"here"}}'
+```
+
+### Special Characters
+
+Escape special characters in values:
+
+```bash
+# Quotes in values
+MESSAGE="He said \"Hello\""
+
+# Dollar signs
+PASSWORD="my\$ecret\$pass"
+
+# Equals signs in value
+CONNECTION="host=localhost;port=5432;password=pass=word"
+```
+
+## Common Use Cases
+
+### Database Connection
+
+Configure database connectivity:
+
+<CodeGroup>
+```bash PostgreSQL
+DATABASE_URL=postgresql://user:password@postgres:5432/myapp
+PGHOST=postgres
+PGPORT=5432
+PGDATABASE=myapp
+PGUSER=user
+PGPASSWORD=password
+```
+
+```bash MySQL
+DATABASE_URL=mysql://user:password@mysql:3306/myapp
+MYSQL_HOST=mysql
+MYSQL_PORT=3306
+MYSQL_DATABASE=myapp
+MYSQL_USER=user
+MYSQL_PASSWORD=password
+```
+
+```bash MongoDB
+MONGODB_URI=mongodb://user:password@mongodb:27017/myapp
+MONGO_HOST=mongodb
+MONGO_PORT=27017
+MONGO_DATABASE=myapp
+```
+
+```bash Redis
+REDIS_URL=redis://:password@redis:6379
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=password
+```
+</CodeGroup>
+
+<Tip>
+  Use internal Docker network hostnames (e.g., `postgres`, `redis`) instead of `localhost` or IP addresses.
+</Tip>
+
+### Framework-Specific
+
+Configure popular frameworks:
+
+<Tabs>
+  <Tab title="Next.js">
+    ```bash
+    NODE_ENV=production
+    PORT=3000
+    
+    # Public variables (exposed to browser)
+    NEXT_PUBLIC_API_URL=https://api.example.com
+    NEXT_PUBLIC_SITE_URL=https://example.com
+    
+    # Server-only variables
+    DATABASE_URL=postgresql://...
+    SECRET_KEY=your-secret-key
+    API_SECRET=internal-secret
+    ```
+  </Tab>
+  
+  <Tab title="Django">
+    ```bash
+    DJANGO_SETTINGS_MODULE=myapp.settings.production
+    SECRET_KEY=your-django-secret-key
+    DEBUG=False
+    ALLOWED_HOSTS=example.com,www.example.com
+    
+    DATABASE_URL=postgresql://...
+    REDIS_URL=redis://redis:6379
+    
+    # Email
+    EMAIL_HOST=smtp.example.com
+    EMAIL_PORT=587
+    EMAIL_USE_TLS=True
+    EMAIL_HOST_USER=noreply@example.com
+    EMAIL_HOST_PASSWORD=email-password
+    ```
+  </Tab>
+  
+  <Tab title="Laravel">
+    ```bash
+    APP_NAME=MyApp
+    APP_ENV=production
+    APP_KEY=base64:your-app-key
+    APP_DEBUG=false
+    APP_URL=https://example.com
+    
+    DB_CONNECTION=mysql
+    DB_HOST=mysql
+    DB_PORT=3306
+    DB_DATABASE=myapp
+    DB_USERNAME=user
+    DB_PASSWORD=password
+    
+    CACHE_DRIVER=redis
+    QUEUE_CONNECTION=redis
+    SESSION_DRIVER=redis
+    REDIS_HOST=redis
+    REDIS_PORT=6379
+    ```
+  </Tab>
+  
+  <Tab title="Rails">
+    ```bash
+    RAILS_ENV=production
+    SECRET_KEY_BASE=your-secret-key-base
+    
+    DATABASE_URL=postgresql://...
+    REDIS_URL=redis://redis:6379
+    
+    RAILS_SERVE_STATIC_FILES=true
+    RAILS_LOG_TO_STDOUT=true
+    
+    # Action Mailer
+    SMTP_ADDRESS=smtp.example.com
+    SMTP_PORT=587
+    SMTP_USERNAME=noreply@example.com
+    SMTP_PASSWORD=email-password
+    ```
+  </Tab>
+  
+  <Tab title="Express">
+    ```bash
+    NODE_ENV=production
+    PORT=3000
+    
+    DATABASE_URL=postgresql://...
+    REDIS_URL=redis://redis:6379
+    
+    SESSION_SECRET=your-session-secret
+    JWT_SECRET=your-jwt-secret
+    
+    # CORS
+    CORS_ORIGIN=https://example.com
+    ```
+  </Tab>
+  
+  <Tab title="FastAPI">
+    ```bash
+    ENVIRONMENT=production
+    HOST=0.0.0.0
+    PORT=8000
+    
+    DATABASE_URL=postgresql://...
+    REDIS_URL=redis://redis:6379
+    
+    SECRET_KEY=your-secret-key
+    ALGORITHM=HS256
+    
+    # CORS
+    ALLOWED_ORIGINS=https://example.com,https://www.example.com
+    ```
+  </Tab>
+</Tabs>
+
+### Third-Party Services
+
+Configure external service integrations:
+
+```bash
+# AWS
+AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+AWS_DEFAULT_REGION=us-east-1
+AWS_S3_BUCKET=my-bucket
+
+# Stripe
+STRIPE_PUBLIC_KEY=pk_live_xxxxx
+STRIPE_SECRET_KEY=sk_live_xxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxx
+
+# SendGrid
+SENDGRID_API_KEY=SG.xxxxx
+SENDGRID_FROM_EMAIL=noreply@example.com
+
+# Sentry
+SENTRY_DSN=https://xxxxx@sentry.io/xxxxx
+SENTRY_ENVIRONMENT=production
+
+# Auth0
+AUTH0_DOMAIN=myapp.auth0.com
+AUTH0_CLIENT_ID=xxxxx
+AUTH0_CLIENT_SECRET=xxxxx
+```
+
+## Environment File Generation
+
+Dokploy can create a `.env` file in your application container:
+
+```typescript
+{
+  "createEnvFile": true,  // Generate .env file
+  "env": "NODE_ENV=production\nDATABASE_URL=postgresql://..."
+}
+```
+
+When enabled:
+- Creates `/app/.env` in the container
+- Contains all environment variables
+- Useful for applications that read from `.env` files
+- Works alongside environment variables
+
+<Warning>
+  Disable `createEnvFile` if your application doesn't need it. Environment variables are always available regardless of this setting.
+</Warning>
+
+## Build-Time vs Runtime
+
+### Build Arguments
+
+Available during Docker build only:
+
+```typescript
+{
+  "buildArgs": "NODE_ENV=production\nAPI_URL=https://api.example.com"
+}
+```
+
+**Use for:**
+- Compilation flags
+- Build-time URLs (Next.js `NEXT_PUBLIC_*`)
+- Version numbers
+- Build optimizations
+
+**Example in Dockerfile:**
+```dockerfile
+ARG NODE_ENV=production
+ARG API_URL
+
+# Available during build
+RUN npm run build
+
+# Not available at runtime
+```
+
+### Environment Variables
+
+Available at runtime only:
+
+```typescript
+{
+  "env": "DATABASE_URL=postgresql://...\nREDIS_URL=redis://..."
+}
+```
+
+**Use for:**
+- Database connections
+- API keys
+- Runtime configuration
+- Feature flags
+
+<Info>
+  Most configuration should use environment variables, not build arguments. Build arguments are baked into the image.
+</Info>
+
+## Preview Deployment Variables
+
+Set different variables for preview deployments:
+
+```typescript
+{
+  // Production variables
+  "env": "NODE_ENV=production\nDATABASE_URL=postgresql://prod-db:5432/myapp",
+  
+  // Preview-specific variables
+  "previewEnv": "NODE_ENV=preview\nDATABASE_URL=postgresql://preview-db:5432/myapp\nDEBUG=true",
+  
+  // Preview build arguments
+  "previewBuildArgs": "BUILD_ENV=preview\nENABLE_SOURCEMAPS=true"
+}
+```
+
+Preview variables override production variables in preview deployments.
+
+## Variable Interpolation
+
+Reference other variables in values:
+
+```bash
+# Base URL
+BASE_URL=https://example.com
+
+# Reference in other variables
+API_URL=${BASE_URL}/api
+CDN_URL=${BASE_URL}/cdn
+```
+
+<Note>
+  Variable interpolation is handled by your application or shell, not by Dokploy.
+</Note>
+
+## Secret Management
+
+### Marking as Secret
+
+Mark sensitive variables as secrets in the UI:
+1. Add variable in Dokploy dashboard
+2. Click the lock icon next to the variable
+3. Value is encrypted and hidden
+
+### Build Secrets
+
+For secrets needed during build:
+
+```typescript
+{
+  "buildSecrets": "NPM_TOKEN=npm_xxxxx\nGITHUB_TOKEN=ghp_xxxxx"
+}
+```
+
+Use in Dockerfile:
+```dockerfile
+# syntax=docker/dockerfile:1.4
+
+RUN --mount=type=secret,id=NPM_TOKEN \
+    echo "//registry.npmjs.org/:_authToken=$(cat /run/secrets/NPM_TOKEN)" > ~/.npmrc && \
+    npm install && \
+    rm ~/.npmrc
+```
+
+Build secrets are:
+- Not stored in image layers
+- Not available at runtime
+- More secure than build arguments
+
+### Best Practices
+
+<AccordionGroup>
+  <Accordion title="Never Commit Secrets">
+    ```bash
+    # .gitignore
+    .env
+    .env.local
+    .env.*.local
+    config/secrets.yml
+    *.pem
+    *.key
+    ```
+    
+    Always use environment variables for secrets, never hardcode in source.
+  </Accordion>
+  
+  <Accordion title="Use Strong Secrets">
+    ```bash
+    # Generate secure random secrets
+    openssl rand -base64 32
+    
+    # Example output
+    SECRET_KEY=8f7d9c6b5a4e3d2c1b0a9f8e7d6c5b4a3d2c1b0a9f8e7d6c5b4a
+    ```
+  </Accordion>
+  
+  <Accordion title="Rotate Regularly">
+    Update secrets periodically:
+    
+    1. Generate new secret
+    2. Update in Dokploy
+    3. Redeploy application
+    4. Revoke old secret
+    
+    **Frequency:** Every 90 days for high-security apps.
+  </Accordion>
+  
+  <Accordion title="Separate Environments">
+    Use different secrets for each environment:
+    
+    ```bash
+    # Production
+    API_KEY=prod_xxxxx
+    DATABASE_URL=postgresql://prod-db/app
+    
+    # Staging
+    API_KEY=staging_xxxxx
+    DATABASE_URL=postgresql://staging-db/app
+    
+    # Development
+    API_KEY=dev_xxxxx
+    DATABASE_URL=postgresql://dev-db/app
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Variable Validation
+
+Validate required variables in your application:
+
+<CodeGroup>
+```javascript Node.js
+// config.js
+const requiredEnvVars = [
+  'DATABASE_URL',
+  'REDIS_URL',
+  'SECRET_KEY'
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    throw new Error(`Missing required environment variable: ${envVar}`);
+  }
+}
+
+module.exports = {
+  databaseUrl: process.env.DATABASE_URL,
+  redisUrl: process.env.REDIS_URL,
+  secretKey: process.env.SECRET_KEY,
+  port: parseInt(process.env.PORT || '3000', 10)
+};
+```
+
+```python Python
+# config.py
+import os
+from typing import Optional
+
+class Config:
+    DATABASE_URL: str = os.environ['DATABASE_URL']
+    REDIS_URL: str = os.environ['REDIS_URL']
+    SECRET_KEY: str = os.environ['SECRET_KEY']
+    PORT: int = int(os.getenv('PORT', '8000'))
+    DEBUG: bool = os.getenv('DEBUG', 'False').lower() == 'true'
+
+    @classmethod
+    def validate(cls):
+        required = ['DATABASE_URL', 'REDIS_URL', 'SECRET_KEY']
+        missing = [var for var in required if not os.getenv(var)]
+        if missing:
+            raise ValueError(f"Missing required env vars: {', '.join(missing)}")
+
+Config.validate()
+```
+
+```go Go
+// config.go
+package config
+
+import (
+    "fmt"
+    "os"
+    "strconv"
+)
+
+type Config struct {
+    DatabaseURL string
+    RedisURL    string
+    SecretKey   string
+    Port        int
+}
+
+func Load() (*Config, error) {
+    required := map[string]string{
+        "DATABASE_URL": os.Getenv("DATABASE_URL"),
+        "REDIS_URL":    os.Getenv("REDIS_URL"),
+        "SECRET_KEY":   os.Getenv("SECRET_KEY"),
+    }
+    
+    for key, value := range required {
+        if value == "" {
+            return nil, fmt.Errorf("missing required env var: %s", key)
+        }
+    }
+    
+    port, _ := strconv.Atoi(getEnvOrDefault("PORT", "8080"))
+    
+    return &Config{
+        DatabaseURL: required["DATABASE_URL"],
+        RedisURL:    required["REDIS_URL"],
+        SecretKey:   required["SECRET_KEY"],
+        Port:        port,
+    }, nil
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+    if value := os.Getenv(key); value != "" {
+        return value
+    }
+    return defaultValue
+}
+```
+</CodeGroup>
+
+## Accessing Variables
+
+### In Application Code
+
+<Tabs>
+  <Tab title="Node.js">
+    ```javascript
+    // Access via process.env
+    const dbUrl = process.env.DATABASE_URL;
+    const port = parseInt(process.env.PORT || '3000', 10);
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // Using dotenv package (optional)
+    require('dotenv').config();
+    ```
+  </Tab>
+  
+  <Tab title="Python">
+    ```python
+    import os
+    
+    # Access via os.environ
+    db_url = os.environ['DATABASE_URL']
+    port = int(os.getenv('PORT', '8000'))
+    is_production = os.getenv('ENVIRONMENT') == 'production'
+    
+    # Using python-dotenv (optional)
+    from dotenv import load_dotenv
+    load_dotenv()
+    ```
+  </Tab>
+  
+  <Tab title="Go">
+    ```go
+    import "os"
+    
+    // Access via os.Getenv
+    dbURL := os.Getenv("DATABASE_URL")
+    port := os.Getenv("PORT")
+    isProduction := os.Getenv("ENVIRONMENT") == "production"
+    
+    // With default value
+    port := os.Getenv("PORT")
+    if port == "" {
+        port = "8080"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="PHP">
+    ```php
+    <?php
+    // Access via $_ENV or getenv()
+    $dbUrl = $_ENV['DATABASE_URL'];
+    $port = getenv('PORT') ?: 8000;
+    $isProduction = getenv('APP_ENV') === 'production';
+    
+    // Using vlucas/phpdotenv (optional)
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+    $dotenv->load();
+    ```
+  </Tab>
+  
+  <Tab title="Ruby">
+    ```ruby
+    # Access via ENV
+    db_url = ENV['DATABASE_URL']
+    port = ENV.fetch('PORT', 3000).to_i
+    is_production = ENV['RAILS_ENV'] == 'production'
+    
+    # Using dotenv gem (optional)
+    require 'dotenv/load'
+    ```
+  </Tab>
+</Tabs>
+
+### In Docker Compose
+
+Reference Dokploy environment variables in compose files:
+
+```yaml
+services:
+  app:
+    image: myapp:latest
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - NODE_ENV=production
+    env_file:
+      - .env  # If using env file generation
+```
+
+## Dynamic Configuration
+
+Update variables without redeploying:
+
+```bash
+# Update variables via API
+curl -X POST https://your-domain.com/api/trpc/application.saveEnvironment \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "env": "NODE_ENV=production\nDATABASE_URL=postgresql://...\nNEW_FEATURE=enabled",
+    "createEnvFile": true
+  }'
+
+# Redeploy to apply changes
+curl -X POST https://your-domain.com/api/trpc/application.redeploy \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "title": "Update environment variables"
+  }'
+```
+
+<Info>
+  Variable changes require a redeploy to take effect. Use the redeploy endpoint (not deploy) to avoid rebuilding from source.
+</Info>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Variable Not Available">
+    **Symptoms:** Application can't read environment variable
+    
+    **Solutions:**
+    1. Verify variable is set:
+       ```bash
+       docker exec <container-id> env | grep VARIABLE_NAME
+       ```
+    2. Check variable format:
+       ```bash
+       # Correct
+       KEY=value
+       
+       # Incorrect
+       export KEY=value  # Don't use export
+       KEY = value       # No spaces around =
+       ```
+    3. Ensure application reads from correct source:
+       ```javascript
+       // Node.js
+       console.log(process.env.VARIABLE_NAME);
+       ```
+  </Accordion>
+  
+  <Accordion title="Variable Contains Wrong Value">
+    **Symptoms:** Variable has unexpected value
+    
+    **Solutions:**
+    1. Check variable hierarchy:
+       - Application variables override environment variables
+       - Environment variables override project variables
+    2. Verify no hardcoded values:
+       ```javascript
+       // Check source code for hardcoded values
+       const apiUrl = process.env.API_URL || 'http://localhost:3000';
+       ```
+    3. Ensure redeploy after changes:
+       ```bash
+       # Variables only apply after redeploy
+       curl -X POST .../application.redeploy
+       ```
+  </Accordion>
+  
+  <Accordion title="Special Characters Causing Issues">
+    **Symptoms:** Variables with special characters break
+    
+    **Solutions:**
+    1. Escape special characters:
+       ```bash
+       # Dollar signs
+       PASSWORD=my\$ecret
+       
+       # Quotes
+       MESSAGE="He said \"Hello\""
+       ```
+    2. Use base64 for complex values:
+       ```bash
+       # Encode
+       echo "complex$value" | base64
+       # Result: Y29tcGxleCR2YWx1ZQ==
+       
+       # In environment
+       ENCODED_VALUE=Y29tcGxleCR2YWx1ZQ==
+       
+       # Decode in application
+       const decoded = Buffer.from(process.env.ENCODED_VALUE, 'base64').toString();
+       ```
+  </Accordion>
+  
+  <Accordion title="Build Arguments Not Working at Runtime">
+    **Symptoms:** Build args are undefined at runtime
+    
+    **Solutions:**
+    Build arguments are build-time only. Use environment variables:
+    
+    ```dockerfile
+    # Build-time (not available at runtime)
+    ARG API_URL
+    
+    # Convert to environment variable
+    ENV API_URL=${API_URL}
+    
+    # Now available at runtime
+    ```
+    
+    Or configure in Dokploy:
+    ```typescript
+    {
+      "buildArgs": "API_URL=https://api.example.com",
+      "env": "API_URL=https://api.example.com"  // For runtime
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## API Reference
+
+### Save Environment Variables
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/application.saveEnvironment \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "env": "NODE_ENV=production\nDATABASE_URL=postgresql://...",
+    "buildArgs": "NODE_ENV=production",
+    "buildSecrets": "NPM_TOKEN=npm_xxxxx",
+    "createEnvFile": true
+  }'
+```
+
+### Update Application
+
+```bash
+curl -X POST https://your-domain.com/api/trpc/application.update \
+  -H "x-api-key: your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "applicationId": "app-123",
+    "env": "UPDATED_VAR=new-value"
+  }'
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Build Configuration"
+    icon="hammer"
+    href="/deployments/build-configuration"
+  >
+    Configure build process and arguments
+  </Card>
+  <Card
+    title="Git Integration"
+    icon="code-branch"
+    href="/deployments/git-integration"
+  >
+    Automate deployments from Git
+  </Card>
+  <Card
+    title="Security"
+    icon="shield"
+    href="/configuration/security"
+  >
+    Security best practices
+  </Card>
+  <Card
+    title="Deployments Overview"
+    icon="rocket"
+    href="/deployments/overview"
+  >
+    Learn about deployment workflows
+  </Card>
+</CardGroup>

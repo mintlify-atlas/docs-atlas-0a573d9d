@@ -1,0 +1,375 @@
+---
+title: "Installation"
+description: "Install Dokploy on your VPS or server in minutes with a single command"
+---
+
+## System Requirements
+
+Before installing Dokploy, ensure your server meets the following requirements:
+
+<CardGroup cols={2}>
+  <Card title="Operating System" icon="linux">
+    Ubuntu 20.04+ (recommended), Debian 11+, or any Docker-compatible Linux distribution
+  </Card>
+  <Card title="Hardware" icon="microchip">
+    Minimum 1GB RAM (2GB+ recommended), 10GB free disk space
+  </Card>
+  <Card title="Network" icon="network-wired">
+    Public IP address and open ports 80 (HTTP) and 443 (HTTPS)
+  </Card>
+  <Card title="Access" icon="key">
+    Root or sudo access to the server
+  </Card>
+</CardGroup>
+
+<Warning>
+  Dokploy requires Docker to be installed. The installation script will automatically install Docker if it's not already present on your system.
+</Warning>
+
+## Quick Installation
+
+The easiest way to install Dokploy is using the official installation script. This script handles all dependencies and configuration automatically.
+
+<Steps>
+  <Step title="Connect to your server">
+    SSH into your VPS or server:
+    
+    ```bash
+    ssh user@your-server-ip
+    ```
+  </Step>
+  
+  <Step title="Run the installation script">
+    Execute the Dokploy installation command:
+    
+    ```bash
+    curl -sSL https://dokploy.com/install.sh | sh
+    ```
+    
+    The script will:
+    - Install Docker Engine 28.5.2 (if not already installed)
+    - Pull the latest Dokploy Docker image
+    - Set up PostgreSQL database
+    - Configure Traefik for reverse proxy and SSL
+    - Start all required services
+    
+    <Note>
+      The installation process typically takes 2-5 minutes depending on your server's internet connection.
+    </Note>
+  </Step>
+  
+  <Step title="Access the dashboard">
+    Once installation completes, access the Dokploy dashboard:
+    
+    ```
+    http://your-server-ip:3000
+    ```
+    
+    You'll be prompted to create your admin account on first access.
+  </Step>
+  
+  <Step title="Create your admin account">
+    Set up your administrator credentials:
+    - Enter your email address
+    - Create a secure password
+    - Complete the initial setup wizard
+    
+    <Tip>
+      Save your credentials securely. If you lose your password, you can reset it using the CLI command documented below.
+    </Tip>
+  </Step>
+</Steps>
+
+## Alternative Installation Methods
+
+<Accordion title="Installation with Docker Compose">
+  If you prefer to manage Dokploy with Docker Compose, you can create your own `docker-compose.yml` file:
+  
+  ```yaml docker-compose.yml
+  version: '3.8'
+  
+  services:
+    dokploy:
+      image: dokploy/dokploy:latest
+      restart: unless-stopped
+      ports:
+        - "3000:3000"
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - dokploy-data:/app/data
+      environment:
+        - DATABASE_URL=postgres://dokploy:password@postgres:5432/dokploy
+        - NODE_ENV=production
+      depends_on:
+        - postgres
+    
+    postgres:
+      image: postgres:16-alpine
+      restart: unless-stopped
+      volumes:
+        - postgres-data:/var/lib/postgresql/data
+      environment:
+        - POSTGRES_USER=dokploy
+        - POSTGRES_PASSWORD=password
+        - POSTGRES_DB=dokploy
+  
+  volumes:
+    dokploy-data:
+    postgres-data:
+  ```
+  
+  Then start the services:
+  
+  ```bash
+  docker-compose up -d
+  ```
+</Accordion>
+
+<Accordion title="Installation on Specific Cloud Providers">
+  ### DigitalOcean
+  
+  1. Create a Droplet with Ubuntu 22.04
+  2. Select at least the 2GB RAM option
+  3. SSH into your droplet
+  4. Run the installation command
+  
+  ### AWS EC2
+  
+  1. Launch an EC2 instance with Ubuntu Server 22.04
+  2. Use t3.small or larger instance type
+  3. Configure security group to allow ports 80, 443, and 3000
+  4. SSH into your instance and run the installation command
+  
+  ### Hetzner Cloud
+  
+  1. Create a CX22 or larger server with Ubuntu 22.04
+  2. Add firewall rules for ports 80, 443, and 3000
+  3. SSH into your server and run the installation command
+</Accordion>
+
+<Accordion title="Behind a Firewall or Private Network">
+  If you're installing Dokploy behind a firewall or in a private network:
+  
+  1. Ensure your server can access:
+     - `dokploy.com` (for installation script)
+     - `get.docker.com` (for Docker installation)
+     - `docker.io` and `ghcr.io` (for Docker images)
+  
+  2. Configure your firewall to allow:
+     - Inbound: ports 80, 443, 3000
+     - Outbound: ports 80, 443 (for external services)
+  
+  3. If using a proxy, configure Docker to use it before installation:
+  
+  ```bash
+  mkdir -p /etc/systemd/system/docker.service.d
+  cat > /etc/systemd/system/docker.service.d/http-proxy.conf << EOF
+  [Service]
+  Environment="HTTP_PROXY=http://proxy.example.com:8080"
+  Environment="HTTPS_PROXY=http://proxy.example.com:8080"
+  EOF
+  ```
+</Accordion>
+
+## What Gets Installed
+
+The Dokploy installation includes several components:
+
+<AccordionGroup>
+  <Accordion title="Docker Engine" icon="docker">
+    Docker 28.5.2 is installed with all necessary dependencies:
+    - Container runtime
+    - Docker CLI
+    - Docker Compose V2
+    - Containerd
+  </Accordion>
+  
+  <Accordion title="Build Tools" icon="hammer">
+    Multiple build systems for different application types:
+    - **Nixpacks 1.41.0** - Universal build system (recommended)
+    - **Railpack 0.15.4** - Optimized for Ruby on Rails
+    - **Buildpacks 0.39.1** - Cloud Native Buildpacks
+  </Accordion>
+  
+  <Accordion title="Core Services" icon="server">
+    Essential services for Dokploy operation:
+    - PostgreSQL 16 (database)
+    - Traefik (reverse proxy and load balancer)
+    - Dokploy API and Web UI
+  </Accordion>
+  
+  <Accordion title="Utilities" icon="toolbox">
+    Additional tools installed:
+    - **rclone** - For backup operations to external storage
+    - **git-lfs** - For Git repositories with large files
+    - **rsync** - For efficient file synchronization
+  </Accordion>
+</AccordionGroup>
+
+## Post-Installation Configuration
+
+<Steps>
+  <Step title="Configure SSL/TLS">
+    Dokploy uses Traefik for automatic SSL certificate provisioning via Let's Encrypt.
+    
+    To enable HTTPS:
+    1. Navigate to **Settings** > **Server**
+    2. Enter your domain name
+    3. Configure Let's Encrypt email
+    4. Save changes
+    
+    Certificates will be automatically issued and renewed.
+  </Step>
+  
+  <Step title="Set up Git providers (optional)">
+    Connect GitHub, GitLab, or Bitbucket for seamless deployments:
+    
+    1. Go to **Settings** > **Git Providers**
+    2. Click **Add Provider**
+    3. Authenticate with your provider
+    4. Grant necessary permissions
+  </Step>
+  
+  <Step title="Configure notifications (optional)">
+    Get notified about deployment status:
+    
+    1. Navigate to **Settings** > **Notifications**
+    2. Add integrations for Slack, Discord, Telegram, or Email
+    3. Test the connection
+  </Step>
+</Steps>
+
+## Verifying Installation
+
+To verify Dokploy is running correctly:
+
+<CodeGroup>
+```bash Check Dokploy status
+docker ps | grep dokploy
+```
+
+```bash Check all services
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+```
+
+```bash View Dokploy logs
+docker logs -f dokploy
+```
+
+```bash Check Docker version
+docker --version
+```
+</CodeGroup>
+
+All services should show as "Up" or "healthy" status.
+
+## Troubleshooting Installation
+
+<AccordionGroup>
+  <Accordion title="Installation script fails">
+    If the installation script fails:
+    
+    1. Check your internet connection
+    2. Ensure you have sudo/root access
+    3. Verify system requirements are met
+    4. Check the logs: `journalctl -xe`
+    5. Try running the script again
+  </Accordion>
+  
+  <Accordion title="Cannot access dashboard">
+    If you can't access the dashboard at port 3000:
+    
+    1. Check firewall rules: `sudo ufw status`
+    2. Allow port 3000: `sudo ufw allow 3000`
+    3. Verify Dokploy is running: `docker ps | grep dokploy`
+    4. Check logs: `docker logs dokploy`
+  </Accordion>
+  
+  <Accordion title="Docker permission errors">
+    If you encounter Docker permission errors:
+    
+    ```bash
+    sudo usermod -aG docker $USER
+    newgrp docker
+    ```
+    
+    Or for specific directories:
+    ```bash
+    sudo chown -R $USER ~/.docker
+    ```
+  </Accordion>
+  
+  <Accordion title="Password reset">
+    If you've lost your admin password:
+    
+    ```bash
+    docker exec -it dokploy pnpm run reset-password
+    ```
+    
+    Follow the prompts to create a new password.
+  </Accordion>
+</AccordionGroup>
+
+## Updating Dokploy
+
+To update Dokploy to the latest version:
+
+```bash
+docker pull dokploy/dokploy:latest
+docker stop dokploy
+docker rm dokploy
+curl -sSL https://dokploy.com/install.sh | sh
+```
+
+<Warning>
+  Always backup your database before updating. See the [Backups](/advanced/backups) documentation for details.
+</Warning>
+
+## Uninstalling Dokploy
+
+To completely remove Dokploy from your system:
+
+```bash
+# Stop and remove containers
+docker stop dokploy postgres traefik
+docker rm dokploy postgres traefik
+
+# Remove volumes (WARNING: This deletes all data)
+docker volume rm dokploy-data postgres-data
+
+# Remove Docker (optional)
+sudo apt-get purge docker-ce docker-ce-cli containerd.io
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Quickstart Guide"
+    icon="rocket"
+    href="/getting-started/quickstart"
+  >
+    Learn the basics of using Dokploy
+  </Card>
+  <Card
+    title="First Deployment"
+    icon="upload"
+    href="/getting-started/first-deployment"
+  >
+    Deploy your first application
+  </Card>
+  <Card
+    title="Core Concepts"
+    icon="book"
+    href="/core-concepts/projects"
+  >
+    Understand projects, applications, and databases
+  </Card>
+  <Card
+    title="Configuration"
+    icon="gear"
+    href="/configuration/server-settings"
+  >
+    Configure server settings and integrations
+  </Card>
+</CardGroup>

@@ -1,0 +1,451 @@
+---
+title: 'Users'
+description: 'Manage users, permissions, API keys, and organization memberships'
+---
+
+## List All Users
+
+Retrieve all users in the current organization.
+
+### GET `/user.all`
+
+<Note>
+Requires admin privileges.
+</Note>
+
+### Authentication
+
+Requires admin authentication.
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/user.all" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+### Example Response
+
+```json
+[
+  {
+    "userId": "user_123",
+    "email": "john@example.com",
+    "name": "John Doe",
+    "role": "member",
+    "createdAt": "2024-03-15T10:00:00.000Z",
+    "user": {
+      "email": "john@example.com",
+      "name": "John Doe",
+      "image": "https://avatar.example.com/john.jpg"
+    }
+  }
+]
+```
+
+---
+
+## Get User
+
+### GET `/user.one`
+
+Retrieve details of a specific user.
+
+<ParamField query="userId" type="string" required>
+  The unique identifier of the user
+</ParamField>
+
+### Authorization
+
+- Users can access their own information
+- Admins can access any user in their organization
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/user.one?userId=user_123" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## Get Current User
+
+### GET `/user.get`
+
+Retrieve the currently authenticated user's information including API keys.
+
+### Example Request
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/user.get" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+{
+  "userId": "user_123",
+  "email": "john@example.com",
+  "role": "admin",
+  "user": {
+    "id": "user_123",
+    "email": "john@example.com",
+    "name": "John Doe",
+    "image": "https://avatar.example.com/john.jpg",
+    "apiKeys": [
+      {
+        "id": "key_abc123",
+        "name": "Production API Key",
+        "createdAt": "2024-03-15T10:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Update User
+
+### POST `/user.update`
+
+Update user profile and password.
+
+<ParamField body="name" type="string">
+  Updated user name
+</ParamField>
+
+<ParamField body="email" type="string">
+  Updated email address
+</ParamField>
+
+<ParamField body="image" type="string">
+  Profile image URL
+</ParamField>
+
+<ParamField body="currentPassword" type="string">
+  Current password (required when changing password)
+</ParamField>
+
+<ParamField body="password" type="string">
+  New password
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/user.update" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "name": "John Smith",
+    "currentPassword": "oldPassword123",
+    "password": "newSecurePassword456"
+  }'
+```
+
+---
+
+## Remove User
+
+### POST `/user.remove`
+
+Delete a user from the organization.
+
+<Warning>
+- Only admins and owners can delete users
+- Cannot delete the organization owner
+- Admins cannot delete themselves
+- Only owners can delete other admins
+</Warning>
+
+<ParamField body="userId" type="string" required>
+  The unique identifier of the user to remove
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/user.remove" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "userId": "user_123"
+  }'
+```
+
+---
+
+## Assign Permissions
+
+### POST `/user.assignPermissions`
+
+Update user permissions and role within the organization.
+
+<Note>
+Only organization owners can assign permissions.
+</Note>
+
+<ParamField body="id" type="string" required>
+  User ID to update
+</ParamField>
+
+<ParamField body="role" type="string">
+  User role: `owner`, `admin`, or `member`
+</ParamField>
+
+<ParamField body="canCreateProjects" type="boolean">
+  Permission to create new projects
+</ParamField>
+
+<ParamField body="canDeleteProjects" type="boolean">
+  Permission to delete projects
+</ParamField>
+
+<ParamField body="canAccessAuditLog" type="boolean">
+  Permission to view audit logs
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/user.assignPermissions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_OWNER_TOKEN" \
+  -d '{
+    "id": "user_123",
+    "role": "admin",
+    "canCreateProjects": true,
+    "canDeleteProjects": false,
+    "canAccessAuditLog": true
+  }'
+```
+
+---
+
+## API Key Management
+
+### Create API Key
+
+#### POST `/user.createApiKey`
+
+Generate a new API key for programmatic access.
+
+<ParamField body="name" type="string" required>
+  Name for the API key
+</ParamField>
+
+<ParamField body="prefix" type="string">
+  Custom prefix for the API key
+</ParamField>
+
+<ParamField body="expiresIn" type="number">
+  Expiration time in seconds
+</ParamField>
+
+<ParamField body="metadata" type="object" required>
+  Metadata including organization information
+  
+  <ParamField body="organizationId" type="string" required>
+    Organization ID for the API key
+  </ParamField>
+</ParamField>
+
+<ParamField body="rateLimitEnabled" type="boolean">
+  Enable rate limiting for this key
+</ParamField>
+
+<ParamField body="rateLimitTimeWindow" type="number">
+  Rate limit time window in seconds
+</ParamField>
+
+<ParamField body="rateLimitMax" type="number">
+  Maximum requests per time window
+</ParamField>
+
+<ParamField body="remaining" type="number">
+  Total number of requests allowed
+</ParamField>
+
+<ParamField body="refillAmount" type="number">
+  Number of requests to refill
+</ParamField>
+
+<ParamField body="refillInterval" type="number">
+  Refill interval in seconds
+</ParamField>
+
+### Example Request
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/user.createApiKey" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "name": "Production API Key",
+    "prefix": "prod",
+    "expiresIn": 31536000,
+    "metadata": {
+      "organizationId": "org_123"
+    },
+    "rateLimitEnabled": true,
+    "rateLimitTimeWindow": 3600,
+    "rateLimitMax": 1000
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "id": "key_abc123",
+  "name": "Production API Key",
+  "key": "prod_live_1234567890abcdef",
+  "prefix": "prod",
+  "createdAt": "2024-03-15T10:00:00.000Z",
+  "expiresAt": "2025-03-15T10:00:00.000Z"
+}
+```
+
+<Warning>
+Store the API key securely. It will only be shown once during creation.
+</Warning>
+
+### Delete API Key
+
+#### POST `/user.deleteApiKey`
+
+<ParamField body="apiKeyId" type="string" required>
+  The unique identifier of the API key to delete
+</ParamField>
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/user.deleteApiKey" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "apiKeyId": "key_abc123"
+  }'
+```
+
+---
+
+## Invitations
+
+### Get User Invitations
+
+#### GET `/user.getInvitations`
+
+Retrieve pending invitations for the current user.
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/user.getInvitations" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+[
+  {
+    "id": "inv_123",
+    "email": "john@example.com",
+    "role": "member",
+    "status": "pending",
+    "expiresAt": "2024-03-22T10:00:00.000Z",
+    "organization": {
+      "id": "org_456",
+      "name": "Acme Corporation",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+]
+```
+
+### Send Invitation
+
+#### POST `/user.sendInvitation`
+
+Send an invitation email to a user.
+
+<Note>
+Admin privileges required. Disabled on Dokploy Cloud.
+</Note>
+
+<ParamField body="invitationId" type="string" required>
+  The invitation ID to send
+</ParamField>
+
+<ParamField body="notificationId" type="string" required>
+  Notification provider ID for sending the email
+</ParamField>
+
+```bash
+curl -X POST "https://your-dokploy-instance.com/api/user.sendInvitation" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "invitationId": "inv_123",
+    "notificationId": "notif_456"
+  }'
+```
+
+---
+
+## User Organization Info
+
+### Check User Organizations
+
+#### GET `/user.checkUserOrganizations`
+
+Check how many organizations a user belongs to.
+
+<ParamField query="userId" type="string" required>
+  The user ID to check
+</ParamField>
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/user.checkUserOrganizations?userId=user_123" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+{
+  "count": 3
+}
+```
+
+---
+
+## Metrics Access
+
+### Get Metrics Token
+
+#### GET `/user.getMetricsToken`
+
+Retrieve the token and configuration for accessing metrics.
+
+```bash
+curl -X GET "https://your-dokploy-instance.com/api/user.getMetricsToken" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Example Response
+
+```json
+{
+  "serverIp": "203.0.113.42",
+  "enabledFeatures": true,
+  "metricsConfig": {
+    "server": {
+      "refreshRate": 5,
+      "port": 9090,
+      "token": "metrics-token-here"
+    }
+  }
+}
+```
