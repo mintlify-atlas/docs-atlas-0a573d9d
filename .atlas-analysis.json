@@ -1,0 +1,217 @@
+{
+  "projectType": "saas",
+  "projectName": "Dokploy",
+  "projectDescription": "Open-source, self-hostable Platform as a Service for deploying applications and managing databases",
+  "theme": "aspen",
+  "primaryColor": "#7c7c7a",
+  "lightColor": "#101010",
+  "darkColor": "#f4f4f4",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "introduction",
+              "features"
+            ]
+          },
+          {
+            "group": "Getting Started",
+            "pages": [
+              "getting-started/installation",
+              "getting-started/quickstart",
+              "getting-started/first-deployment"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "core-concepts/projects",
+              "core-concepts/applications",
+              "core-concepts/databases",
+              "core-concepts/docker-compose",
+              "core-concepts/domains-routing"
+            ]
+          },
+          {
+            "group": "Deployments",
+            "pages": [
+              "deployments/overview",
+              "deployments/git-integration",
+              "deployments/docker-registry",
+              "deployments/build-configuration",
+              "deployments/environment-variables"
+            ]
+          },
+          {
+            "group": "Databases",
+            "pages": [
+              "databases/overview",
+              "databases/postgresql",
+              "databases/mysql",
+              "databases/mongodb",
+              "databases/mariadb",
+              "databases/redis",
+              "databases/backups"
+            ]
+          },
+          {
+            "group": "Monitoring & Observability",
+            "pages": [
+              "monitoring/overview",
+              "monitoring/real-time-metrics",
+              "monitoring/logs",
+              "monitoring/notifications"
+            ]
+          },
+          {
+            "group": "Advanced Features",
+            "pages": [
+              "advanced/multi-node",
+              "advanced/docker-swarm",
+              "advanced/templates",
+              "advanced/ssl-certificates",
+              "advanced/backups",
+              "advanced/networking",
+              "advanced/volumes-storage"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/server-settings",
+              "configuration/security",
+              "configuration/git-providers",
+              "configuration/notifications",
+              "configuration/registry"
+            ]
+          },
+          {
+            "group": "CLI & Automation",
+            "pages": [
+              "cli/overview",
+              "cli/commands",
+              "cli/automation"
+            ]
+          },
+          {
+            "group": "Community & Support",
+            "pages": [
+              "community/contributing",
+              "community/troubleshooting",
+              "community/faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/authentication"
+            ]
+          },
+          {
+            "group": "Applications",
+            "pages": [
+              "api-reference/applications/overview",
+              "api-reference/applications/create",
+              "api-reference/applications/deploy",
+              "api-reference/applications/manage"
+            ]
+          },
+          {
+            "group": "Databases",
+            "pages": [
+              "api-reference/databases/overview",
+              "api-reference/databases/postgresql",
+              "api-reference/databases/mysql",
+              "api-reference/databases/mongodb",
+              "api-reference/databases/redis"
+            ]
+          },
+          {
+            "group": "Docker",
+            "pages": [
+              "api-reference/docker/containers",
+              "api-reference/docker/images",
+              "api-reference/docker/compose"
+            ]
+          },
+          {
+            "group": "Projects & Deployments",
+            "pages": [
+              "api-reference/projects",
+              "api-reference/deployments",
+              "api-reference/domains"
+            ]
+          },
+          {
+            "group": "Monitoring",
+            "pages": [
+              "api-reference/monitoring/metrics",
+              "api-reference/monitoring/logs"
+            ]
+          },
+          {
+            "group": "Administration",
+            "pages": [
+              "api-reference/admin/servers",
+              "api-reference/admin/settings",
+              "api-reference/admin/users"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Deploy applications (Node.js, PHP, Python, Go, Ruby, etc.)",
+    "Manage databases (MySQL, PostgreSQL, MongoDB, MariaDB, Redis)",
+    "Docker Compose support for complex applications",
+    "Multi-node deployment with Docker Swarm",
+    "Real-time monitoring (CPU, memory, storage, network)",
+    "Automated database backups",
+    "One-click templates deployment",
+    "Traefik integration for routing and load balancing",
+    "CLI and API for automation",
+    "Notifications (Slack, Discord, Telegram, Email)",
+    "Multi-server deployment support",
+    "SSL certificate management"
+  ],
+  "publicApiSurface": [
+    "admin.setupMonitoring",
+    "application.create",
+    "application.deploy",
+    "docker.getContainers",
+    "docker.restartContainer",
+    "postgres.create",
+    "mysql.create",
+    "mongo.create",
+    "redis.create",
+    "mariadb.create",
+    "compose.create",
+    "compose.deploy",
+    "project.create",
+    "deployment.create",
+    "domain.create",
+    "backup.create",
+    "certificate.create",
+    "cluster.create",
+    "notification.create",
+    "server.create",
+    "monitoring.getMetrics",
+    "user.create",
+    "settings.update",
+    "github.connect",
+    "gitlab.connect",
+    "bitbucket.connect",
+    "gitea.connect"
+  ]
+}
